@@ -14,7 +14,7 @@
 
 
     <!-- Initial setup screen -->
-    <string name="setup_welcome">Welcome to %1$d</string>
+    <string name="setup_welcome">Welcome to %1$s</string>
     <string name="setup_enable_backups">Enable encrypted backups?</string>
     <string name="setup_enable_backups_description">Snout uses your phone’s secure hardware to ensure that your secrets can not be extracted by anyone - including by you.\n\nIf you choose to enable backups, Snout will store an additional copy of your secrets encrypted using a key which is not capable of decrypting them.\n\nYou may erase and disable encrypted backups at any time. Once backups are disabled however, they can not be re-enabled unless you reset your vault and re-add all your secrets.</string>
     <string name="setup_enable_backups_card_enable">Enable backups</string>
