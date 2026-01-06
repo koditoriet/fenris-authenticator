@@ -14,12 +14,12 @@ import android.hardware.camera2.params.SessionConfiguration
 import android.media.ImageReader
 import android.os.Handler
 import android.os.HandlerThread
+import android.util.Log
 import android.view.Surface
 import android.view.TextureView
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -51,6 +51,8 @@ import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.math.abs
 import kotlin.math.min
+
+private const val TAG = "QrScanner"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -99,18 +101,26 @@ private fun QrScannerView(
     modifier: Modifier = Modifier,
     onQrScanned: (String) -> Unit
 ) {
+    Log.i(TAG, "Initializing camera for QR scanning")
     val handlerThread = HandlerThread("camera-bg").apply { start() }
     val handler = Handler(handlerThread.looper)
     val cameraManager = LocalContext.current.getSystemService(Context.CAMERA_SERVICE) as CameraManager
     val cameraId = cameraManager.getBackCameraId()
 
     // Pick the largest available 16:9 resolution
-    val outputSize = cameraManager
+    val availableOutputSizes = cameraManager
         .getCameraCharacteristics(cameraId)
         .get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)!!
         .getOutputSizes(ImageFormat.YUV_420_888)
         .filter { abs((it.width.toFloat() / it.height) - (16f / 9f)) < 0.001 }
-        .maxByOrNull { it.width }!!
+
+    Log.i(TAG, "Available 16:9 output sizes: ${availableOutputSizes.joinToString(", ")}")
+
+    val outputSize = availableOutputSizes
+        .filter { it.width < 1920 }
+        .maxByOrNull { it.width } ?: availableOutputSizes.maxBy { it.width }
+
+    Log.i(TAG, "Picked output size $outputSize")
 
     AndroidView(
         modifier = modifier,
@@ -128,16 +138,21 @@ private fun QrScannerView(
                             onQrScanned = onQrScanned,
                             onConfigured = { captureSession = it }
                         )
+
+                        // This entire component is wrapped in a RequiresPermission component which ensures that we
+                        // never get here unless we have camera access.
                         @Suppress("MissingPermission")
                         cameraManager.openCamera(cameraId, callback, handler)
                     }
 
                     override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean {
+                        Log.d(TAG, "Camera preview surface texture destroyed, stopping camera")
                         captureSession?.apply {
                             stopRepeating()
                             abortCaptures()
                             close()
                             device.close()
+                            Log.d(TAG, "Camera stopped")
                         }
                         return true
                     }

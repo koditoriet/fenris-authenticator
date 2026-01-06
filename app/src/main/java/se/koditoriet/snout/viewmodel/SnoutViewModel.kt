@@ -2,6 +2,7 @@ package se.koditoriet.snout.viewmodel
 
 import android.app.Application
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -34,6 +35,8 @@ import java.lang.Exception
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
 
+private const val TAG = "SnoutViewModel"
+
 class SnoutViewModel(private val app: Application) : AndroidViewModel(app) {
     private val mutex: Mutex = Mutex()
 
@@ -57,12 +60,16 @@ class SnoutViewModel(private val app: Application) : AndroidViewModel(app) {
 
     suspend fun lockVaultAfterIdleTimeout() {
         if (config.first().lockOnClose) {
-            delay(config.first().lockOnCloseGracePeriod.seconds)
+            val idleTimeout = config.first().lockOnCloseGracePeriod.seconds
+            Log.i(TAG, "Locking screen in $idleTimeout seconds")
+            delay(idleTimeout)
+            Log.i(TAG, "Idle timeout expired; locking vault")
             lockVault()
         }
     }
 
     suspend fun createVault(backupSeed: BackupSeed?) = mutex.withLock {
+        Log.i(TAG, "Creating vault; enable backups: ${backupSeed != null}")
         val (dbKey, backupKeys) = CipherAuthenticator.withReason(
             reason = strings.authCreateVault,
             subtitle = strings.authDefaultSubtitle,
@@ -82,6 +89,7 @@ class SnoutViewModel(private val app: Application) : AndroidViewModel(app) {
     }
 
     suspend fun wipeVault() = mutex.withLock {
+        Log.i(TAG, "Wiping vault")
         vault.wipe()
         configDatastore.updateData { Config.default }
         _vaultState.value = vault.state
@@ -89,6 +97,7 @@ class SnoutViewModel(private val app: Application) : AndroidViewModel(app) {
     }
 
     suspend fun lockVault() = mutex.withLock {
+        Log.i(TAG, "Locking vault")
         vault.lock()
         _vaultState.value = vault.state
         reloadSecrets()
@@ -99,6 +108,7 @@ class SnoutViewModel(private val app: Application) : AndroidViewModel(app) {
     }
 
     suspend fun unlockVault() = mutex.withLock {
+        Log.i(TAG, "Attempting to unlock vault")
         val config = config.first()
         check(config.encryptedDbKey != null)
         CipherAuthenticator.withReason(
@@ -107,11 +117,13 @@ class SnoutViewModel(private val app: Application) : AndroidViewModel(app) {
         ) {
             vault.unlock(config.encryptedDbKey, config.backupKeys?.toVaultBackupKeys())
         }
+        Log.i(TAG, "Vault unlocked")
         _vaultState.value = vault.state
         reloadSecrets()
     }
 
     suspend fun exportVault(uri: Uri): Unit = mutex.withLock {
+        Log.i(TAG, "Exporting backup to $uri")
         app.contentResolver.openOutputStream(uri)!!.use { stream ->
             stream.write(vault.export().encode().toByteArray())
         }
@@ -119,6 +131,7 @@ class SnoutViewModel(private val app: Application) : AndroidViewModel(app) {
 
     @OptIn(ExperimentalSerializationApi::class)
     suspend fun importFromFile(uri: Uri): Unit = mutex.withLock {
+        Log.i(TAG, "Importing secrets from file $uri")
         check(config.first().enableDeveloperFeatures) {
             "tried to use developer feature without being a developer"
         }
@@ -126,6 +139,7 @@ class SnoutViewModel(private val app: Application) : AndroidViewModel(app) {
         app.contentResolver.openInputStream(uri)!!.use { stream ->
             // Only JSON supported for now
             Json.decodeFromStream<Map<String, JsonImportItem>>(stream).forEach {
+                Log.d(TAG, "Adding secret '${it.key} (${it.value.account})'")
                 val account = it.value.toNewTotpSecret(it.key)
                 vault.addTotpSecret(account)
                 account.secretData.secret.fill('\u0000')
@@ -135,6 +149,7 @@ class SnoutViewModel(private val app: Application) : AndroidViewModel(app) {
     }
 
     suspend fun restoreVaultFromBackup(backupSeed: BackupSeed, uri: Uri): Unit = mutex.withLock {
+        Log.i(TAG, "Restoring vault from backup")
         try {
             val backupData = app.contentResolver.openInputStream(uri)!!.use { stream ->
                 EncryptedData.decode(stream.readBytes().decodeToString())
@@ -143,11 +158,14 @@ class SnoutViewModel(private val app: Application) : AndroidViewModel(app) {
                 reason = strings.authCreateVault,
                 subtitle = strings.authDefaultSubtitle,
             ) {
+                Log.d(TAG, "Creating vault")
                 vault.create(
                     requiresAuthentication = config.first().protectAccountList,
                     backupSeed = backupSeed,
                 )
             }
+
+            Log.d(TAG, "Importing vault data")
             vault.import(backupSeed, backupData)
             configDatastore.updateData {
                 it.copy(
@@ -155,9 +173,10 @@ class SnoutViewModel(private val app: Application) : AndroidViewModel(app) {
                     backupKeys = BackupKeys.fromVaultBackupKeys(backupKeys!!)
                 )
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
             // Make sure we go back to a clean slate if something went wrong
             // TODO: inform the user what happened
+            Log.e(TAG, "Unable to restore backup: $e")
             vault.wipe()
         } finally {
             _vaultState.value = vault.state
@@ -167,24 +186,28 @@ class SnoutViewModel(private val app: Application) : AndroidViewModel(app) {
 
     suspend fun addTotpSecret(newSecret: NewTotpSecret) = mutex.withLock {
         check(vault.state == Vault.State.Unlocked)
+        Log.d(TAG, "Adding new TOTP secret")
         vault.addTotpSecret(newSecret)
         reloadSecrets()
     }
 
     suspend fun updateTotpSecret(totpSecret: TotpSecret) = mutex.withLock {
         check(vault.state == Vault.State.Unlocked)
+        Log.d(TAG, "Updating TOTP secret with id ${totpSecret.id}")
         vault.updateSecret(totpSecret)
         reloadSecrets()
     }
 
     suspend fun deleteTotpSecret(totpSecret: TotpSecret) = mutex.withLock {
         check(vault.state == Vault.State.Unlocked)
+        Log.d(TAG, "Deleting TOTP secret with id ${totpSecret.id}")
         vault.deleteSecret(totpSecret)
         reloadSecrets()
     }
 
     suspend fun getTotpCodes(totpSecret: TotpSecret, codes: Int, clock: Clock = Clock.System): List<String> {
         require(codes >= 2)
+        Log.d(TAG, "Generating $codes codes for TOTP secret with id ${totpSecret.id}")
         return mutex.withLock {
             check(vault.state == Vault.State.Unlocked)
             CipherAuthenticator.withReason(
@@ -213,9 +236,12 @@ class SnoutViewModel(private val app: Application) : AndroidViewModel(app) {
 
     suspend fun disableBackups() = mutex.withLock {
         check(vault.state == Vault.State.Unlocked)
+        Log.i(TAG, "Disabling backups")
         configDatastore.updateData {
+            Log.d(TAG, "Wiping backup keys")
             it.copy(backupKeys = null)
         }
+        Log.d(TAG, "Erasing encrypted backup secrets")
         vault.eraseBackups()
     }
 
@@ -252,6 +278,7 @@ class SnoutViewModel(private val app: Application) : AndroidViewModel(app) {
 
     suspend fun rekeyVault(requireAuthentication: Boolean) = mutex.withLock {
         check(vault.state == Vault.State.Unlocked)
+        Log.i(TAG, "Rekeying vault")
         val dbKey = CipherAuthenticator.withReason(
             reason = strings.authToggleBioprompt(requireAuthentication),
             subtitle = strings.authDefaultSubtitle,

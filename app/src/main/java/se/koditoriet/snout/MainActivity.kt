@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Bundle
+import android.util.Log
 import android.view.WindowManager
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -50,6 +51,8 @@ import se.koditoriet.snout.viewmodel.SnoutViewModel
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
+private const val TAG = "MainActivity"
+
 class MainActivity : FragmentActivity() {
     private val viewModel: SnoutViewModel by viewModels()
     private var idleTimeoutJob: Job? = null
@@ -58,6 +61,7 @@ class MainActivity : FragmentActivity() {
     private val screenOffReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             lifecycleScope.launch {
+                Log.i(TAG, "Screen off detected; locking vault")
                 viewModel.lockVault()
             }
         }
@@ -65,15 +69,25 @@ class MainActivity : FragmentActivity() {
 
     private val foregroundObserver = object : DefaultLifecycleObserver {
         override fun onStop(owner: LifecycleOwner) {
+            Log.i(TAG, "Lost focus; starting idle timeout")
             isBackgrounded = true
+            idleTimeoutJob = lifecycleScope.launch {
+                viewModel.lockVaultAfterIdleTimeout()
+            }
         }
 
         override fun onStart(owner: LifecycleOwner) {
+            Log.i(TAG, "Got back focus; stopping idle timeout")
+            idleTimeoutJob?.cancel()
+            idleTimeoutJob = null
+
             if (viewModel.vaultState.value == Vault.State.Locked && isBackgrounded) {
                 lifecycleScope.launch {
                     try {
+                        Log.i(TAG, "Vault is locked; initiating unlock")
                         viewModel.unlockVault()
-                    } catch (_: AuthenticationFailedException) {
+                    } catch (e: AuthenticationFailedException) {
+                        Log.i(TAG, "Authentication failed: $e")
                         // vault stays locked
                     }
                 }
@@ -83,6 +97,7 @@ class MainActivity : FragmentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        Log.i(TAG, "Main activity created")
         super.onCreate(savedInstanceState)
 
         // Always start off with screen security enabled
@@ -91,28 +106,18 @@ class MainActivity : FragmentActivity() {
             WindowManager.LayoutParams.FLAG_SECURE,
         )
 
+        Log.i(TAG, "Setting up biometric prompt authentication")
         (application as SnoutApp).cryptographer.setCipherAuthenticator(
             BiometricPromptCipherAuthenticator(this)
         )
 
+        Log.i(TAG, "Registering observers")
         registerReceiver(screenOffReceiver, IntentFilter(Intent.ACTION_SCREEN_OFF))
         lifecycle.addObserver(foregroundObserver)
 
         enableEdgeToEdge()
         setContent {
             MainScreen()
-        }
-    }
-
-    override fun onStart() {
-        super.onStart()
-        idleTimeoutJob?.cancel()
-    }
-
-    override fun onStop() {
-        super.onStop()
-        idleTimeoutJob = lifecycleScope.launch {
-            viewModel.lockVaultAfterIdleTimeout()
         }
     }
 
@@ -141,29 +146,37 @@ fun MainActivity.MainScreen() {
 
     SnoutTheme {
         BackHandler {
-            val goToState = viewState.previousViewState
-            lifecycleScope.launch {
-                if (goToState is ViewState.LockedScreen) {
-                    viewModel.lockVault()
-                }
-                goToState?.apply {
-                    viewState = this
+            if (viewState is ViewState.ListSecrets) {
+                Log.d(TAG, "Back pressed on ListSecretsScreen, retiring to background")
+                moveTaskToBack(true)
+            } else {
+                val goToState = viewState.previousViewState
+                lifecycleScope.launch {
+                    if (goToState is ViewState.LockedScreen) {
+                        viewModel.lockVault()
+                    }
+                    goToState?.apply {
+                        viewState = this
+                    }
                 }
             }
         }
 
         if (vaultState == Vault.State.Uninitialized && !viewState.isSetupViewState) {
             // If the vault is not initialized, the setup flow is the only valid thing to display.
+            Log.d(TAG, "Forcing initial setup screen due to uninitialized vault")
             viewState = ViewState.InitialSetup
         }
 
-        if (vaultState == Vault.State.Locked) {
+        if (vaultState == Vault.State.Locked && viewState !is ViewState.LockedScreen) {
             // If the vault is locked, we need to send the user to the lock screen.
+            Log.d(TAG, "Forcing transition from $viewState to lock screen due to locked vault")
             viewState = ViewState.LockedScreen
         }
 
         if (vaultState == Vault.State.Unlocked && viewState is ViewState.LockedScreen) {
             // If we're on the lock screen and the vault becomes unlocked, go on to list secrets.
+            Log.d(TAG, "Forcing transition from lock screen to list secrets screen due to unlocked vault")
             viewState = ViewState.ListSecrets
         }
 
@@ -302,21 +315,25 @@ class BiometricPromptCipherAuthenticator(
     private val activity: FragmentActivity,
 ) : CipherAuthenticator {
     override suspend fun <T> authenticate(authenticatedAction: () -> T): T {
+        Log.d(TAG, "Authenticating user")
         val result = withContext(Dispatchers.Main) {
             suspendCoroutine { continuation ->
                 val callback = object : BiometricPrompt.AuthenticationCallback() {
                     override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
                         super.onAuthenticationSucceeded(result)
+                        Log.d(TAG, "Authentication succeeded")
                         continuation.resume(authenticatedAction())
                     }
 
                     override fun onAuthenticationFailed() {
                         super.onAuthenticationFailed()
+                        Log.d(TAG, "Authentication failed")
                         continuation.resume(null)
                     }
 
                     override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
                         super.onAuthenticationError(errorCode, errString)
+                        Log.w(TAG, "Authentication errored ($errorCode): $errString")
                         continuation.resume(null)
                     }
                 }
