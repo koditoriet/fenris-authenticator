@@ -6,6 +6,7 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import se.koditoriet.snout.crypto.AuthenticationFailedException
 
 val ColorScheme.primaryDisabled: Color
     get() = this.onSurface.copy(0.38f)
@@ -35,3 +36,11 @@ val supportedImportFileTypes: Array<String> = arrayOf(
     "application/json",
     "application/octet-stream",
 )
+
+suspend fun ignoreAuthFailure(action: suspend () -> Unit) {
+    try {
+        action()
+    } catch (_: AuthenticationFailedException) {
+        // nop!
+    }
+}

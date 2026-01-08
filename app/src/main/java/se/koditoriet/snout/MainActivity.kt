@@ -39,6 +39,7 @@ import se.koditoriet.snout.ui.screens.setup.BackupSeedScreen
 import se.koditoriet.snout.ui.screens.setup.BackupSetupScreen
 import se.koditoriet.snout.ui.screens.secrets.ListSecretsScreen
 import se.koditoriet.snout.ui.ViewState
+import se.koditoriet.snout.ui.ignoreAuthFailure
 import se.koditoriet.snout.ui.onIOThread
 import se.koditoriet.snout.ui.screens.secrets.AddSecretByQrScreen
 import se.koditoriet.snout.ui.screens.secrets.EditSecretMetadataScreen
@@ -83,12 +84,9 @@ class MainActivity : FragmentActivity() {
 
             if (viewModel.vaultState.value == Vault.State.Locked && isBackgrounded) {
                 lifecycleScope.launch {
-                    try {
+                    ignoreAuthFailure {
                         Log.i(TAG, "Vault is locked; initiating unlock")
                         viewModel.unlockVault()
-                    } catch (e: AuthenticationFailedException) {
-                        Log.i(TAG, "Authentication failed: $e")
-                        // vault stays locked
                     }
                 }
             }
@@ -293,7 +291,11 @@ fun MainActivity.MainScreen() {
                     onDisableBackups = onIOThread(viewModel::disableBackups),
                     onLockOnCloseChange = onIOThread(viewModel::setLockOnClose),
                     onLockOnCloseGracePeriodChange = onIOThread(viewModel::setLockOnCloseGracePeriod),
-                    onProtectAccountListChange = onIOThread(viewModel::rekeyVault),
+                    onProtectAccountListChange = onIOThread { it ->
+                        ignoreAuthFailure {
+                            viewModel.rekeyVault(it)
+                        }
+                    },
                     onScreenSecurityEnabledChange = onIOThread(viewModel::setScreenSecurity),
                     onHideSecretsFromAccessibilityChange = onIOThread(viewModel::setHideSecretsFromAccessibility),
                     enableDeveloperFeatures = config.enableDeveloperFeatures,

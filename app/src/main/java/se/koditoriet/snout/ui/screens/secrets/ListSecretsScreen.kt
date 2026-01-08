@@ -63,6 +63,7 @@ import se.koditoriet.snout.SortMode
 import se.koditoriet.snout.appStrings
 import se.koditoriet.snout.crypto.AuthenticationFailedException
 import se.koditoriet.snout.ui.components.sheet.BottomSheet
+import se.koditoriet.snout.ui.ignoreAuthFailure
 import se.koditoriet.snout.ui.primaryDisabled
 import se.koditoriet.snout.ui.primaryHint
 import se.koditoriet.snout.ui.sheets.AddSecretsSheet
@@ -355,8 +356,10 @@ fun ListRow(
             .combinedClickable(
                 onClick = {
                     scope.launch {
-                        val codes = getTotpCodes(totpSecret)
-                        viewState = ListRowViewState.CodeVisible(codes)
+                        ignoreAuthFailure {
+                            val codes = getTotpCodes(totpSecret)
+                            viewState = ListRowViewState.CodeVisible(codes)
+                        }
                     }
                 },
                 onLongClick = { onLongPressSecret(totpSecret) },
