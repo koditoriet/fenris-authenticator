@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import se.koditoriet.snout.appStrings
+import se.koditoriet.snout.ui.theme.PADDING_XXL
 import se.koditoriet.snout.ui.theme.SPACING_XL
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -60,7 +61,7 @@ fun LockedScreen(
                 style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 32.dp)
+                    .padding(bottom = PADDING_XXL)
             )
         }
     }

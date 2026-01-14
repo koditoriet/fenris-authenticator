@@ -18,6 +18,7 @@ import androidx.compose.material3.SheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import se.koditoriet.snout.ui.theme.PADDING_L
 import se.koditoriet.snout.ui.theme.SPACING_S
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -39,7 +40,7 @@ fun BottomSheet(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
+                    .padding(horizontal = PADDING_L),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 content(hideSheet)

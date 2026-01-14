@@ -24,6 +24,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import se.koditoriet.snout.appStrings
 import se.koditoriet.snout.crypto.BackupSeed
+import se.koditoriet.snout.ui.theme.PADDING_S
+import se.koditoriet.snout.ui.theme.PADDING_XL
+import se.koditoriet.snout.ui.theme.PADDING_XXS
 import se.koditoriet.snout.ui.theme.SPACING_L
 import se.koditoriet.snout.ui.theme.SPACING_S
 import se.koditoriet.snout.ui.theme.SPACING_XS
@@ -45,7 +48,7 @@ fun BackupSeedScreen(
         Column(
             modifier = Modifier
                 .padding(padding)
-                .padding(24.dp)
+                .padding(PADDING_XL)
                 .fillMaxSize(),
             verticalArrangement = Arrangement.SpaceBetween,
         ) {
@@ -91,7 +94,7 @@ fun MnemonicGrid(
         for (rowIndex in 0 until rows) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(SPACING_S)
             ) {
                 for (colIndex in 0 until columns) {
                     val wordIndex = rowIndex * columns + colIndex
@@ -114,12 +117,12 @@ fun MnemonicGrid(
 @Composable
 fun MnemonicWordCard(index: Int, word: String, modifier: Modifier) {
     Card(
-        modifier = modifier.padding(2.dp),
+        modifier = modifier.padding(PADDING_XXS),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(8.dp)
+            modifier = Modifier.padding(PADDING_S)
         ) {
             Text(
                 "$index.",

@@ -11,6 +11,14 @@ val INPUT_FIELD_PADDING = 12.dp
 val ROUNDED_CORNER_SIZE = 12.dp
 val ROUNDED_CORNER_PADDING = 16.dp
 
+val PADDING_XXS = 2.dp
+val PADDING_XS = 4.dp
+val PADDING_S = 8.dp
+val PADDING_M = 12.dp
+val PADDING_L = 16.dp
+val PADDING_XL = 24.dp
+val PADDING_XXL = 32.dp
+
 val SPACING_XS = 4.dp
 val SPACING_S = 8.dp
 val SPACING_M = 12.dp
