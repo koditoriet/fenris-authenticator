@@ -15,6 +15,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import se.koditoriet.snout.ui.theme.PADDING_M
+import se.koditoriet.snout.ui.theme.PADDING_S
 import se.koditoriet.snout.ui.theme.SPACING_L
 import se.koditoriet.snout.ui.theme.SPACING_S
 
@@ -30,12 +32,12 @@ fun BottomSheetContextualHeader(
             color = MaterialTheme.colorScheme.surfaceVariant,
             tonalElevation = 1.dp,
             modifier = Modifier
-                .padding(horizontal = 12.dp)
+                .padding(horizontal = PADDING_M)
                 .fillMaxWidth()
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                modifier = Modifier.padding(horizontal = PADDING_M, vertical = PADDING_S)
             ) {
                 Icon(
                     imageVector = icon,

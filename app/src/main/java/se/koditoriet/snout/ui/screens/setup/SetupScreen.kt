@@ -31,6 +31,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import se.koditoriet.snout.appStrings
+import se.koditoriet.snout.ui.theme.PADDING_L
+import se.koditoriet.snout.ui.theme.PADDING_XL
 import se.koditoriet.snout.ui.theme.SPACING_L
 import se.koditoriet.snout.ui.theme.SPACING_M
 import se.koditoriet.snout.ui.theme.SPACING_XL
@@ -54,7 +56,7 @@ fun BackupSetupScreen(
         LazyColumn(
             modifier = Modifier
                 .padding(padding)
-                .padding(24.dp)
+                .padding(PADDING_XL)
                 .fillMaxSize(),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
@@ -139,7 +141,7 @@ private fun BackupChoiceCard(
         border = BorderStroke(2.dp, borderColor)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(PADDING_L),
             verticalAlignment = Alignment.CenterVertically
         ) {
             RadioButton(
