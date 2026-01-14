@@ -15,6 +15,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import se.koditoriet.snout.ui.theme.SPACER_L
+import se.koditoriet.snout.ui.theme.SPACER_S
 
 @Composable
 fun BottomSheetContextualHeader(
@@ -40,7 +42,7 @@ fun BottomSheetContextualHeader(
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(SPACER_S))
                 Column {
                     Text(
                         text = heading,
@@ -53,6 +55,6 @@ fun BottomSheetContextualHeader(
                 }
             }
         }
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(SPACER_L))
     }
 }

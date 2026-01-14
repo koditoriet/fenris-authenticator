@@ -18,6 +18,7 @@ import androidx.compose.material3.SheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import se.koditoriet.snout.ui.theme.SPACER_S
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,7 +43,7 @@ fun BottomSheet(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 content(hideSheet)
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(SPACER_S))
             }
         }
     }

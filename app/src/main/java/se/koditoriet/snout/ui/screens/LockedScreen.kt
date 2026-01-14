@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import se.koditoriet.snout.appStrings
+import se.koditoriet.snout.ui.theme.SPACER_XL
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,7 +45,7 @@ fun LockedScreen(
                     style = MaterialTheme.typography.headlineMedium,
                 )
 
-                Spacer(Modifier.height(32.dp))
+                Spacer(Modifier.height(SPACER_XL))
 
                 Icon(
                     imageVector = Icons.Default.Lock,

@@ -24,6 +24,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import se.koditoriet.snout.appStrings
 import se.koditoriet.snout.crypto.BackupSeed
+import se.koditoriet.snout.ui.theme.SPACER_L
+import se.koditoriet.snout.ui.theme.SPACER_S
+import se.koditoriet.snout.ui.theme.SPACER_XS
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,11 +57,11 @@ fun BackupSeedScreen(
                     textAlign = TextAlign.Center,
                 )
 
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(SPACER_L))
 
                 MnemonicGrid(mnemonic = backupSeed.toMnemonic())
 
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(SPACER_L))
 
                 Text(
                     text = screenStrings.keepThemSafe,
@@ -103,7 +106,7 @@ fun MnemonicGrid(
                     }
                 }
             }
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(SPACER_S))
         }
     }
 }
@@ -124,7 +127,7 @@ fun MnemonicWordCard(index: Int, word: String, modifier: Modifier) {
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.width(24.dp),
             )
-            Spacer(Modifier.width(4.dp))
+            Spacer(Modifier.width(SPACER_XS))
             Text(
                 text = word,
                 style = MaterialTheme.typography.bodyMedium,
