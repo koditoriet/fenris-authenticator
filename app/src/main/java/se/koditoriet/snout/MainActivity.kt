@@ -33,19 +33,21 @@ import se.koditoriet.snout.crypto.AuthenticationFailedException
 import se.koditoriet.snout.crypto.BackupSeed
 import se.koditoriet.snout.crypto.CipherAuthenticator
 import se.koditoriet.snout.crypto.wordMap
-import se.koditoriet.snout.ui.theme.SnoutTheme
-import se.koditoriet.snout.ui.screens.secrets.AddSecretByTextScreen
-import se.koditoriet.snout.ui.screens.setup.BackupSeedScreen
-import se.koditoriet.snout.ui.screens.setup.BackupSetupScreen
-import se.koditoriet.snout.ui.screens.secrets.ListSecretsScreen
+import se.koditoriet.snout.ui.FullScreenLoadingManager
 import se.koditoriet.snout.ui.ViewState
 import se.koditoriet.snout.ui.ignoreAuthFailure
 import se.koditoriet.snout.ui.onIOThread
-import se.koditoriet.snout.ui.screens.secrets.AddSecretByQrScreen
-import se.koditoriet.snout.ui.screens.secrets.EditSecretMetadataScreen
+import se.koditoriet.snout.ui.screens.LoadingScreen
 import se.koditoriet.snout.ui.screens.LockedScreen
-import se.koditoriet.snout.ui.screens.setup.RestoreBackupScreen
 import se.koditoriet.snout.ui.screens.SettingsScreen
+import se.koditoriet.snout.ui.screens.secrets.AddSecretByQrScreen
+import se.koditoriet.snout.ui.screens.secrets.AddSecretByTextScreen
+import se.koditoriet.snout.ui.screens.secrets.EditSecretMetadataScreen
+import se.koditoriet.snout.ui.screens.secrets.ListSecretsScreen
+import se.koditoriet.snout.ui.screens.setup.BackupSeedScreen
+import se.koditoriet.snout.ui.screens.setup.BackupSetupScreen
+import se.koditoriet.snout.ui.screens.setup.RestoreBackupScreen
+import se.koditoriet.snout.ui.theme.SnoutTheme
 import se.koditoriet.snout.vault.NewTotpSecret
 import se.koditoriet.snout.vault.Vault
 import se.koditoriet.snout.viewmodel.SnoutViewModel
@@ -133,6 +135,8 @@ fun MainActivity.MainScreen() {
     val config by viewModel.config.collectAsState(Config.default)
     var viewState by remember { mutableStateOf<ViewState>(ViewState.LockedScreen) }
 
+    LoadingScreen()
+
     LaunchedEffect(config.screenSecurityEnabled) {
         if (config.screenSecurityEnabled) {
             window.setFlags(
@@ -208,8 +212,10 @@ fun MainActivity.MainScreen() {
                 RestoreBackupScreen(
                     seedWords = wordMap.keys,
                     onRestore = onIOThread { backupSeed, uri ->
+                        FullScreenLoadingManager.showLoader()
                         viewModel.restoreVaultFromBackup(backupSeed, uri)
                         viewState = ViewState.ListSecrets
+                        FullScreenLoadingManager.hideLoader()
                     }
                 )
             }
