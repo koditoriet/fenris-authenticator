@@ -1,5 +1,8 @@
 package se.koditoriet.snout.ui.screens.setup
 
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.Color
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -22,6 +25,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.createBitmap
+import androidx.print.PrintHelper
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.qrcode.QRCodeWriter
 import se.koditoriet.snout.appStrings
 import se.koditoriet.snout.crypto.BackupSeed
 
@@ -29,6 +36,7 @@ import se.koditoriet.snout.crypto.BackupSeed
 @Composable
 fun BackupSeedScreen(
     backupSeed: BackupSeed,
+    printContext: Context,
     onContinue: () -> Unit
 ) {
     val screenStrings = appStrings.seedDisplayScreen
@@ -68,6 +76,12 @@ fun BackupSeedScreen(
                 )
             }
 
+            Button(
+                onClick = { printRecoveryPhrase(backupSeed.toMnemonic(), printContext) },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Print") // TODO: replace with appString
+            }
             Button(
                 onClick = onContinue,
                 modifier = Modifier.fillMaxWidth()
@@ -131,4 +145,27 @@ fun MnemonicWordCard(index: Int, word: String, modifier: Modifier) {
             )
         }
     }
+}
+
+private fun printRecoveryPhrase(recoveryPhraseAsString: List<String>, activityContext: Context) {
+    val bitmap = recoveryPhraseToBitmap(recoveryPhraseAsString)
+    PrintHelper(activityContext).printBitmap("PrintRecoveryPhrase", bitmap)
+}
+
+private fun recoveryPhraseToBitmap(recoveryPhraseAsString: List<String>): Bitmap {
+    // TODO: width & height to constants
+    val bitMatrix = QRCodeWriter().encode(recoveryPhraseAsString.joinToString("-"), BarcodeFormat.QR_CODE, 200, 200)
+    val width = bitMatrix.width
+    val height = bitMatrix.height
+    val pixels = IntArray(width * height)
+    for (y in 0 until height) {
+        val offset = y * width
+        for (x in 0 until width) {
+            pixels[offset + x] = if (bitMatrix.get(x, y)) Color.BLACK else Color.WHITE
+        }
+    }
+
+    val bitmap = createBitmap(width, height)
+    bitmap.setPixels(pixels, 0, width, 0, 0, width, height)
+    return bitmap
 }
