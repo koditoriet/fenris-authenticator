@@ -1,6 +1,5 @@
 package se.koditoriet.snout.ui.screens.setup
 
-import android.content.Context
 import android.graphics.Bitmap
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
@@ -34,7 +33,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.createBitmap
-import androidx.print.PrintHelper
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.qrcode.QRCodeWriter
 import se.koditoriet.snout.appStrings
@@ -54,7 +52,7 @@ import android.graphics.Color as BitmapColor
 @Composable
 fun BackupSeedScreen(
     backupSeed: BackupSeed,
-    printContext: Context,
+    onPrint: (String, Bitmap) -> Unit,
     onContinue: () -> Unit
 ) {
     val screenStrings = appStrings.seedDisplayScreen
@@ -63,7 +61,7 @@ fun BackupSeedScreen(
     PrintQrWarningDialog(
         openPrintDialog = openPrintDialog,
         onConfirmation = {
-            printRecoveryPhrase(backupSeed.toMnemonic(), printContext)
+            printRecoveryPhrase(backupSeed.toMnemonic(), onPrint)
             openPrintDialog.value = false
         }
     )
@@ -208,9 +206,9 @@ fun MnemonicWordCard(index: Int, word: String, modifier: Modifier) {
     }
 }
 
-private fun printRecoveryPhrase(recoveryPhraseAsString: List<String>, activityContext: Context) {
+private fun printRecoveryPhrase(recoveryPhraseAsString: List<String>, onPrint: (String, Bitmap) -> Unit) {
     val bitmap = recoveryPhraseToBitmap(recoveryPhraseAsString)
-    PrintHelper(activityContext).printBitmap("PrintRecoveryPhrase", bitmap)
+    onPrint("PrintRecoveryPhrase", bitmap)
 }
 
 private fun recoveryPhraseToBitmap(recoveryPhraseAsString: List<String>): Bitmap {
