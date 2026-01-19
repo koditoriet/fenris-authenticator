@@ -39,6 +39,8 @@ import com.google.zxing.BarcodeFormat
 import com.google.zxing.qrcode.QRCodeWriter
 import se.koditoriet.snout.appStrings
 import se.koditoriet.snout.crypto.BackupSeed
+import se.koditoriet.snout.ui.theme.BACKUP_SEED_QR_CODE_HEIGHT
+import se.koditoriet.snout.ui.theme.BACKUP_SEED_QR_CODE_WIDTH
 import se.koditoriet.snout.ui.theme.PADDING_S
 import se.koditoriet.snout.ui.theme.PADDING_XL
 import se.koditoriet.snout.ui.theme.PADDING_XXS
@@ -107,7 +109,7 @@ fun BackupSeedScreen(
                     onClick = { openPrintDialog.value = true },
                     modifier = Modifier
                         .weight(0.5f)
-                        .padding(2.dp) // TODO: constant
+                        .padding(PADDING_XXS)
                 ) {
                     Text(screenStrings.printAsQr)
                 }
@@ -115,7 +117,7 @@ fun BackupSeedScreen(
                     onClick = onContinue,
                     modifier = Modifier
                         .weight(0.5f)
-                        .padding(2.dp) // TODO: constant
+                        .padding(PADDING_XXS)
                 ) {
                     Text(appStrings.generic.continueOn)
                 }
@@ -212,8 +214,8 @@ private fun printRecoveryPhrase(recoveryPhraseAsString: List<String>, activityCo
 }
 
 private fun recoveryPhraseToBitmap(recoveryPhraseAsString: List<String>): Bitmap {
-    // TODO: width & height to constants
-    val bitMatrix = QRCodeWriter().encode(recoveryPhraseAsString.joinToString("-"), BarcodeFormat.QR_CODE, 200, 200)
+    val bitMatrix =
+        QRCodeWriter().encode(recoveryPhraseAsString.joinToString("-"), BarcodeFormat.QR_CODE, BACKUP_SEED_QR_CODE_WIDTH, BACKUP_SEED_QR_CODE_HEIGHT)
     val width = bitMatrix.width
     val height = bitMatrix.height
     val pixels = IntArray(width * height)
