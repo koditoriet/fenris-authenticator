@@ -198,7 +198,7 @@ fun MainActivity.MainScreen() {
                 val seed = remember { BackupSeed.generate() }
                 BackupSeedScreen(
                     backupSeed = seed,
-                    onPrint = PrintHelper(this)::printBitmap,
+                    onPrintQr = PrintHelper(this)::printBitmap,
                     onContinue = onIOThread {
                         viewModel.createVault(seed)
                         seed.wipe()

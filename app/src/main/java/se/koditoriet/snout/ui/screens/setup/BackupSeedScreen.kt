@@ -52,7 +52,7 @@ import android.graphics.Color as BitmapColor
 @Composable
 fun BackupSeedScreen(
     backupSeed: BackupSeed,
-    onPrint: (String, Bitmap) -> Unit,
+    onPrintQr: (String, Bitmap) -> Unit,
     onContinue: () -> Unit
 ) {
     val screenStrings = appStrings.seedDisplayScreen
@@ -61,7 +61,7 @@ fun BackupSeedScreen(
     PrintQrWarningDialog(
         openPrintDialog = openPrintDialog,
         onConfirmation = {
-            printRecoveryPhrase(backupSeed.toMnemonic(), onPrint)
+            printRecoveryPhrase(backupSeed.toMnemonic(), onPrintQr)
             openPrintDialog.value = false
         }
     )
@@ -125,33 +125,6 @@ fun BackupSeedScreen(
 }
 
 @Composable
-private fun PrintQrWarningDialog(
-    openPrintDialog: MutableState<Boolean>,
-    onConfirmation: () -> Unit
-) {
-    when {
-        openPrintDialog.value -> {
-            val onDismissRequest = { openPrintDialog.value = false }
-            AlertDialog(
-                icon = { Icon(Icons.Default.Warning, contentDescription = "Warning icon") },
-                text = { Text(text = appStrings.seedDisplayScreen.printAsQrWarning, color = Color.Red) },
-                onDismissRequest = onDismissRequest,
-                confirmButton = {
-                    TextButton(onClick = onConfirmation) {
-                        Text(appStrings.generic.continueOn)
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = onDismissRequest) {
-                        Text(appStrings.generic.cancel)
-                    }
-                }
-            )
-        }
-    }
-}
-
-@Composable
 fun MnemonicGrid(
     mnemonic: List<String>,
     columns: Int = 3,
@@ -201,6 +174,33 @@ fun MnemonicWordCard(index: Int, word: String, modifier: Modifier) {
             Text(
                 text = word,
                 style = MaterialTheme.typography.bodyMedium,
+            )
+        }
+    }
+}
+
+@Composable
+private fun PrintQrWarningDialog(
+    openPrintDialog: MutableState<Boolean>,
+    onConfirmation: () -> Unit
+) {
+    when {
+        openPrintDialog.value -> {
+            val onDismissRequest = { openPrintDialog.value = false }
+            AlertDialog(
+                icon = { Icon(Icons.Default.Warning, contentDescription = "Warning icon") },
+                text = { Text(text = appStrings.seedDisplayScreen.printAsQrWarning, color = Color.Red) },
+                onDismissRequest = onDismissRequest,
+                confirmButton = {
+                    TextButton(onClick = onConfirmation) {
+                        Text(appStrings.generic.continueOn)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = onDismissRequest) {
+                        Text(appStrings.generic.cancel)
+                    }
+                }
             )
         }
     }
