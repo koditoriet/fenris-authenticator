@@ -1,10 +1,10 @@
 package se.koditoriet.snout
 
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import org.junit.Rule
 import org.junit.Test
-import se.koditoriet.snout.ui.FullScreenLoadingManager
 import se.koditoriet.snout.ui.screens.LoadingScreen
 
 class LoadingScreenUnitTest {
@@ -12,20 +12,22 @@ class LoadingScreenUnitTest {
 
     @Test
     fun `The loading screen is visible when calling showLoader and is not visible when calling hideLoader`() {
+        val showLoadingScreen = mutableStateOf(false)
+
         composeTestRule.setContent {
-            LoadingScreen()
+            LoadingScreen(showLoadingScreen)
         }
         // Invisible per default
         composeTestRule.onNodeWithTag("LoadingScreen").assertDoesNotExist()
         composeTestRule.onNodeWithTag("LoadingSpinner").assertDoesNotExist()
 
         // Set visible
-        FullScreenLoadingManager.showLoader()
+        showLoadingScreen.value = true
         composeTestRule.onNodeWithTag("LoadingScreen").assertExists()
         composeTestRule.onNodeWithTag("LoadingSpinner").assertExists()
 
         // Set invisible
-        FullScreenLoadingManager.hideLoader()
+        showLoadingScreen.value = false
         composeTestRule.onNodeWithTag("LoadingScreen").assertDoesNotExist()
         composeTestRule.onNodeWithTag("LoadingSpinner").assertDoesNotExist()
     }
