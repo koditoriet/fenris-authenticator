@@ -1,6 +1,7 @@
 package se.koditoriet.snout.crypto
 
 import java.security.MessageDigest
+import java.security.MessageDigest.getInstance
 import java.security.SecureRandom
 import kotlin.io.encoding.Base64
 
@@ -20,16 +21,13 @@ class BackupSeed(private val secret: ByteArray) {
     }
 
     fun toMnemonic(): List<String> {
-        val checksum = getChecksum()
+        val checksum = getInstance("SHA-256").digest(secret).take(1)
         return (secret + checksum).bitChunks(11).map { wordList[it] }
     }
 
     fun toBase64(): String {
-        val checksum = getChecksum()
-        return Base64.encode(secret + checksum)
+        return Base64.encode(secret)
     }
-
-    private fun getChecksum(): List<Byte> = MessageDigest.getInstance("SHA-256").digest(secret).take(1)
 
     private fun deriveKey(domain: String): ByteArray {
         val prk = HmacContext.create(ByteArray(BACKUP_KEY_SIZE), HmacAlgorithm.SHA256).run {
