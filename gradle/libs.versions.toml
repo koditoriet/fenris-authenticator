@@ -18,6 +18,7 @@ fragmentKtx = "1.8.9"
 viewmodelCompose = "2.10.0"
 datastore = "1.2.0"
 biometricKtx = "1.4.0-alpha02"
+reorderable = "3.0.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -46,6 +47,7 @@ androidx-room-runtime = { group = "androidx.room", name = "room-runtime", versio
 androidx-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
 com-google-zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
 net-zetetic-sqlcipher-android = { group = "net.zetetic", name = "sqlcipher-android", version.ref = "sqlcipher" }
+reorderable = { module = "sh.calvin.reorderable:reorderable", version.ref = "reorderable" }
 org-jetbrains-kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
 org-jetbrains-kotlinx-datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version.ref = "kotlinxDatetime" }
 

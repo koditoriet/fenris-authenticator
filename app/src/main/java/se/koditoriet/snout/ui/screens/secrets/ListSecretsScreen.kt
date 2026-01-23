@@ -2,6 +2,7 @@ package se.koditoriet.snout.ui.screens.secrets
 
 import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -23,6 +25,7 @@ import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SortByAlpha
+import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -32,6 +35,7 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -75,6 +79,9 @@ import se.koditoriet.snout.ui.theme.SECRET_FONT_SIZE
 import se.koditoriet.snout.ui.theme.SPACING_L
 import se.koditoriet.snout.vault.NewTotpSecret
 import se.koditoriet.snout.vault.TotpSecret
+import sh.calvin.reorderable.ReorderableCollectionItemScope
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 import kotlin.time.Clock
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -166,6 +173,7 @@ fun ListSecretsScreen(
                             }
                         )
                     }
+
                     is SheetViewState.SecretActions -> {
                         SecretActionsSheet(
                             totpSecret = viewState.secret,
@@ -196,7 +204,16 @@ private fun SecretList(
     getTotpCodes: suspend (TotpSecret) -> List<String>,
     onLongPressSecret: (TotpSecret) -> Unit,
 ) {
+    val isManuallySortable = filterQuery.isEmpty() && sortMode == SortMode.Manual
+    val lazyListState = rememberLazyListState()
+    var reorderableSecrets by remember(secrets) { mutableStateOf(secrets.toList()) }
+    val reorderableLazyListState = rememberReorderableLazyListState(lazyListState) { from, to ->
+        reorderableSecrets = reorderableSecrets.toMutableList().apply {
+            add(to.index, removeAt(from.index))
+        }
+    }
     LazyColumn(
+        state = lazyListState,
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(PADDING_S)
     ) {
@@ -206,7 +223,7 @@ private fun SecretList(
                     .split(' ')
                     .filter { it.isNotBlank() }
                     .map { it.lowercase() }
-                secrets.filter {
+                reorderableSecrets.filter {
                     filterParts.all { f -> f in it.issuer.lowercase() || f in (it.account?.lowercase() ?: "") }
                 }
             }
@@ -219,15 +236,25 @@ private fun SecretList(
                 compareBy<TotpSecret> { it.issuer.lowercase() }.thenBy { it.account?.lowercase() }
             )
         }
-        items(sortedSecrets) { item ->
-            ListRow(
-                totpSecret = item,
-                selected = item.id == selectedSecret?.id,
-                hideSecretsFromAccessibility = hideSecretsFromAccessibility,
-                clock = clock,
-                getTotpCodes = getTotpCodes,
-                onLongPressSecret = onLongPressSecret,
-            )
+        items(
+            items = if (isManuallySortable) reorderableSecrets else sortedSecrets,
+            key = { it.id })
+        { item ->
+            ReorderableItem(reorderableLazyListState, key = item.id) { isDragging ->
+                val reorderableScope = this
+                val elevation by animateDpAsState(if (isDragging) 4.dp else 0.dp)
+                Surface(shadowElevation = elevation) {
+                    ListRow(
+                        totpSecret = item,
+                        selected = item.id == selectedSecret?.id,
+                        hideSecretsFromAccessibility = hideSecretsFromAccessibility,
+                        clock = clock,
+                        getTotpCodes = getTotpCodes,
+                        onLongPressSecret = onLongPressSecret,
+                        dragHandle = { DragHandle(reorderableScope, isManuallySortable) }
+                    )
+                }
+            }
         }
     }
 }
@@ -320,6 +347,7 @@ fun ListRow(
     clock: Clock,
     getTotpCodes: suspend (TotpSecret) -> List<String>,
     onLongPressSecret: (TotpSecret) -> Unit,
+    dragHandle: @Composable () -> Unit
 ) {
     val scope = rememberCoroutineScope()
     val dots = remember { "\u2022".repeat(totpSecret.digits) }
@@ -374,7 +402,6 @@ fun ListRow(
             .background(backgroundColor)
             .padding(PADDING_M),
         verticalAlignment = Alignment.CenterVertically,
-
     ) {
         Column(
             modifier = Modifier
@@ -422,6 +449,19 @@ fun ListRow(
                     .size(48.dp),
                 progress = { progress },
             )
+        }
+        dragHandle()
+    }
+}
+
+@Composable
+fun DragHandle(scope: ReorderableCollectionItemScope, showDragHandle: Boolean) {
+    if (showDragHandle) {
+        IconButton(
+            modifier = with(scope) { Modifier.draggableHandle() },
+            onClick = {}
+        ) {
+            Icon(Icons.Rounded.DragHandle, contentDescription = "Reorder")
         }
     }
 }
