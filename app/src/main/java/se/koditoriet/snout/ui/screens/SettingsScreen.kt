@@ -85,6 +85,7 @@ fun SettingsScreen(
     onEnableDeveloperFeaturesChange: (Boolean) ->Unit,
     onWipeVault: () -> Unit,
     onExport: (Uri) -> Unit,
+    onManagePasskeys: () -> Unit,
     getSecurityReport: suspend () -> SecurityReport,
     clock: Clock = Clock.System,
     timeZone: TimeZone = TimeZone.currentSystemDefault(),
@@ -117,6 +118,13 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
+            item {
+                SettingActionRow(
+                    title = screenStrings.managePasskeys,
+                    description = screenStrings.managePasskeysDescription,
+                    onClick = onManagePasskeys,
+                )
+            }
 
             // Enable backups
             item {

@@ -11,8 +11,6 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.biometric.BiometricManager
-import androidx.biometric.BiometricPrompt
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -32,7 +30,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import se.koditoriet.snout.crypto.AuthenticationFailedException
 import se.koditoriet.snout.crypto.BackupSeed
-import se.koditoriet.snout.crypto.CipherAuthenticator
 import se.koditoriet.snout.crypto.wordMap
 import se.koditoriet.snout.ui.ViewState
 import se.koditoriet.snout.ui.ignoreAuthFailure
@@ -44,6 +41,7 @@ import se.koditoriet.snout.ui.screens.secrets.AddSecretByQrScreen
 import se.koditoriet.snout.ui.screens.secrets.AddSecretByTextScreen
 import se.koditoriet.snout.ui.screens.secrets.EditSecretMetadataScreen
 import se.koditoriet.snout.ui.screens.secrets.ListSecretsScreen
+import se.koditoriet.snout.ui.screens.ManagePasskeysScreen
 import se.koditoriet.snout.ui.screens.setup.BackupSeedScreen
 import se.koditoriet.snout.ui.screens.setup.BackupSetupScreen
 import se.koditoriet.snout.ui.screens.setup.RestoreBackupScreen
@@ -51,8 +49,6 @@ import se.koditoriet.snout.ui.theme.SnoutTheme
 import se.koditoriet.snout.vault.NewTotpSecret
 import se.koditoriet.snout.vault.Vault
 import se.koditoriet.snout.viewmodel.SnoutViewModel
-import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
 
 private const val TAG = "MainActivity"
 
@@ -88,7 +84,7 @@ class MainActivity : FragmentActivity() {
                 lifecycleScope.launch {
                     ignoreAuthFailure {
                         Log.i(TAG, "Vault is locked; initiating unlock")
-                        viewModel.unlockVault()
+                        viewModel.unlockVault(BiometricPromptAuthenticator.Factory(this@MainActivity))
                     }
                 }
             }
@@ -104,11 +100,6 @@ class MainActivity : FragmentActivity() {
         window.setFlags(
             WindowManager.LayoutParams.FLAG_SECURE,
             WindowManager.LayoutParams.FLAG_SECURE,
-        )
-
-        Log.i(TAG, "Setting up biometric prompt authentication")
-        (application as SnoutApp).cryptographer.setCipherAuthenticator(
-            BiometricPromptCipherAuthenticator(this)
         )
 
         Log.i(TAG, "Registering observers")
@@ -130,11 +121,12 @@ class MainActivity : FragmentActivity() {
 @Composable
 fun MainActivity.MainScreen() {
     val viewModel = viewModel<SnoutViewModel>()
-    val totpSecrets by viewModel.secrets.collectAsState()
+    val totpSecrets by viewModel.secrets.collectAsState(emptyList())
     val vaultState by viewModel.vaultState.collectAsState()
     val config by viewModel.config.collectAsState(Config.default)
     val showLoadingScreen = remember { mutableStateOf(false) }
     var viewState by remember { mutableStateOf<ViewState>(ViewState.LockedScreen) }
+    val authFactory by lazy { BiometricPromptAuthenticator.Factory(this) }
 
     LoadingScreen(showLoadingScreen)
 
@@ -225,7 +217,7 @@ fun MainActivity.MainScreen() {
                 LockedScreen(
                     onUnlock = onIOThread {
                         try {
-                            viewModel.unlockVault()
+                            viewModel.unlockVault(authFactory)
                             viewState = ViewState.ListSecrets
                         } catch (_: AuthenticationFailedException) {
                             // vault stays locked
@@ -240,7 +232,7 @@ fun MainActivity.MainScreen() {
                     enableDeveloperFeatures = config.enableDeveloperFeatures,
                     hideSecretsFromAccessibility = config.hideSecretsFromAccessibility,
                     getTotpCodes = { secret ->
-                        viewModel.getTotpCodes(secret, 2)
+                        viewModel.getTotpCodes(authFactory, secret, 2)
                     },
                     onLockVault = onIOThread {
                         viewModel.lockVault()
@@ -251,7 +243,7 @@ fun MainActivity.MainScreen() {
                     onAddSecretByQR = { viewState = ViewState.ScanSecretQrCode },
                     onSortModeChange = onIOThread { mode -> viewModel.setSortMode(mode) },
                     onEditSecretMetadata = { viewState = ViewState.EditSecretMetadata(it) },
-                    onDeleteSecret = onIOThread { secret -> viewModel.deleteTotpSecret(secret) },
+                    onDeleteSecret = onIOThread { secret -> viewModel.deleteTotpSecret(secret.id) },
                     onImportFile = onIOThread { uri -> viewModel.importFromFile(uri) },
                 )
             }
@@ -301,7 +293,7 @@ fun MainActivity.MainScreen() {
                     onLockOnCloseGracePeriodChange = onIOThread(viewModel::setLockOnCloseGracePeriod),
                     onProtectAccountListChange = onIOThread { it ->
                         ignoreAuthFailure {
-                            viewModel.rekeyVault(it)
+                            viewModel.rekeyVault(authFactory, it)
                         }
                     },
                     onScreenSecurityEnabledChange = onIOThread(viewModel::setScreenSecurity),
@@ -310,6 +302,7 @@ fun MainActivity.MainScreen() {
                     onEnableDeveloperFeaturesChange = onIOThread(viewModel::setEnableDeveloperFeatures),
                     onWipeVault = onIOThread(viewModel::wipeVault),
                     onExport = onIOThread(viewModel::exportVault),
+                    onManagePasskeys = { viewState = ViewState.ManagePasskeys },
                     getSecurityReport = {
                         withContext(Dispatchers.IO) {
                             viewModel.getSecurityReport()
@@ -317,46 +310,12 @@ fun MainActivity.MainScreen() {
                     },
                 )
             }
-        }
-    }
-}
-
-class BiometricPromptCipherAuthenticator(
-    private val activity: FragmentActivity,
-) : CipherAuthenticator {
-    override suspend fun <T> authenticate(authenticatedAction: () -> T): T {
-        Log.d(TAG, "Authenticating user")
-        val result = withContext(Dispatchers.Main) {
-            suspendCoroutine { continuation ->
-                val callback = object : BiometricPrompt.AuthenticationCallback() {
-                    override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                        super.onAuthenticationSucceeded(result)
-                        Log.d(TAG, "Authentication succeeded")
-                        continuation.resume(authenticatedAction())
-                    }
-
-                    override fun onAuthenticationFailed() {
-                        super.onAuthenticationFailed()
-                        Log.d(TAG, "Authentication failed")
-                        continuation.resume(null)
-                    }
-
-                    override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
-                        super.onAuthenticationError(errorCode, errString)
-                        Log.w(TAG, "Authentication errored ($errorCode): $errString")
-                        continuation.resume(null)
-                    }
-                }
-                val prompt = BiometricPrompt(activity, callback)
-                val promptInfo = BiometricPrompt.PromptInfo.Builder().apply {
-                    setTitle(reason ?: activity.appStrings.viewModel.authDefaultReason)
-                    setSubtitle(subtitle ?: activity.appStrings.viewModel.authDefaultSubtitle)
-                    setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG)
-                    setNegativeButtonText(activity.appStrings.generic.cancel)
-                }.build()
-                prompt.authenticate(promptInfo)
+            ViewState.ManagePasskeys -> {
+                ManagePasskeysScreen(
+                    passkeys = viewModel.passkeys,
+                    onDeletePasskey = onIOThread { it -> viewModel.deletePasskey(it.credentialId) }
+                )
             }
         }
-        return result ?: throw AuthenticationFailedException("user canceled authentication")
     }
 }
