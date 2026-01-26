@@ -12,6 +12,7 @@ import androidx.credentials.provider.CredentialEntry
 import androidx.credentials.provider.PublicKeyCredentialEntry
 import org.json.JSONArray
 import org.json.JSONObject
+import se.koditoriet.snout.appStrings
 import se.koditoriet.snout.codec.Base64Url
 import se.koditoriet.snout.vault.CredentialId
 import se.koditoriet.snout.vault.Vault
@@ -75,8 +76,7 @@ private suspend fun getPasskeys(
 fun createPendingIntent(context: Context, cls: Class<*>, extra: Bundle? = null): PendingIntent =
     Intent(context, cls).run {
         Log.i(TAG, "Creating pending intent for ${cls.simpleName}")
-        // TODO: move to strings
-        setPackage("se.koditoriet.snout")
+        setPackage(context.packageName)
         if (extra != null) {
             Log.d(TAG, "Setting extra: $extra")
             putExtra(CREDENTIAL_DATA, extra)
