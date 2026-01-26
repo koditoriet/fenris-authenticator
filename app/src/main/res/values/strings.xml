@@ -80,11 +80,6 @@
     <string name="manage_passkeys_permanently_delete_passkey">Permanently delete passkey</string>
 
 
-    <!-- Create passkey screen -->
-    <string name="create_passkey_already_exists">Passkey already exists</string>
-    <string name="create_passkey_already_exists_explanation">You already have an active passkey for this service. Try to sign in with that one instead.</string>
-
-
     <!-- Settings screen -->
     <string name="settings_heading">Settings</string>
 
@@ -166,4 +161,9 @@
 
     <!-- Credential provider service -->
     <string name="credential_provider_authentication_action_title">Unlock Snout</string>
+    <string name="credential_provider_passkey_already_exists">Passkey already exists</string>
+    <string name="credential_provider_passkey_already_exists_explanation">You already have an active passkey for this service. Try to sign in with that one instead.</string>
+    <string name="credential_provider_unable_to_establish_trust">Unable to establish trust</string>
+    <string name="credential_provider_unable_to_establish_trust_explanation">Snout could not determine that this service should have access to the passkey.</string>
+
 </resources>

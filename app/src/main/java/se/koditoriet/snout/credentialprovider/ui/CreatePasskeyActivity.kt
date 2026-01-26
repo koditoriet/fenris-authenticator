@@ -1,8 +1,5 @@
-package se.koditoriet.snout.credentialprovider
+package se.koditoriet.snout.credentialprovider.ui
 
-import android.app.Activity
-import android.app.Activity.RESULT_CANCELED
-import android.app.Activity.RESULT_OK
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -15,16 +12,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.credentials.CreatePublicKeyCredentialRequest
 import androidx.credentials.CreatePublicKeyCredentialResponse
+import androidx.credentials.provider.CallingAppInfo
 import androidx.credentials.provider.PendingIntentHandler
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.flow.first
-import org.json.JSONObject
 import se.koditoriet.snout.BiometricPromptAuthenticator
 import se.koditoriet.snout.appStrings
-import se.koditoriet.snout.codec.Base64Url
-import se.koditoriet.snout.codec.webauthn.AuthDataFlag
-import se.koditoriet.snout.codec.webauthn.WebAuthnCreateResponse
+import se.koditoriet.snout.credentialprovider.originIsValid
+import se.koditoriet.snout.credentialprovider.rpIsValid
+import se.koditoriet.snout.credentialprovider.webauthn.AuthDataFlag
+import se.koditoriet.snout.credentialprovider.webauthn.CreateRequest
+import se.koditoriet.snout.credentialprovider.webauthn.CreateResponse
 import se.koditoriet.snout.crypto.AuthenticationFailedException
 import se.koditoriet.snout.ui.components.InformationDialog
 import se.koditoriet.snout.ui.screens.EmptyScreen
@@ -37,23 +36,30 @@ private val TAG = "CreatePasskeyActivity"
 class CreatePasskeyActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val screenStrings = appStrings.createPasskeyScreen
+        val screenStrings = appStrings.credentialProvider
+        val authFactory = BiometricPromptAuthenticator.Factory(this@CreatePasskeyActivity)
+        val requestInfo = CreateRequestInfo.fromIntent(intent!!)
 
         enableEdgeToEdge()
         setContent {
             var passkeyAlreadyExists by remember { mutableStateOf(false) }
+            var invalidRequestInfo by remember { mutableStateOf(false) }
             val viewModel = viewModel<SnoutViewModel>()
 
             LaunchedEffect(Unit) {
+                if (!requestInfo.isValid) {
+                    invalidRequestInfo = true
+                    return@LaunchedEffect
+                }
+
                 try {
-                    val authFactory = BiometricPromptAuthenticator.Factory(this@CreatePasskeyActivity)
                     viewModel.unlockVault(authFactory)
                 } catch (_: AuthenticationFailedException) {
                     finishWithResponse(null)
                     return@LaunchedEffect
                 }
 
-                val response = createPasskey(viewModel)
+                val response = createPasskey(viewModel, requestInfo)
                 if (response != null) {
                     Log.i(
                         TAG,
@@ -75,20 +81,20 @@ class CreatePasskeyActivity : FragmentActivity() {
                             onDismiss = { finishWithResponse(null) }
                         )
                     }
+                    if (invalidRequestInfo) {
+                        InformationDialog(
+                            title = screenStrings.unableToEstablishTrust,
+                            text = screenStrings.unableToEstablishTrustExplanation,
+                            onDismiss = { finishWithResponse(null) }
+                        )
+                    }
                 }
             }
         }
     }
 
-    private suspend fun createPasskey(viewModel: SnoutViewModel): WebAuthnCreateResponse? {
-        val request = PendingIntentHandler.retrieveProviderCreateCredentialRequest(intent)!!
-        val actualRequest = request.callingRequest as CreatePublicKeyCredentialRequest
-        val requestOptions = JSONObject(actualRequest.requestJson)
-
-        val excludeCredentials = requestOptions.optJSONArray("excludeCredentials")?.map {
-            CredentialId.fromString(it.getString("id"))
-        } ?: emptyList()
-
+    private suspend fun createPasskey(viewModel: SnoutViewModel, requestInfo: CreateRequestInfo): CreateResponse? {
+        val excludeCredentials = requestInfo.requestJson.excludeCredentials.map { CredentialId(it.id) }
         val excludedCredentials = viewModel.passkeys.first().filter {
             it.credentialId in excludeCredentials
         }
@@ -104,38 +110,69 @@ class CreatePasskeyActivity : FragmentActivity() {
             return null
         }
 
-        val rpId = requestOptions.getJSONObject("rp").getString("id")
-        val user = requestOptions.getJSONObject("user")
-
         val (credentialId, pubkey) = viewModel.addPasskey(
-            rpId = rpId,
-            userId = Base64Url.fromBase64UrlString(user.getString("id")).toByteArray(),
-            userName = user.getString("name"),
-            displayName = user.getString("displayName"),
+            rpId = requestInfo.requestJson.rp.id,
+            userId = requestInfo.requestJson.user.id.toByteArray(),
+            userName = requestInfo.requestJson.user.displayName,
+            displayName = requestInfo.requestJson.user.displayName,
         )
 
-        return WebAuthnCreateResponse(
-            rpId = rpId,
+        return CreateResponse(
+            rpId = requestInfo.requestJson.rp.id,
             credentialId = credentialId.toByteArray(),
             publicKey = pubkey,
-            callingAppInfo = request.callingAppInfo,
+            callingAppInfo = requestInfo.callingAppInfo,
             flags = AuthDataFlag.defaultCreateFlags,
         )
     }
+
+    private fun finishWithResponse(response: CreateResponse?) {
+        Intent().apply {
+            if (response != null) {
+                PendingIntentHandler.setCreateCredentialResponse(
+                    intent = this,
+                    response = CreatePublicKeyCredentialResponse(response.json)
+                )
+                setResult(RESULT_OK, this)
+            } else {
+                Log.i(TAG, "Aborting passkey creation")
+                setResult(RESULT_CANCELED, this)
+            }
+        }
+        finish()
+    }
 }
 
-private fun Activity.finishWithResponse(response: WebAuthnCreateResponse?) {
-    Intent().apply {
-        if (response != null) {
-            PendingIntentHandler.setCreateCredentialResponse(
-                this,
-                CreatePublicKeyCredentialResponse(response.json)
+private class CreateRequestInfo(
+    val callingAppInfo: CallingAppInfo,
+    val requestJson: CreateRequest,
+) {
+    val isValid: Boolean by lazy {
+        if (!rpIsValid(requestJson.rp.id)) {
+            Log.e(TAG, "Request RP is invalid!")
+            return@lazy false
+        }
+
+        if (!originIsValid(callingAppInfo, requestJson.rp.id)) {
+            Log.e(TAG, "Origin is invalid!")
+            return@lazy false
+        }
+
+        true
+    }
+
+    companion object {
+        fun fromIntent(intent: Intent): CreateRequestInfo {
+            Log.d(TAG, "Extracting credential options")
+
+            val request = PendingIntentHandler.retrieveProviderCreateCredentialRequest(intent)!!
+            val publicKeyCredentialRequest = request.callingRequest as CreatePublicKeyCredentialRequest
+
+            Log.d(TAG, "Parsing request JSON")
+            return CreateRequestInfo(
+                callingAppInfo = request.callingAppInfo,
+                requestJson = CreateRequest.fromJSON(publicKeyCredentialRequest.requestJson),
             )
-            setResult(RESULT_OK, this)
-        } else {
-            Log.i(TAG, "Aborting passkey creation")
-            setResult(RESULT_CANCELED, this)
         }
     }
-    finish()
 }

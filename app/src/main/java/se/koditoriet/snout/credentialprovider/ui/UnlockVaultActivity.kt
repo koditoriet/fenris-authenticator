@@ -1,4 +1,4 @@
-package se.koditoriet.snout.credentialprovider
+package se.koditoriet.snout.credentialprovider.ui
 
 import android.content.Intent
 import android.os.Bundle
@@ -12,9 +12,9 @@ import androidx.fragment.app.FragmentActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
 import se.koditoriet.snout.BiometricPromptAuthenticator
 import se.koditoriet.snout.SnoutApp
+import se.koditoriet.snout.credentialprovider.createBeginGetCredentialResponse
 import se.koditoriet.snout.crypto.AuthenticationFailedException
 import se.koditoriet.snout.ui.screens.EmptyScreen
 import se.koditoriet.snout.ui.theme.SnoutTheme

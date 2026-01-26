@@ -1,4 +1,4 @@
-package se.koditoriet.snout.codec.webauthn
+package se.koditoriet.snout.credentialprovider
 
 val privilegedAllowlist = """
 {

@@ -12,8 +12,7 @@ import androidx.credentials.provider.CredentialEntry
 import androidx.credentials.provider.PublicKeyCredentialEntry
 import org.json.JSONArray
 import org.json.JSONObject
-import se.koditoriet.snout.appStrings
-import se.koditoriet.snout.codec.Base64Url
+import se.koditoriet.snout.credentialprovider.ui.AuthenticateActivity
 import se.koditoriet.snout.vault.CredentialId
 import se.koditoriet.snout.vault.Vault
 import kotlin.random.Random

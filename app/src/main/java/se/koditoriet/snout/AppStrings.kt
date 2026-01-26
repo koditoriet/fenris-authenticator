@@ -13,7 +13,6 @@ class AppStrings(private val ctx: Context) {
     val secretsScreen by lazy { SecretsScreen(ctx) }
     val editScreen by lazy { EditScreen(ctx) }
     val addSecretScreens by lazy { AddSecretScreens(ctx) }
-    val createPasskeyScreen by lazy { CreatePasskeyScreen(ctx) }
     val managePasskeysScreen by lazy { ManagePasskeysScreen(ctx) }
     val settingsScreen by lazy { SettingsScreen(ctx) }
 
@@ -109,9 +108,9 @@ class AppStrings(private val ctx: Context) {
         val tapToUnlock by ctx.s(R.string.locked_tap_to_unlock)
     }
 
-    class CreatePasskeyScreen(ctx: Context) {
-        val passkeyAlreadyExists by ctx.s(R.string.create_passkey_already_exists)
-        val passkeyAlreadyExistsExplanation by ctx.s(R.string.create_passkey_already_exists_explanation)
+    class AuthenticateWithPasskeyScreen(ctx: Context) {
+        val passkeyAlreadyExists by ctx.s(R.string.credential_provider_passkey_already_exists)
+        val passkeyAlreadyExistsExplanation by ctx.s(R.string.credential_provider_passkey_already_exists_explanation)
     }
 
     class ManagePasskeysScreen(ctx: Context) {
@@ -235,6 +234,11 @@ class AppStrings(private val ctx: Context) {
 
     class CredentialProvider(private val ctx: Context) {
         val authenticationActionTitle by ctx.s(R.string.credential_provider_authentication_action_title)
+        val passkeyAlreadyExists by ctx.s(R.string.credential_provider_passkey_already_exists)
+        val passkeyAlreadyExistsExplanation by ctx.s(R.string.credential_provider_passkey_already_exists_explanation)
+        val unableToEstablishTrust by ctx.s(R.string.credential_provider_unable_to_establish_trust)
+        val unableToEstablishTrustExplanation by ctx.s(R.string.credential_provider_unable_to_establish_trust_explanation)
+
     }
 }
 

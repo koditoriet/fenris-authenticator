@@ -26,15 +26,15 @@
         </activity>
 
         <activity
-            android:name=".credentialprovider.CreatePasskeyActivity"
+            android:name=".credentialprovider.ui.CreatePasskeyActivity"
             android:theme="@style/Theme.Snout.Splash" />
 
         <activity
-            android:name=".credentialprovider.AuthenticateActivity"
+            android:name=".credentialprovider.ui.AuthenticateActivity"
             android:theme="@style/Theme.Snout.Splash" />
 
         <activity
-            android:name=".credentialprovider.UnlockVaultActivity"
+            android:name=".credentialprovider.ui.UnlockVaultActivity"
             android:theme="@style/Theme.Snout.Splash" />
 
         <service android:name=".credentialprovider.SnoutCredentialProviderService"

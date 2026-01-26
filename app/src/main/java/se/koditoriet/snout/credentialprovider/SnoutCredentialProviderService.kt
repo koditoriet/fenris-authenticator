@@ -25,6 +25,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import se.koditoriet.snout.SnoutApp
 import se.koditoriet.snout.appStrings
+import se.koditoriet.snout.credentialprovider.ui.CreatePasskeyActivity
+import se.koditoriet.snout.credentialprovider.ui.UnlockVaultActivity
 import se.koditoriet.snout.crypto.DummyAuthenticator
 import se.koditoriet.snout.vault.Vault
 
