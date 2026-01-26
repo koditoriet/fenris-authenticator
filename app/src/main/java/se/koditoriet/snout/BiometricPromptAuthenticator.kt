@@ -35,7 +35,7 @@ class BiometricPromptAuthenticator(
         cryptoObject: BiometricPrompt.CryptoObject?,
         authenticatedAction: suspend (BiometricPrompt.CryptoObject?) -> T,
     ): T {
-        Log.d(TAG, "Authenticating user")
+        Log.i(TAG, "Authenticating user")
         val result = withContext(Dispatchers.Main) {
             suspendCoroutine { continuation ->
                 val callback = AuthenticationCallback(continuation, authenticatedAction)
@@ -70,13 +70,13 @@ private class AuthenticationCallback<T>(
 ) : BiometricPrompt.AuthenticationCallback() {
     override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
         super.onAuthenticationSucceeded(result)
-        Log.d(TAG, "Authentication succeeded")
+        Log.i(TAG, "Authentication succeeded")
         continuation.resume({ onSuccess(result.cryptoObject) })
     }
 
     override fun onAuthenticationFailed() {
         super.onAuthenticationFailed()
-        Log.d(TAG, "Authentication failed")
+        Log.i(TAG, "Authentication failed")
         continuation.resume(null)
     }
 

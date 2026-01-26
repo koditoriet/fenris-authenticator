@@ -1,7 +1,11 @@
 package se.koditoriet.snout.credentialprovider
 
+import android.app.Activity
+import android.app.Activity.RESULT_CANCELED
+import android.app.Activity.RESULT_OK
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
@@ -17,50 +21,58 @@ import androidx.fragment.app.FragmentActivity
 import kotlinx.coroutines.flow.first
 import org.json.JSONObject
 import se.koditoriet.snout.BiometricPromptAuthenticator
+import se.koditoriet.snout.appStrings
 import se.koditoriet.snout.codec.Base64Url
 import se.koditoriet.snout.codec.webauthn.AuthDataFlag
 import se.koditoriet.snout.codec.webauthn.WebAuthnCreateResponse
+import se.koditoriet.snout.crypto.AuthenticationFailedException
 import se.koditoriet.snout.ui.components.InformationDialog
+import se.koditoriet.snout.ui.screens.EmptyScreen
+import se.koditoriet.snout.ui.theme.SnoutTheme
 import se.koditoriet.snout.vault.CredentialId
 import se.koditoriet.snout.viewmodel.SnoutViewModel
 import kotlin.getValue
 
+private val TAG = "CreatePasskeyActivity"
 
 class CreatePasskeyActivity : FragmentActivity() {
-    private val TAG = "CreatePasskeyActivity"
     private val viewModel: SnoutViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val screenStrings = appStrings.createPasskeyScreen
+
         enableEdgeToEdge()
         setContent {
             var passkeyAlreadyExists by remember { mutableStateOf(false) }
             LaunchedEffect(Unit) {
-                val response = createPasskey()
-                if (response != null) {
-                    Intent().apply {
-                        PendingIntentHandler.setCreateCredentialResponse(
-                            this,
-                            CreatePublicKeyCredentialResponse(response.json)
+                try {
+                    val response = createPasskey()
+                    if (response != null) {
+                        Log.i(
+                            TAG,
+                            "Created passkey with credential id ${response.credentialId}" +
+                                    " for RP ${response.rpId} at origin ${response.origin}"
                         )
-                        setResult(RESULT_OK, this)
+                        finishWithResponse(response)
+                    } else {
+                        passkeyAlreadyExists = true
                     }
-                    finish()
-                } else {
-                    passkeyAlreadyExists = true
+                } catch (_: AuthenticationFailedException) {
+                    finishWithResponse(null)
                 }
             }
 
-            if (passkeyAlreadyExists) {
-                // TODO: strings
-                InformationDialog(
-                    title = "Passkey already exists",
-                    text = "You already have an active passkey for this service. Try to sign in with that one instead.",
-                    onDismiss = { finish() }
-                )
-
-                // TODO: setResult?
-                // TODO: theme
+            SnoutTheme {
+                EmptyScreen {
+                    if (passkeyAlreadyExists) {
+                        InformationDialog(
+                            title = screenStrings.passkeyAlreadyExists,
+                            text = screenStrings.passkeyAlreadyExistsExplanation,
+                            onDismiss = { finishWithResponse(null) }
+                        )
+                    }
+                }
             }
         }
     }
@@ -74,9 +86,18 @@ class CreatePasskeyActivity : FragmentActivity() {
             CredentialId.fromString(it.getString("id"))
         } ?: emptyList()
 
-        if (viewModel.passkeys.first().any { it.credentialId in excludeCredentials }) {
+        val excludedCredentials = viewModel.passkeys.first().filter {
+            it.credentialId in excludeCredentials
+        }
+
+        if (excludedCredentials.isNotEmpty()) {
             // If any credential in excludeCredentials is already in the vault, we already have a credential that is
             // recognized by both us and the RP, so we should not create a new one.
+            val excluded = excludedCredentials.joinToString(", ") { it.toString() }
+            Log.i(
+                TAG,
+                "Existing passkeys with credential ids in excludeCredentials: $excluded",
+            )
             return null
         }
 
@@ -101,4 +122,20 @@ class CreatePasskeyActivity : FragmentActivity() {
             flags = AuthDataFlag.defaultCreateFlags,
         )
     }
+}
+
+private fun Activity.finishWithResponse(response: WebAuthnCreateResponse?) {
+    Intent().apply {
+        if (response != null) {
+            PendingIntentHandler.setCreateCredentialResponse(
+                this,
+                CreatePublicKeyCredentialResponse(response.json)
+            )
+            setResult(RESULT_OK, this)
+        } else {
+            Log.i(TAG, "Aborting passkey creation")
+            setResult(RESULT_CANCELED, this)
+        }
+    }
+    finish()
 }

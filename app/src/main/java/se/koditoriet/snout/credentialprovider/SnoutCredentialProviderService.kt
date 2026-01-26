@@ -101,11 +101,12 @@ class SnoutCredentialProviderService : CredentialProviderService() {
         callback: OutcomeReceiver<BeginCreateCredentialResponse, CreateCredentialException>,
     ) {
         if (request !is BeginCreatePublicKeyCredentialRequest) {
+            Log.i(TAG, "Got (and ignored) non-public key credential creation request: ${request::class.simpleName}")
             callback.onError(CreateCredentialUnknownException())
             return
         }
         val pendingIntent = createPendingIntent(applicationContext, CreatePasskeyActivity::class.java)
-        val entries = listOf(CreateEntry("Snout", pendingIntent))
+        val entries = listOf(CreateEntry(appStrings.generic.appName, pendingIntent))
         callback.onResult(BeginCreateCredentialResponse(entries))
     }
 
