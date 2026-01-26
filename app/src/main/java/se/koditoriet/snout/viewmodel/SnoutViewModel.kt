@@ -67,16 +67,6 @@ class SnoutViewModel(private val app: Application) : AndroidViewModel(app) {
 
     private val strings = app.appStrings.viewModel
 
-    suspend fun lockVaultAfterIdleTimeout() {
-        if (config.first().lockOnClose) {
-            val idleTimeout = config.first().lockOnCloseGracePeriod.seconds
-            Log.i(TAG, "Locking screen in $idleTimeout seconds")
-            delay(idleTimeout)
-            Log.i(TAG, "Idle timeout expired; locking vault")
-            lockVault()
-        }
-    }
-
     suspend fun createVault(backupSeed: BackupSeed?) = vault.withLock {
         Log.i(TAG, "Creating vault; enable backups: ${backupSeed != null}")
         val (dbKey, backupKeys) = create(
