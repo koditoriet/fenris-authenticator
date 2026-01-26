@@ -42,29 +42,26 @@ class Cryptographer(
 
     @Suppress("UNCHECKED_CAST")
     fun <T : KeyAlgorithm> getKeySecurityLevel(keyHandle: KeyHandle<T>): KeySecurityLevel {
-        val keyInfo = when (keyHandle.usage) {
-            KeyUsage.Sign -> getPrivateKeyInfo(keyHandle as KeyHandle<ECAlgorithm>)
-            else -> getSecretKeyInfo(keyHandle as KeyHandle<SymmetricAlgorithm>)
-        }
-
-        check(keyInfo != null) {
-            "key '${keyHandle.alias}' does not exist"
-        }
-
-        return try {
-            when (keyInfo.securityLevel) {
-                KeyProperties.SECURITY_LEVEL_STRONGBOX -> KeySecurityLevel.StrongBox
-                KeyProperties.SECURITY_LEVEL_TRUSTED_ENVIRONMENT -> KeySecurityLevel.TEE
-                KeyProperties.SECURITY_LEVEL_SOFTWARE -> KeySecurityLevel.Software
-                else -> {
-                    error("'${keyInfo.securityLevel}' is not a valid security level!")
-                }
+        val securityLevel = try {
+            val keyInfo = when (keyHandle.usage) {
+                KeyUsage.Sign -> getPrivateKeyInfo(keyHandle as KeyHandle<ECAlgorithm>)
+                else -> getSecretKeyInfo(keyHandle as KeyHandle<SymmetricAlgorithm>)
             }
+            check(keyInfo != null) {
+                "key '${keyHandle.alias}' does not exist"
+            }
+            keyInfo.securityLevel
         } catch (_: ProviderException) {
-            when (keyHandle.isStrongBoxBacked) {
-                true -> KeySecurityLevel.StrongBox
-                false -> KeySecurityLevel.Unknown
-            }
+            null
+        }
+
+        return when (securityLevel) {
+            KeyProperties.SECURITY_LEVEL_STRONGBOX -> KeySecurityLevel.StrongBox
+            KeyProperties.SECURITY_LEVEL_TRUSTED_ENVIRONMENT -> KeySecurityLevel.TEE
+            KeyProperties.SECURITY_LEVEL_SOFTWARE -> KeySecurityLevel.Software
+            null if keyHandle.isStrongBoxBacked -> KeySecurityLevel.StrongBox
+            null -> KeySecurityLevel.Unknown
+            else -> error("'${securityLevel}' is not a valid security level!")
         }
     }
 
