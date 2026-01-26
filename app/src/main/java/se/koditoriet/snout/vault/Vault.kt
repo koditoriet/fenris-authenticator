@@ -276,6 +276,7 @@ class Vault(
         val vaultExport = cryptographer.withDecryptionKey(metadataKeyMaterial, INTERNAL_SYMMETRIC_KEY_ALGORITHM) {
             VaultExport.decode(decrypt(data))
         }
+
         Log.d(TAG, "Backup metadata successfully decoded")
         metadataKeyMaterial.fill(0)
 
@@ -292,19 +293,21 @@ class Vault(
         unlockState: UnlockState,
     ) {
         var failedImportedSecrets = 0
-        for (oldSecret in secrets.sortedBy { it.sortOrder }) {
+        for (secret in secrets.sortedBy { it.sortOrder }) {
             try {
                 secretDecryptionContext.importSecret(
                     unlockState.repository.totpSecrets(),
-                    oldSecret
+                    secret
                 )
             } catch (e: Exception) {
-                Log.w(TAG, "Failed to import secret!", e)
+                Log.e(TAG, "Failed to import secret with id ${secret.id} and key alias ${secret.keyAlias}!", e)
                 failedImportedSecrets += 1
             }
         }
+
         if (failedImportedSecrets > 0) {
-            Log.w(TAG, "Failed to import $failedImportedSecrets/${secrets.size} TOTP secrets!")
+            Log.e(TAG, "Failed to import $failedImportedSecrets/${secrets.size} TOTP secrets!")
+            throw ImportFailedException()
         } else {
             Log.i(TAG, "Successfully imported ${secrets.size} TOTP secrets")
         }
@@ -316,19 +319,26 @@ class Vault(
         unlockState: UnlockState,
     ) {
         var failedImportedPasskeys = 0
-        for (oldPasskey in passkeys.sortedBy { it.sortOrder }) {
+        for (passkey in passkeys.sortedBy { it.sortOrder }) {
             try {
                 secretDecryptionContext.importPasskey(
                     unlockState.repository.passkeys(),
-                    oldPasskey
+                    passkey
                 )
             } catch (e: Exception) {
-                Log.w(TAG, "Failed to import passkey!", e)
+                Log.e(
+                    TAG,
+                    "Failed to import passkey with credential id ${passkey.credentialId}" +
+                            " and key alias ${passkey.keyAlias}!",
+                    e
+                )
                 failedImportedPasskeys += 1
             }
         }
+
         if (failedImportedPasskeys > 0) {
-            Log.w(TAG, "Failed to import $failedImportedPasskeys/${passkeys.size} TOTP secrets!")
+            Log.e(TAG, "Failed to import $failedImportedPasskeys/${passkeys.size} TOTP secrets!")
+            throw ImportFailedException()
         } else {
             Log.i(TAG, "Successfully imported ${passkeys.size} TOTP secrets")
         }
@@ -499,3 +509,5 @@ fun TotpAlgorithm.toHmacAlgorithm(): HmacAlgorithm = when (this) {
     TotpAlgorithm.SHA256 -> HmacAlgorithm.SHA256
     TotpAlgorithm.SHA512 -> HmacAlgorithm.SHA512
 }
+
+class ImportFailedException() : Exception()

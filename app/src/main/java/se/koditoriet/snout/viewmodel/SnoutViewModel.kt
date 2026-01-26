@@ -31,6 +31,7 @@ import se.koditoriet.snout.vault.NewTotpSecret
 import se.koditoriet.snout.vault.Passkey
 import se.koditoriet.snout.vault.TotpAlgorithm
 import se.koditoriet.snout.vault.TotpSecret
+import se.koditoriet.snout.vault.UnknownExportFormatException
 import se.koditoriet.snout.vault.Vault
 import java.lang.Exception
 import kotlin.time.Clock
@@ -151,16 +152,18 @@ class SnoutViewModel(private val app: Application) : AndroidViewModel(app) {
 
             Log.d(TAG, "Importing vault data")
             import(backupSeed, backupData)
+            Log.d(TAG, "Updating config data")
             configDatastore.updateData {
                 it.copy(
                     encryptedDbKey = dbKey,
                     backupKeys = BackupKeys.fromVaultBackupKeys(backupKeys!!)
                 )
             }
+            Log.i(TAG, "Backup successfully imported")
         } catch (e: Exception) {
             // Make sure we go back to a clean slate if something went wrong
             // TODO: inform the user what happened
-            Log.e(TAG, "Unable to restore backup: $e")
+            Log.e(TAG, "Unable to restore backup", e)
             wipe()
         } finally {
             _vaultState.value = state
