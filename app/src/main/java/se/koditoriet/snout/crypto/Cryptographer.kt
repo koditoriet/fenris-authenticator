@@ -21,11 +21,11 @@ import java.security.cert.X509Certificate
 import java.security.interfaces.ECPrivateKey
 import java.security.interfaces.ECPublicKey
 import java.security.spec.ECGenParameterSpec
+import java.security.spec.PKCS8EncodedKeySpec
 import javax.crypto.SecretKey
 import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.SecretKeySpec
 import javax.security.auth.DestroyFailedException
-
 
 private const val KEY_AUTHENTICATION_LIFETIME: Int = 5
 private const val TAG = "Cryptographer"
@@ -175,6 +175,31 @@ class Cryptographer(
         return storeSymmetricKey(keyHandle, keyMaterial, allowDeviceCredential) {
             setBlockModes(keyHandle.algorithm.blockMode)
             setEncryptionPaddings(keyHandle.algorithm.paddingScheme)
+        }
+    }
+
+    fun storePrivateKey(
+        keyIdentifier: KeyIdentifier?,
+        algorithm: ECAlgorithm,
+        allowDeviceCredential: Boolean,
+        requiresAuthentication: Boolean,
+        keyMaterial: ByteArray,
+    ): KeyHandle<ECAlgorithm> {
+        val keyHandle = KeyHandle(
+            usage = KeyUsage.Sign,
+            algorithm = algorithm,
+            requiresAuthentication = requiresAuthentication,
+            isStrongBoxBacked = true,
+            identifier = keyIdentifier ?: randomKeyIdentifier(),
+        )
+
+        val privateKey = decodeECPrivateKey(algorithm, keyMaterial)
+        return keyStore.importKey(
+            keyHandle = keyHandle,
+            keyEntry = KeyEntry.create(keyHandle, privateKey),
+            allowDeviceCredential = allowDeviceCredential,
+        ) {
+            setDigests(keyHandle.algorithm.keyStoreDigestName)
         }
     }
 
@@ -376,7 +401,7 @@ private fun <T : KeyAlgorithm> KeyStore.importKey(
 
 // Generated using the following command line:
 // openssl req -new -x509 -key dummy.key -out dummy.crt -days 3650 -subj "/CN=dummy"
-val dummyCertificate: X509Certificate by lazy {
+private val dummyCertificate: X509Certificate by lazy {
     val certBase64 = """
         MIIBdDCCARugAwIBAgIUTpBIKgyrQBlsaNIisMLiBc483QgwCgYIKoZIzj0EAwIwEDEOMAwGA1UE
         AwwFZHVtbXkwHhcNMjYwMTI2MDgwMTU0WhcNMzYwMTI0MDgwMTU0WjAQMQ4wDAYDVQQDDAVkdW1t
@@ -391,3 +416,12 @@ val dummyCertificate: X509Certificate by lazy {
     val cf = CertificateFactory.getInstance("X.509")
     cf.generateCertificate(ByteArrayInputStream(certBytes)) as X509Certificate
 }
+
+/**
+ * Inverse of ECPrivateKey.encoded.
+ */
+private fun decodeECPrivateKey(algorithm: ECAlgorithm, encoded: ByteArray): ECPrivateKey =
+    KeyFactory.getInstance(algorithm.secretKeySpecName).run {
+        val spec = PKCS8EncodedKeySpec(encoded)
+        generatePrivate(spec) as ECPrivateKey
+    }

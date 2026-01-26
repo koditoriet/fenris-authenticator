@@ -281,21 +281,57 @@ class Vault(
 
         val secretKeyMaterial = backupSeed.deriveBackupSecretKey()
         val secretDecryptionContext = DecryptionContext.create(secretKeyMaterial, INTERNAL_SYMMETRIC_KEY_ALGORITHM)
+        importTotpSecrets(vaultExport.secrets, secretDecryptionContext, unlockState)
+        importPasskeys(vaultExport.passkeys, secretDecryptionContext, unlockState)
+        secretKeyMaterial.fill(0)
+    }
+
+    private suspend fun importTotpSecrets(
+        secrets: List<TotpSecret>,
+        secretDecryptionContext: DecryptionContext,
+        unlockState: UnlockState,
+    ) {
         var failedImportedSecrets = 0
-        for (oldSecret in vaultExport.secrets.sortedBy { it.sortOrder }) {
+        for (oldSecret in secrets.sortedBy { it.sortOrder }) {
             try {
-                secretDecryptionContext.importSecret(unlockState.repository.totpSecrets(), oldSecret)
+                secretDecryptionContext.importSecret(
+                    unlockState.repository.totpSecrets(),
+                    oldSecret
+                )
             } catch (e: Exception) {
                 Log.w(TAG, "Failed to import secret!", e)
                 failedImportedSecrets += 1
             }
         }
         if (failedImportedSecrets > 0) {
-            Log.w(TAG, "Failed to import $failedImportedSecrets/${vaultExport.secrets.size} TOTP secrets!")
+            Log.w(TAG, "Failed to import $failedImportedSecrets/${secrets.size} TOTP secrets!")
         } else {
-            Log.i(TAG, "Successfully imported ${vaultExport.secrets.size} TOTP secrets")
+            Log.i(TAG, "Successfully imported ${secrets.size} TOTP secrets")
         }
-        secretKeyMaterial.fill(0)
+    }
+
+    private suspend fun importPasskeys(
+        passkeys: List<Passkey>,
+        secretDecryptionContext: DecryptionContext,
+        unlockState: UnlockState,
+    ) {
+        var failedImportedPasskeys = 0
+        for (oldPasskey in passkeys.sortedBy { it.sortOrder }) {
+            try {
+                secretDecryptionContext.importPasskey(
+                    unlockState.repository.passkeys(),
+                    oldPasskey
+                )
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to import passkey!", e)
+                failedImportedPasskeys += 1
+            }
+        }
+        if (failedImportedPasskeys > 0) {
+            Log.w(TAG, "Failed to import $failedImportedPasskeys/${passkeys.size} TOTP secrets!")
+        } else {
+            Log.i(TAG, "Successfully imported ${passkeys.size} TOTP secrets")
+        }
     }
 
     suspend fun getSecurityReport(): SecurityReport = requireUnlocked { unlockState ->
@@ -335,6 +371,26 @@ class Vault(
         )
         secrets.insert(newSecret)
         Log.d(TAG, "Imported TOTP secret with id ${newSecret.id} and key alias ${newSecret.keyAlias}")
+    }
+
+    private suspend fun DecryptionContext.importPasskey(passkeys: Passkeys, passkey: Passkey) {
+        val privateKeyBytes = decrypt(EncryptedData.decode(passkey.encryptedBackupPrivateKey!!))
+        val encryptedPrivateKey = encryptBackupSecretIfEnabled(privateKeyBytes)?.encode()
+        val newKeyHandle = cryptographer.storePrivateKey(
+            keyIdentifier = passkey.keyHandle.identifier,
+            algorithm = passkey.keyHandle.algorithm,
+            allowDeviceCredential = true,
+            requiresAuthentication = true,
+            keyMaterial = privateKeyBytes,
+        )
+        privateKeyBytes.fill(0)
+        val newPasskey = passkey.copy(
+            sortOrder = passkeys.getNextSortOrder(),
+            keyAlias = newKeyHandle.alias,
+            encryptedBackupPrivateKey = encryptedPrivateKey,
+        )
+        passkeys.insert(newPasskey)
+        Log.d(TAG, "Imported passkey with id ${newPasskey.credentialId} and key alias ${newPasskey.keyAlias}")
     }
 
     private suspend fun encryptBackupSecretIfEnabled(secretBytes: ByteArray): EncryptedData? =
