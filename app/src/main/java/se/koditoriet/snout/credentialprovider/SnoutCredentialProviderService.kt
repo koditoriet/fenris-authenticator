@@ -66,16 +66,12 @@ class SnoutCredentialProviderService : CredentialProviderService() {
                 when {
                     state == Vault.State.Locked && config.protectAccountList -> {
                         Log.i(TAG, "Vault is locked; presenting unlock option")
-                        callback.onResult(
-                            BeginGetCredentialResponse(
-                                authenticationActions = listOf(
-                                    AuthenticationAction(
-                                        strings.authenticationActionTitle,
-                                        createPendingIntent(applicationContext, UnlockVaultActivity::class.java),
-                                    )
-                                )
-                            )
+                        val pendingIntent = createPendingIntent(applicationContext, UnlockVaultActivity::class.java)
+                        val authAction = AuthenticationAction(
+                            title = strings.authenticationActionTitle,
+                            pendingIntent = pendingIntent,
                         )
+                        callback.onResult(BeginGetCredentialResponse(authenticationActions = listOf(authAction)))
                     }
                     else -> {
                         // unlock is idempotent and we know for a fact that the DB KEK doesn't require authentication

@@ -63,8 +63,7 @@ class CreatePasskeyActivity : FragmentActivity() {
                 if (response != null) {
                     Log.i(
                         TAG,
-                        "Created passkey with credential id ${response.credentialId}" +
-                                " for RP ${response.rpId} at origin ${response.origin}"
+                        "Created passkey with credential id ${response.credentialId}"
                     )
                     finishWithResponse(response)
                 } else {
