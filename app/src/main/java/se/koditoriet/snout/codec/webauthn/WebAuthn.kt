@@ -137,6 +137,7 @@ class SignedWebAuthnAuthResponse(
             put("rawId", credentialId.string)
             put("response", response)
             put("clientExtensionResults", JSONObject())
+            put("authenticatorAttachment", "platform")
         }
     }
 
