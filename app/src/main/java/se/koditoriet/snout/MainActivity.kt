@@ -131,7 +131,7 @@ class MainActivity : FragmentActivity() {
 
         enableEdgeToEdge()
         setContent {
-            MainScreen()
+            MainScreen(viewModel)
         }
     }
 
@@ -142,8 +142,7 @@ class MainActivity : FragmentActivity() {
 }
 
 @Composable
-fun MainActivity.MainScreen() {
-    val viewModel = viewModel<SnoutViewModel>()
+fun MainActivity.MainScreen(viewModel: SnoutViewModel) {
     val totpSecrets by viewModel.secrets.collectAsState(emptyList())
     val vaultState by viewModel.vaultState.collectAsState()
     val config by viewModel.config.collectAsState(Config.default)

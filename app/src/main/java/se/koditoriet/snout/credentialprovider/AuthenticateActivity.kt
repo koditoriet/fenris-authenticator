@@ -5,20 +5,13 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.viewModels
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.Modifier
 import androidx.credentials.GetCredentialResponse
 import androidx.credentials.GetPublicKeyCredentialOption
 import androidx.credentials.PublicKeyCredential
 import androidx.credentials.provider.PendingIntentHandler
 import androidx.fragment.app.FragmentActivity
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
+import androidx.lifecycle.viewmodel.compose.viewModel
 import se.koditoriet.snout.BiometricPromptAuthenticator
 import se.koditoriet.snout.codec.webauthn.AuthDataFlag
 import se.koditoriet.snout.codec.webauthn.WebAuthnAuthResponse
@@ -27,18 +20,17 @@ import se.koditoriet.snout.ui.screens.EmptyScreen
 import se.koditoriet.snout.ui.theme.SnoutTheme
 import se.koditoriet.snout.vault.CredentialId
 import se.koditoriet.snout.viewmodel.SnoutViewModel
-import kotlin.getValue
 
 
 class AuthenticateActivity : FragmentActivity() {
     private val TAG = "AuthenticateActivity"
 
-    private val viewModel: SnoutViewModel by viewModels()
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
+            val viewModel = viewModel<SnoutViewModel>()
+
             LaunchedEffect(Unit) {
                 val authFactory = BiometricPromptAuthenticator.Factory(this@AuthenticateActivity)
                 val request = PendingIntentHandler.retrieveProviderGetCredentialRequest(intent)!!
