@@ -8,11 +8,11 @@ import android.util.Log
 import androidx.credentials.provider.BeginGetCredentialRequest
 import androidx.credentials.provider.BeginGetCredentialResponse
 import androidx.credentials.provider.BeginGetPublicKeyCredentialOption
+import androidx.credentials.provider.CallingAppInfo
 import androidx.credentials.provider.CredentialEntry
 import androidx.credentials.provider.PublicKeyCredentialEntry
-import kotlinx.serialization.Serializable
 import se.koditoriet.snout.credentialprovider.ui.AuthenticateActivity
-import se.koditoriet.snout.credentialprovider.webauthn.AuthRequest
+import se.koditoriet.snout.credentialprovider.webauthn.PublicKeyCredentialRequestOptions
 import se.koditoriet.snout.vault.CredentialId
 import se.koditoriet.snout.vault.Vault
 import kotlin.random.Random
@@ -29,7 +29,7 @@ suspend fun createBeginGetCredentialResponse(
     Log.i(TAG, "Fetching passkeys from vault")
     val credentialEntries = request.beginGetCredentialOptions.flatMap {
         when (it) {
-            is BeginGetPublicKeyCredentialOption -> getPasskeys(vault, context, it)
+            is BeginGetPublicKeyCredentialOption -> getPasskeys(vault, context, request.callingAppInfo!!, it)
             else -> emptyList()
         }
     }
@@ -40,10 +40,11 @@ suspend fun createBeginGetCredentialResponse(
 private suspend fun getPasskeys(
     vault: Vault,
     context: Context,
+    callingAppInfo: CallingAppInfo,
     option: BeginGetPublicKeyCredentialOption,
 ): List<CredentialEntry> {
     Log.i(TAG, "Listing eligible passkeys")
-    val request = AuthRequest.fromJSON(option.requestJson)
+    val request = PublicKeyCredentialRequestOptions.fromJSON(option.requestJson)
     val allowedCredentials = request.allowCredentials.map { CredentialId(it.id) }
 
     if (allowedCredentials.isNotEmpty()) {
@@ -53,7 +54,7 @@ private suspend fun getPasskeys(
         Log.i(TAG, "RP did not specify allowedCredentials")
     }
 
-    return vault.getPasskeys(request.rpId).flatMap { passkey ->
+    return vault.getPasskeys(request.rpId ?: appInfoToRpId(callingAppInfo)).flatMap { passkey ->
         if (allowedCredentials.isEmpty() || allowedCredentials.contains(passkey.credentialId)) {
             val data = Bundle().apply { putString(CREDENTIAL_ID, passkey.credentialId.string) }
             listOf(

@@ -28,7 +28,7 @@ fun originIsValid(callingAppInfo: CallingAppInfo, rpId: String): Boolean {
         return false
     }
 
-    if (originUri.host != rpId && originUri.host!!.endsWith(".$rpId")) {
+    if (originUri.host != rpId && !originUri.host!!.endsWith(".$rpId")) {
         Log.e(TAG, "RP is not a suffix of the host part of the origin")
         return false
     }
@@ -50,4 +50,20 @@ fun appInfoToOrigin(callingAppInfo: CallingAppInfo): String {
     val md = MessageDigest.getInstance("SHA-256")
     val certHash = md.digest(cert)
     return "android:apk-key-hash:${certHash.toBase64Url().string}"
+}
+
+/**
+ * Derives an rpId from a CallingAppInfo.
+ * Only web origins are supported, and and we approximate the rpId by taking the host of the origin URI.
+ */
+fun appInfoToRpId(callingAppInfo: CallingAppInfo): String {
+    require(callingAppInfo.isOriginPopulated())
+
+    val origin = callingAppInfo.getOrigin(privilegedAllowlist)
+    require(origin != null)
+
+    val host = origin.toUri().host
+    require(host != null)
+
+    return host
 }

@@ -19,10 +19,11 @@ import se.koditoriet.snout.BiometricPromptAuthenticator
 import se.koditoriet.snout.appStrings
 import se.koditoriet.snout.credentialprovider.CREDENTIAL_DATA
 import se.koditoriet.snout.credentialprovider.CREDENTIAL_ID
+import se.koditoriet.snout.credentialprovider.appInfoToRpId
 import se.koditoriet.snout.credentialprovider.originIsValid
 import se.koditoriet.snout.credentialprovider.rpIsValid
 import se.koditoriet.snout.credentialprovider.webauthn.AuthDataFlag
-import se.koditoriet.snout.credentialprovider.webauthn.AuthRequest
+import se.koditoriet.snout.credentialprovider.webauthn.PublicKeyCredentialRequestOptions
 import se.koditoriet.snout.credentialprovider.webauthn.AuthResponse
 import se.koditoriet.snout.credentialprovider.webauthn.SignedAuthResponse
 import se.koditoriet.snout.crypto.AuthenticationFailedException
@@ -122,20 +123,24 @@ private class GetRequestInfo(
     val credentialId: CredentialId,
     val callingAppInfo: CallingAppInfo,
     val clientDataHash: ByteArray,
-    val requestJson: AuthRequest,
+    val requestJson: PublicKeyCredentialRequestOptions,
 ) {
+    val rpId by lazy {
+        requestJson.rpId ?: appInfoToRpId(callingAppInfo)
+    }
+
     fun isValid(storedPasskey: Passkey): Boolean {
-        if (!rpIsValid(requestJson.rpId)) {
+        if (!rpIsValid(rpId)) {
             Log.e(TAG, "Request RP is invalid!")
             return false
         }
 
-        if (!originIsValid(callingAppInfo, requestJson.rpId)) {
+        if (!originIsValid(callingAppInfo, rpId)) {
             Log.e(TAG, "Origin is invalid!")
             return false
         }
 
-        if (storedPasskey.rpId != requestJson.rpId) {
+        if (storedPasskey.rpId != rpId) {
             Log.e(TAG, "Request RP does not match passkey RP!")
             return false
         }
@@ -163,7 +168,7 @@ private class GetRequestInfo(
                 credentialId = CredentialId.fromString(credentialId),
                 callingAppInfo = request.callingAppInfo,
                 clientDataHash = credentialOption.clientDataHash!!,
-                requestJson = AuthRequest.fromJSON(credentialOption.requestJson),
+                requestJson = PublicKeyCredentialRequestOptions.fromJSON(credentialOption.requestJson),
             )
         }
     }

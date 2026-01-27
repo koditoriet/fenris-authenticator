@@ -22,7 +22,7 @@ import se.koditoriet.snout.appStrings
 import se.koditoriet.snout.credentialprovider.originIsValid
 import se.koditoriet.snout.credentialprovider.rpIsValid
 import se.koditoriet.snout.credentialprovider.webauthn.AuthDataFlag
-import se.koditoriet.snout.credentialprovider.webauthn.CreateRequest
+import se.koditoriet.snout.credentialprovider.webauthn.PublicKeyCredentialCreationOptions
 import se.koditoriet.snout.credentialprovider.webauthn.CreateResponse
 import se.koditoriet.snout.crypto.AuthenticationFailedException
 import se.koditoriet.snout.ui.components.InformationDialog
@@ -144,7 +144,7 @@ class CreatePasskeyActivity : FragmentActivity() {
 
 private class CreateRequestInfo(
     val callingAppInfo: CallingAppInfo,
-    val requestJson: CreateRequest,
+    val requestJson: PublicKeyCredentialCreationOptions,
 ) {
     val isValid: Boolean by lazy {
         if (!rpIsValid(requestJson.rp.id)) {
@@ -170,7 +170,7 @@ private class CreateRequestInfo(
             Log.d(TAG, "Parsing request JSON")
             return CreateRequestInfo(
                 callingAppInfo = request.callingAppInfo,
-                requestJson = CreateRequest.fromJSON(publicKeyCredentialRequest.requestJson),
+                requestJson = PublicKeyCredentialCreationOptions.fromJSON(publicKeyCredentialRequest.requestJson),
             )
         }
     }
