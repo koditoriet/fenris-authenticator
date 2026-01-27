@@ -53,8 +53,9 @@ class BiometricPromptAuthenticator(
         BiometricPrompt.PromptInfo.Builder().apply {
             setTitle(reason)
             setSubtitle(subtitle)
-            setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG)
-            setNegativeButtonText(activity.appStrings.generic.cancel)
+            setAllowedAuthenticators(
+                BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager.Authenticators.DEVICE_CREDENTIAL
+            )
         }.build()
     }
 
@@ -76,8 +77,8 @@ private class AuthenticationCallback<T>(
 
     override fun onAuthenticationFailed() {
         super.onAuthenticationFailed()
-        Log.i(TAG, "Authentication failed")
-        continuation.resume(null)
+        Log.d(TAG, "Authentication failed")
+        // Do nothing here; we'll be getting more callbacks as the user keeps trying
     }
 
     override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
