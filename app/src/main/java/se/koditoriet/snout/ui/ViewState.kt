@@ -16,7 +16,6 @@ sealed class ViewState(
     object LockedScreen : ViewState(null)
     object ListSecrets : ViewState(LockedScreen)
     class AddSecret(val prefilledSecret: NewTotpSecret?) : ViewState(ListSecrets)
-    class EditSecretMetadata(val secret: TotpSecret) : ViewState(ListSecrets)
     object ScanSecretQrCode : ViewState(ListSecrets)
     object Settings : ViewState(ListSecrets)
     object ManagePasskeys: ViewState(Settings)

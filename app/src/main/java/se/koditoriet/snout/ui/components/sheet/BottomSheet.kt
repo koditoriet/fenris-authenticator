@@ -1,5 +1,14 @@
 package se.koditoriet.snout.ui.components.sheet
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.with
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,11 +34,12 @@ import se.koditoriet.snout.ui.theme.SPACING_S
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BottomSheet(
+fun <S> BottomSheet(
     hideSheet: () -> Unit,
     sheetState: SheetState,
     padding: PaddingValues,
-    content: @Composable ColumnScope.(hideSheet: () -> Unit) -> Unit,
+    sheetViewState: S,
+    content: @Composable ColumnScope.(state: S) -> Unit,
 ) {
     Box(Modifier.fillMaxSize().padding(padding)) {
         ModalBottomSheet(
@@ -39,14 +49,23 @@ fun BottomSheet(
             tonalElevation = 4.dp,
             shape = RoundedCornerShape(topStart = ROUNDED_CORNER_PADDING, topEnd = ROUNDED_CORNER_PADDING)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = PADDING_L),
-                verticalArrangement = Arrangement.spacedBy(SPACING_L),
-            ) {
-                content(hideSheet)
-                Spacer(Modifier.height(SPACING_S))
+            AnimatedContent(
+                targetState = sheetViewState,
+                transitionSpec = {
+                    (fadeIn()).togetherWith(fadeOut()).using(
+                        SizeTransform(clip = false)
+                    )
+                }
+            ) { state ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = PADDING_L),
+                    verticalArrangement = Arrangement.spacedBy(SPACING_L),
+                ) {
+                    content(state)
+                    Spacer(Modifier.height(SPACING_S))
+                }
             }
         }
     }

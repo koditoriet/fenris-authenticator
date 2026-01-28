@@ -52,7 +52,7 @@ import se.koditoriet.snout.vault.TotpAlgorithm
 
 @Composable
 inline fun <reified T : TotpSecretFormResult> TotpSecretForm(
-    padding: PaddingValues,
+    padding: PaddingValues? = null,
     metadata: NewTotpSecret.Metadata? = null,
     hideSecretsFromAccessibility: Boolean,
     crossinline onSave: (T) -> Unit,
@@ -66,11 +66,14 @@ inline fun <reified T : TotpSecretFormResult> TotpSecretForm(
         .fillMaxWidth()
         .padding(INPUT_FIELD_PADDING)
 
+    val columnModifier = Modifier
+        .fillMaxWidth()
+        .verticalScroll(rememberScrollState())
+
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(padding)
-            .verticalScroll(rememberScrollState()),
+        modifier = columnModifier
+            .takeIf { padding != null }
+            ?.padding(padding!!) ?: columnModifier,
         verticalArrangement = Arrangement.spacedBy(SPACING_S),
     ) {
         OutlinedTextField(

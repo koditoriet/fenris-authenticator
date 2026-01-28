@@ -1,7 +1,11 @@
 package se.koditoriet.snout.ui.screens.secrets
 
 import android.net.Uri
+import android.util.Log
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -65,6 +69,7 @@ import se.koditoriet.snout.ui.ignoreAuthFailure
 import se.koditoriet.snout.ui.primaryDisabled
 import se.koditoriet.snout.ui.primaryHint
 import se.koditoriet.snout.ui.sheets.AddSecretsSheet
+import se.koditoriet.snout.ui.sheets.EditSecretMetadataSheet
 import se.koditoriet.snout.ui.sheets.SecretActionsSheet
 import se.koditoriet.snout.ui.theme.LIST_ITEM_FONT_SIZE
 import se.koditoriet.snout.ui.theme.PADDING_M
@@ -77,7 +82,9 @@ import se.koditoriet.snout.vault.NewTotpSecret
 import se.koditoriet.snout.vault.TotpSecret
 import kotlin.time.Clock
 
-@OptIn(ExperimentalMaterial3Api::class)
+private const val TAG = "ListSecretsScreen"
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun ListSecretsScreen(
     secrets: List<TotpSecret>,
@@ -91,13 +98,20 @@ fun ListSecretsScreen(
     onAddSecret: (NewTotpSecret?) -> Unit,
     onImportFile: (Uri) -> Unit,
     onSortModeChange: (SortMode) -> Unit,
-    onEditSecretMetadata: (TotpSecret) -> Unit,
+    onUpdateSecret: (TotpSecret) -> Unit,
     onDeleteSecret: (TotpSecret) -> Unit,
     clock: Clock = Clock.System,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var sheetViewState by remember { mutableStateOf<SheetViewState?>(null) }
     var filter by remember { mutableStateOf<String?>(null) }
+
+    LocalActivity.current?.apply {
+        BackHandler {
+            Log.d(TAG, "Back pressed, retiring to background")
+            moveTaskToBack(true)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -146,9 +160,10 @@ fun ListSecretsScreen(
             BottomSheet(
                 hideSheet = { sheetViewState = null },
                 sheetState = sheetState,
+                sheetViewState = viewState,
                 padding = padding,
-            ) {
-                when (viewState) {
+            ) { state ->
+                when (state) {
                     SheetViewState.AddSecrets -> {
                         AddSecretsSheet(
                             enableFileImport = enableDeveloperFeatures,
@@ -168,13 +183,31 @@ fun ListSecretsScreen(
                     }
                     is SheetViewState.SecretActions -> {
                         SecretActionsSheet(
-                            totpSecret = viewState.secret,
+                            totpSecret = state.secret,
                             onEditMetadata = {
-                                onEditSecretMetadata(it)
-                                sheetViewState = null
+                                sheetViewState = SheetViewState.EditSecretMetadata(it)
                             },
                             onDeleteSecret = {
                                 onDeleteSecret(it)
+                                sheetViewState = null
+                            },
+                        )
+                    }
+                    is SheetViewState.EditSecretMetadata -> {
+                        BackHandler {
+                            sheetViewState = SheetViewState.SecretActions(state.secret)
+                        }
+                        EditSecretMetadataSheet(
+                            metadata = NewTotpSecret.Metadata(
+                                issuer = state.secret.issuer,
+                                account = state.secret.account
+                            ),
+                            onSave = { newMetadata ->
+                                val updatedSecret = state.secret.copy(
+                                    issuer = newMetadata.issuer,
+                                    account = newMetadata.account
+                                )
+                                onUpdateSecret(updatedSecret)
                                 sheetViewState = null
                             },
                         )
@@ -434,4 +467,5 @@ private sealed interface ListRowViewState {
 private sealed interface SheetViewState {
     object AddSecrets : SheetViewState
     data class SecretActions(val secret: TotpSecret) : SheetViewState
+    data class EditSecretMetadata(val secret: TotpSecret) : SheetViewState
 }

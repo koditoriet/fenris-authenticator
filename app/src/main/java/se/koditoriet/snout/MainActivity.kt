@@ -22,7 +22,6 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.print.PrintHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -44,14 +43,12 @@ import se.koditoriet.snout.ui.screens.LockedScreen
 import se.koditoriet.snout.ui.screens.SettingsScreen
 import se.koditoriet.snout.ui.screens.secrets.AddSecretByQrScreen
 import se.koditoriet.snout.ui.screens.secrets.AddSecretByTextScreen
-import se.koditoriet.snout.ui.screens.secrets.EditSecretMetadataScreen
 import se.koditoriet.snout.ui.screens.secrets.ListSecretsScreen
 import se.koditoriet.snout.ui.screens.ManagePasskeysScreen
 import se.koditoriet.snout.ui.screens.setup.BackupSeedScreen
 import se.koditoriet.snout.ui.screens.setup.BackupSetupScreen
 import se.koditoriet.snout.ui.screens.setup.RestoreBackupScreen
 import se.koditoriet.snout.ui.theme.SnoutTheme
-import se.koditoriet.snout.vault.NewTotpSecret
 import se.koditoriet.snout.vault.Vault
 import se.koditoriet.snout.viewmodel.SnoutViewModel
 import kotlin.time.Duration
@@ -163,18 +160,13 @@ fun MainActivity.MainScreen(viewModel: SnoutViewModel) {
 
     SnoutTheme {
         BackHandler {
-            if (viewState is ViewState.ListSecrets) {
-                Log.d(TAG, "Back pressed on ListSecretsScreen, retiring to background")
-                moveTaskToBack(true)
-            } else {
-                val goToState = viewState.previousViewState
-                lifecycleScope.launch {
-                    if (goToState is ViewState.LockedScreen) {
-                        viewModel.lockVault()
-                    }
-                    goToState?.apply {
-                        viewState = this
-                    }
+            val goToState = viewState.previousViewState
+            lifecycleScope.launch {
+                if (goToState is ViewState.LockedScreen) {
+                    viewModel.lockVault()
+                }
+                goToState?.apply {
+                    viewState = this
                 }
             }
         }
@@ -264,7 +256,7 @@ fun MainActivity.MainScreen(viewModel: SnoutViewModel) {
                     onAddSecret = { viewState = ViewState.AddSecret(it) },
                     onAddSecretByQR = { viewState = ViewState.ScanSecretQrCode },
                     onSortModeChange = onIOThread { mode -> viewModel.setSortMode(mode) },
-                    onEditSecretMetadata = { viewState = ViewState.EditSecretMetadata(it) },
+                    onUpdateSecret = onIOThread { secret -> viewModel.updateTotpSecret(secret) },
                     onDeleteSecret = onIOThread { secret -> viewModel.deleteTotpSecret(secret.id) },
                     onImportFile = onIOThread { uri -> viewModel.importFromFile(uri) },
                 )
@@ -275,19 +267,6 @@ fun MainActivity.MainScreen(viewModel: SnoutViewModel) {
                     prefilledSecret = (viewState as ViewState.AddSecret).prefilledSecret,
                     onSave = onIOThread { newSecret ->
                         viewModel.addTotpSecret(newSecret)
-                        viewState = ViewState.ListSecrets
-                    },
-                    onCancel = { viewState = ViewState.ListSecrets },
-                )
-            }
-            is ViewState.EditSecretMetadata -> {
-                val secret = (viewState as ViewState.EditSecretMetadata).secret
-                val metadata = NewTotpSecret.Metadata(issuer = secret.issuer, account = secret.account)
-                EditSecretMetadataScreen(
-                    metadata = metadata,
-                    onSave = onIOThread { newMetadata ->
-                        val updatedSecret = secret.copy(issuer = newMetadata.issuer, account = newMetadata.account)
-                        viewModel.updateTotpSecret(updatedSecret)
                         viewState = ViewState.ListSecrets
                     },
                     onCancel = { viewState = ViewState.ListSecrets },
