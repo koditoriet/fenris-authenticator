@@ -52,5 +52,9 @@
                 android:name="android.credentials.provider"
                 android:resource="@xml/provider"/>
         </service>
+
+        <receiver
+            android:name=".IdleTimeoutReceiver"
+            android:exported="false" />
     </application>
 </manifest>
