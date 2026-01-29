@@ -1,10 +1,14 @@
 package se.koditoriet.snout.ui.components
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import se.koditoriet.snout.appStrings
 
 @Composable
@@ -27,6 +31,13 @@ fun IrrevocableActionConfirmationDialog(
             TextButton(onClick = onCancel) {
                 Text(appStrings.generic.cancel)
             }
+        },
+        icon = {
+            Icon(
+                imageVector = Icons.Default.WarningAmber,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error,
+            )
         }
     )
 }

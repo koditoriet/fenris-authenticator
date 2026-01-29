@@ -117,7 +117,9 @@ class AppStrings(private val ctx: Context) {
 
     class ManagePasskeysScreen(ctx: Context) {
         val heading by ctx.s(R.string.manage_passkeys_heading)
-        val permanentlyDeletePasskey by ctx.s(R.string.manage_passkeys_permanently_delete_passkey)
+        val editPasskey by ctx.s(R.string.manage_passkeys_edit_passkey)
+        val deletePasskey by ctx.s(R.string.manage_passkeys_delete_passkey)
+        val deletePasskeyWarning by ctx.s(R.string.manage_passkeys_delete_passkey_warning)
     }
 
     class SettingsScreen(private val ctx: Context) {

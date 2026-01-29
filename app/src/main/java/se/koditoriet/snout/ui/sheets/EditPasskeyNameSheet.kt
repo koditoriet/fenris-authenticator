@@ -68,7 +68,7 @@ fun EditPasskeyNameSheet(
         if (existingPasskey != null) {
             BottomSheetContextualHeader(
                 heading = existingPasskey.displayName,
-                subheading = "${existingPasskey.rpId} \u2022 ${existingPasskey.userName}",
+                subheading = existingPasskey.description,
                 icon = { PasskeyIcon() }
             )
         } else {

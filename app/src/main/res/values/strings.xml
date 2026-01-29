@@ -79,7 +79,9 @@
 
     <!-- Manage passkeys screen -->
     <string name="manage_passkeys_heading">Manage passkeys</string>
-    <string name="manage_passkeys_permanently_delete_passkey">Permanently delete passkey</string>
+    <string name="manage_passkeys_edit_passkey">Edit metadata</string>
+    <string name="manage_passkeys_delete_passkey">Delete passkey</string>
+    <string name="manage_passkeys_delete_passkey_warning">The selected passkey will be deleted. If this is your only authentication method for that service, you will effectively lose access to your account.</string>
 
 
     <!-- Settings screen -->

@@ -1,8 +1,8 @@
 package se.koditoriet.snout.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -15,7 +15,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -36,11 +35,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import kotlinx.coroutines.flow.Flow
 import se.koditoriet.snout.appStrings
+import se.koditoriet.snout.ui.components.IrrevocableActionConfirmationDialog
 import se.koditoriet.snout.ui.components.sheet.BottomSheet
 import se.koditoriet.snout.ui.primaryHint
 import se.koditoriet.snout.ui.sheets.EditPasskeyNameSheet
+import se.koditoriet.snout.ui.sheets.PasskeyActionsSheet
 import se.koditoriet.snout.ui.theme.LIST_ITEM_FONT_SIZE
-import se.koditoriet.snout.ui.theme.PADDING_L
 import se.koditoriet.snout.ui.theme.PADDING_M
 import se.koditoriet.snout.ui.theme.PADDING_S
 import se.koditoriet.snout.ui.theme.PADDING_XS
@@ -57,7 +57,8 @@ fun ManagePasskeysScreen(
     val screenStrings = appStrings.managePasskeysScreen
     val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
     val passkeys by passkeys.collectAsState(emptyList())
-    var selectedPasskey by remember { mutableStateOf<Passkey?>(null) }
+    var sheetViewState by remember { mutableStateOf<SheetViewState?>(null) }
+    var confirmDeletePasskey by remember { mutableStateOf<Passkey?>(null) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     Scaffold(
@@ -78,24 +79,54 @@ fun ManagePasskeysScreen(
         Column(modifier = Modifier.padding(padding)) {
             PasskeyList(
                 passkeys = passkeys,
-                onSelectPasskey = { selectedPasskey = it },
-                onDeletePasskey = onDeletePasskey,
+                onSelectPasskey = { sheetViewState = SheetViewState.Actions(it) },
             )
 
-            selectedPasskey?.let { passkey ->
+            confirmDeletePasskey?.let { passkey ->
+                IrrevocableActionConfirmationDialog(
+                    text = screenStrings.deletePasskeyWarning,
+                    buttonText = screenStrings.deletePasskey,
+                    onCancel = { confirmDeletePasskey = null },
+                    onConfirm = {
+                        confirmDeletePasskey = null
+                        sheetViewState = null
+                        onDeletePasskey(passkey)
+                    }
+                )
+            }
+
+            sheetViewState?.let { viewState ->
                 BottomSheet(
-                    hideSheet = { selectedPasskey = null },
+                    hideSheet = { sheetViewState = null },
                     sheetState = sheetState,
-                    sheetViewState = passkey,
+                    sheetViewState = viewState,
                     padding = padding,
-                ) { passkey ->
-                    EditPasskeyNameSheet(
-                        existingPasskey = passkey,
-                        onSave = {
-                            onUpdatePasskey(passkey.copy(displayName = it))
-                            selectedPasskey = null
+                ) { viewState ->
+                    when (viewState) {
+                        is SheetViewState.Actions -> {
+                            PasskeyActionsSheet(
+                                passkey = viewState.passkey,
+                                onEditDisplayName = {
+                                    sheetViewState = SheetViewState.EditMetadata(viewState.passkey)
+                                },
+                                onDeletePasskey = {
+                                    confirmDeletePasskey = viewState.passkey
+                                },
+                            )
                         }
-                    )
+                        is SheetViewState.EditMetadata -> {
+                            BackHandler {
+                                sheetViewState = SheetViewState.Actions(viewState.passkey)
+                            }
+                            EditPasskeyNameSheet(
+                                existingPasskey = viewState.passkey,
+                                onSave = {
+                                    onUpdatePasskey(viewState.passkey.copy(displayName = it))
+                                    sheetViewState = null
+                                }
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -106,7 +137,6 @@ fun ManagePasskeysScreen(
 private fun PasskeyList(
     passkeys: List<Passkey>,
     onSelectPasskey: (Passkey) -> Unit,
-    onDeletePasskey: (Passkey) -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -116,7 +146,6 @@ private fun PasskeyList(
             ListRow(
                 passkey = item,
                 onLongPress = onSelectPasskey,
-                onDeletePasskey = onDeletePasskey,
             )
         }
     }
@@ -126,7 +155,6 @@ private fun PasskeyList(
 private fun ListRow(
     passkey: Passkey,
     onLongPress: (Passkey) -> Unit,
-    onDeletePasskey: (Passkey) -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -164,12 +192,10 @@ private fun ListRow(
                 color = MaterialTheme.colorScheme.primaryHint,
             )
         }
-        Icon(
-            imageVector = Icons.Default.DeleteForever,
-            contentDescription = appStrings.managePasskeysScreen.permanentlyDeletePasskey,
-            modifier = Modifier
-                .clickable { onDeletePasskey(passkey) } // TODO: <- confirmation dialog
-                .padding(PADDING_L)
-        )
     }
+}
+
+private sealed interface SheetViewState {
+    class Actions(val passkey: Passkey) : SheetViewState
+    class EditMetadata(val passkey: Passkey) : SheetViewState
 }
