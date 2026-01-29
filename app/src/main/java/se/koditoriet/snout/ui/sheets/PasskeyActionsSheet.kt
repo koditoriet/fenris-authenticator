@@ -26,12 +26,12 @@ fun PasskeyActionsSheet(
     )
     BottomSheetAction(
         icon = Icons.Default.Edit,
-        text = screenStrings.editPasskey,
+        text = screenStrings.actionsSheetEdit,
         onClick = { onEditDisplayName(passkey) },
     )
     BottomSheetAction(
         icon = Icons.Default.DeleteForever,
-        text = screenStrings.deletePasskey,
+        text = screenStrings.actionsSheetDelete,
         onClick = { onDeletePasskey(passkey) },
     )
 }

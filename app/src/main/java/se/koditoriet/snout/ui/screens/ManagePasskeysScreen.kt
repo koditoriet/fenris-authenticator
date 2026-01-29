@@ -84,8 +84,8 @@ fun ManagePasskeysScreen(
 
             confirmDeletePasskey?.let { passkey ->
                 IrrevocableActionConfirmationDialog(
-                    text = screenStrings.deletePasskeyWarning,
-                    buttonText = screenStrings.deletePasskey,
+                    text = screenStrings.actionsSheetDeleteWarning,
+                    buttonText = screenStrings.actionsSheetDelete,
                     onCancel = { confirmDeletePasskey = null },
                     onConfirm = {
                         confirmDeletePasskey = null

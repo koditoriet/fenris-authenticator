@@ -64,6 +64,7 @@ import kotlinx.coroutines.launch
 import se.koditoriet.snout.SortMode
 import se.koditoriet.snout.appStrings
 import se.koditoriet.snout.crypto.AuthenticationFailedException
+import se.koditoriet.snout.ui.components.IrrevocableActionConfirmationDialog
 import se.koditoriet.snout.ui.components.sheet.BottomSheet
 import se.koditoriet.snout.ui.ignoreAuthFailure
 import se.koditoriet.snout.ui.primaryDisabled
@@ -102,6 +103,8 @@ fun ListSecretsScreen(
     onDeleteSecret: (TotpSecret) -> Unit,
     clock: Clock = Clock.System,
 ) {
+    val screenStrings = appStrings.secretsScreen
+    var confirmDeleteSecret by remember { mutableStateOf<TotpSecret?>(null) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var sheetViewState by remember { mutableStateOf<SheetViewState?>(null) }
     var filter by remember { mutableStateOf<String?>(null) }
@@ -127,7 +130,7 @@ fun ListSecretsScreen(
         floatingActionButton = {
             Column(verticalArrangement = Arrangement.spacedBy(SPACING_L)) {
                 FloatingActionButton(onClick = { sheetViewState = SheetViewState.AddSecrets }) {
-                    Icon(Icons.Filled.Add, appStrings.secretsScreen.addSecret)
+                    Icon(Icons.Filled.Add, screenStrings.addSecret)
                 }
             }
         }
@@ -153,6 +156,19 @@ fun ListSecretsScreen(
                 clock = clock,
                 getTotpCodes = getTotpCodes,
                 onLongPressSecret = { sheetViewState = SheetViewState.SecretActions(it) }
+            )
+        }
+
+        confirmDeleteSecret?.let { secret ->
+            IrrevocableActionConfirmationDialog(
+                text = screenStrings.actionsSheetDeleteWarning,
+                buttonText = screenStrings.actionsSheetDelete,
+                onCancel = { confirmDeleteSecret = null },
+                onConfirm = {
+                    confirmDeleteSecret = null
+                    sheetViewState = null
+                    onDeleteSecret(secret)
+                }
             )
         }
 
@@ -188,8 +204,7 @@ fun ListSecretsScreen(
                                 sheetViewState = SheetViewState.EditSecretMetadata(it)
                             },
                             onDeleteSecret = {
-                                onDeleteSecret(it)
-                                sheetViewState = null
+                                confirmDeleteSecret = state.secret
                             },
                         )
                     }

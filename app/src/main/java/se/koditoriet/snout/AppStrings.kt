@@ -85,6 +85,7 @@ class AppStrings(private val ctx: Context) {
         val actionsSheetNoAccount by ctx.s(R.string.secrets_actions_sheet_no_account)
         val actionsSheetEdit by ctx.s(R.string.secrets_actions_sheet_edit)
         val actionsSheetDelete by ctx.s(R.string.secrets_actions_sheet_delete)
+        val actionsSheetDeleteWarning by ctx.s(R.string.secrets_actions_sheet_delete_warning)
 
         fun sortAlphabetically(active: Boolean) = when (active) {
             true -> R.string.secrets_sort_alphabetically_active
@@ -110,16 +111,11 @@ class AppStrings(private val ctx: Context) {
         val tapToUnlock by ctx.s(R.string.locked_tap_to_unlock)
     }
 
-    class AuthenticateWithPasskeyScreen(ctx: Context) {
-        val passkeyAlreadyExists by ctx.s(R.string.credential_provider_passkey_already_exists)
-        val passkeyAlreadyExistsExplanation by ctx.s(R.string.credential_provider_passkey_already_exists_explanation)
-    }
-
     class ManagePasskeysScreen(ctx: Context) {
         val heading by ctx.s(R.string.manage_passkeys_heading)
-        val editPasskey by ctx.s(R.string.manage_passkeys_edit_passkey)
-        val deletePasskey by ctx.s(R.string.manage_passkeys_delete_passkey)
-        val deletePasskeyWarning by ctx.s(R.string.manage_passkeys_delete_passkey_warning)
+        val actionsSheetEdit by ctx.s(R.string.manage_passkeys_actions_sheet_edit)
+        val actionsSheetDelete by ctx.s(R.string.manage_passkeys_actions_sheet_delete)
+        val actionsSheetDeleteWarning by ctx.s(R.string.manage_passkeys_actions_sheet_delete_warning)
     }
 
     class SettingsScreen(private val ctx: Context) {

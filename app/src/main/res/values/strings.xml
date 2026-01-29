@@ -66,7 +66,8 @@
 
     <string name="secrets_actions_sheet_no_account">(N/A)</string>
     <string name="secrets_actions_sheet_edit">Edit Metadata</string>
-    <string name="secrets_actions_sheet_delete">Delete</string>
+    <string name="secrets_actions_sheet_delete">Delete secret</string>
+    <string name="secrets_actions_sheet_delete_warning">The selected secret will be deleted. If this is your only 2FA method for that service, you may lose access to your account.</string>
 
 
     <!-- Edit metadata screen -->
@@ -79,9 +80,9 @@
 
     <!-- Manage passkeys screen -->
     <string name="manage_passkeys_heading">Manage passkeys</string>
-    <string name="manage_passkeys_edit_passkey">Edit metadata</string>
-    <string name="manage_passkeys_delete_passkey">Delete passkey</string>
-    <string name="manage_passkeys_delete_passkey_warning">The selected passkey will be deleted. If this is your only authentication method for that service, you will effectively lose access to your account.</string>
+    <string name="manage_passkeys_actions_sheet_edit">Edit metadata</string>
+    <string name="manage_passkeys_actions_sheet_delete">Delete passkey</string>
+    <string name="manage_passkeys_actions_sheet_delete_warning">The selected passkey will be deleted. If this is your only authentication method for that service, you will effectively lose access to your account.</string>
 
 
     <!-- Settings screen -->
