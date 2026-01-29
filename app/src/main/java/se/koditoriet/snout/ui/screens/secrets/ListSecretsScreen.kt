@@ -1,7 +1,6 @@
 package se.koditoriet.snout.ui.screens.secrets
 
 import android.net.Uri
-import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
@@ -45,7 +44,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -211,14 +210,21 @@ private fun SecretList(
     onUpdateSecret: (TotpSecret) -> Unit
 ) {
     val isManuallySortable = filterQuery.isEmpty() && sortMode == SortMode.Manual
+    val reorderableSecrets = remember {
+        mutableStateListOf<TotpSecret>().apply { addAll(secrets) }
+    }
+
+    // The parent holds the secret list with SnapshotFlow, and feeds it to this component.
+    // We need to update our reorderableSecrets list when the parent updates, otherwise we only get an empty secrets list to render.
+    LaunchedEffect(secrets) {
+        reorderableSecrets.clear()
+        reorderableSecrets.addAll(secrets)
+    }
+
     val lazyListState = rememberLazyListState()
-    var reorderableSecrets by remember(secrets.toMutableList()) { mutableStateOf(secrets.toList()) }
-    var newIndex by remember { mutableIntStateOf(0) } // So far, this is the most reliable way of getting the new index.
     val reorderableLazyListState = rememberReorderableLazyListState(lazyListState) { from, to ->
-        reorderableSecrets = reorderableSecrets.toMutableList().apply {
+        reorderableSecrets.apply {
             add(to.index, removeAt(from.index))
-            Log.d("Move", "Moved item from ${from.index} to ${to.index}")
-            newIndex = to.index
         }
     }
     LazyColumn(
@@ -264,22 +270,7 @@ private fun SecretList(
                             DragHandle(
                                 scope = reorderableScope,
                                 showDragHandle = isManuallySortable,
-                                onDragStopped = {
-                                    Log.d(
-                                        "Moving item", "Moved item ${item.issuer}" +
-                                                " between ${reorderableSecrets.getOrNull(newIndex - 1)?.issuer ?: "[N/A]"}" +
-                                                " and ${reorderableSecrets.getOrNull(newIndex + 1)?.issuer ?: "[N/A]"}"
-                                    )
-                                    Log.d("Secret sort order", "Old secret sort order: ${item.sortOrder}")
-                                    val newSortOrder = getNewSortOrder(newIndex, reorderableSecrets)
-                                    val updatedSecret = item.copy(sortOrder = newSortOrder)
-                                    Log.d("Secret sort order", "New secret sort order: ${updatedSecret.sortOrder}")
-
-                                    onUpdateSecret(updatedSecret)
-
-                                    Log.d("Reorderable secret list", "Secret list: ${reorderableSecrets.map(TotpSecret::issuer).toList()}")
-                                    Log.d("Secret list", "Secret list: ${secrets.map(TotpSecret::issuer).toList()}")
-                                }
+                                onDragStopped = { onUpdateSecret(item.copyWithNewSortOrder(reorderableSecrets)) }
                             )
                         }
                     )
@@ -287,20 +278,6 @@ private fun SecretList(
             }
         }
     }
-}
-
-private fun getNewSortOrder(
-    newIndex: Int,
-    secretList: List<TotpSecret>
-): Long {
-    val sortOrderOfPrev = secretList.getOrNull(newIndex - 1)?.sortOrder ?: 0
-    val sortOrderOfNext = secretList.getOrNull(newIndex + 1)?.sortOrder ?: Long.MAX_VALUE
-
-    Log.d("New index", "New index: $newIndex")
-    Log.d("Items", "Previous item: ${secretList.getOrNull(newIndex - 1)?.issuer}")
-    Log.d("Items", "Next item: ${secretList.getOrNull(newIndex + 1)?.issuer}")
-    Log.d("Calc sort order", "New calculated sort order: ${sortOrderOfPrev / 2 + sortOrderOfNext / 2}")
-    return sortOrderOfPrev / 2 + sortOrderOfNext / 2
 }
 
 @Composable
@@ -459,7 +436,7 @@ private fun ListRow(
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = totpSecret.sortOrder?.let { "(${it})" } ?: "",
+                    text = totpSecret.account?.let { "(${it})" } ?: "",
                     fontSize = LIST_ITEM_FONT_SIZE,
                     color = MaterialTheme.colorScheme.primaryHint,
                     modifier = Modifier.padding(start = PADDING_S),
@@ -502,15 +479,13 @@ private fun ListRow(
 fun DragHandle(
     scope: ReorderableCollectionItemScope,
     showDragHandle: Boolean,
-    onDragStopped: () -> Unit,
+    onDragStopped: () -> Unit
 ) {
     if (showDragHandle) {
         IconButton(
             modifier = with(scope) {
                 Modifier
-                    .draggableHandle(
-                        onDragStopped = onDragStopped
-                    )
+                    .draggableHandle(onDragStopped = onDragStopped)
                     .fillMaxHeight()
             },
             onClick = {}
@@ -518,6 +493,13 @@ fun DragHandle(
             Icon(Icons.Rounded.DragHandle, contentDescription = "Reorder")
         }
     }
+}
+
+private fun TotpSecret.copyWithNewSortOrder(secretList: List<TotpSecret>): TotpSecret {
+    val secretIndex = secretList.indexOfFirst { it.id == this.id }
+    val sortOrderOfPrev = secretList.getOrNull(secretIndex - 1)?.sortOrder ?: 0
+    val sortOrderOfNext = secretList.getOrNull(secretIndex + 1)?.sortOrder ?: Long.MAX_VALUE
+    return this.copy(sortOrder = sortOrderOfPrev / 2 + sortOrderOfNext / 2)
 }
 
 private sealed interface ListRowViewState {
