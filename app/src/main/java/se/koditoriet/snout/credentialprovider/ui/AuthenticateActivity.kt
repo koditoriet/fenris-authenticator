@@ -5,9 +5,11 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import androidx.credentials.GetCredentialResponse
 import androidx.credentials.GetPublicKeyCredentialOption
 import androidx.credentials.PublicKeyCredential
@@ -30,8 +32,10 @@ import se.koditoriet.snout.credentialprovider.webauthn.AuthResponse
 import se.koditoriet.snout.credentialprovider.webauthn.SignedAuthResponse
 import se.koditoriet.snout.crypto.AuthenticationFailedException
 import se.koditoriet.snout.ui.components.InformationDialog
+import se.koditoriet.snout.ui.components.PasskeyIcon
 import se.koditoriet.snout.ui.screens.EmptyScreen
 import se.koditoriet.snout.ui.snoutApp
+import se.koditoriet.snout.ui.theme.BACKGROUND_ICON_SIZE
 import se.koditoriet.snout.ui.theme.SnoutTheme
 import se.koditoriet.snout.vault.CredentialId
 import se.koditoriet.snout.vault.Passkey
@@ -90,7 +94,9 @@ class AuthenticateActivity : FragmentActivity() {
             }
 
             SnoutTheme {
-                EmptyScreen()
+                EmptyScreen {
+                    PasskeyIcon(Modifier.size(BACKGROUND_ICON_SIZE))
+                }
 
                 if (showUnableToEstablishTrustDialog.value) {
                     InformationDialog(

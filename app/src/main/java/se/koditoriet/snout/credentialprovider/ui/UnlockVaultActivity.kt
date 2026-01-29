@@ -6,7 +6,9 @@ import android.util.Log
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Modifier
 import androidx.credentials.GetCredentialResponse
 import androidx.credentials.PublicKeyCredential
 import androidx.credentials.provider.BeginGetCredentialResponse
@@ -22,8 +24,10 @@ import se.koditoriet.snout.SnoutApp
 import se.koditoriet.snout.credentialprovider.createBeginGetCredentialResponse
 import se.koditoriet.snout.credentialprovider.webauthn.SignedAuthResponse
 import se.koditoriet.snout.crypto.AuthenticationFailedException
+import se.koditoriet.snout.ui.components.PasskeyIcon
 import se.koditoriet.snout.ui.screens.EmptyScreen
 import se.koditoriet.snout.ui.snoutApp
+import se.koditoriet.snout.ui.theme.BACKGROUND_ICON_SIZE
 import se.koditoriet.snout.ui.theme.SnoutTheme
 import se.koditoriet.snout.viewmodel.SnoutViewModel
 import kotlin.getValue
@@ -62,7 +66,9 @@ class UnlockVaultActivity : FragmentActivity() {
                 }
             }
             SnoutTheme {
-                EmptyScreen()
+                EmptyScreen {
+                    PasskeyIcon(Modifier.size(BACKGROUND_ICON_SIZE))
+                }
             }
         }
     }
