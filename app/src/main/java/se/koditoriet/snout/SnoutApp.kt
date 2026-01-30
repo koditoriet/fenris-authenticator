@@ -1,21 +1,23 @@
 package se.koditoriet.snout
 
+import android.app.AlarmManager
 import android.app.Application
+import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.os.SystemClock
 import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.dataStore
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -33,27 +35,26 @@ private val idleTimeoutScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
 class SnoutApp : Application() {
     val vault: Sync<Vault>
-
     val config: DataStore<Config> by dataStore("config", ConfigSerializer)
-
-    private val idleTimeout = TimeoutJob(
-        name = "LockOnIdle",
-        scope = idleTimeoutScope,
-        onTimeout = { vault.withLock { lock() } },
-    )
+    private var idleTimeout: TimeoutJob? = null
 
     fun startIdleTimeout() {
         idleTimeoutScope.launch {
             val cfg = config.data.first()
             if (cfg.lockOnClose) {
-                idleTimeout.start(cfg.lockOnCloseGracePeriod.seconds)
+                idleTimeout
+                    ?.start(cfg.lockOnCloseGracePeriod.seconds)
+                    ?: vault.withLock {
+                        Log.w(TAG, "Idle timeout job is unavailable - locking vault immediately instead")
+                        lock()
+                    }
             }
         }
     }
 
     fun cancelIdleTimeout() {
         idleTimeoutScope.launch {
-            idleTimeout.cancel()
+            idleTimeout?.cancel()
         }
     }
 
@@ -76,6 +77,12 @@ class SnoutApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        idleTimeout = TimeoutJob(
+            name = "LockOnIdle",
+            application = this,
+            onTimeout = IdleTimeoutReceiver::class.java,
+        )
+
         Log.i(TAG, "Registering automatic lock observers")
         registerReceiver(screenOffReceiver, IntentFilter(Intent.ACTION_SCREEN_OFF))
         ProcessLifecycleOwner.get().lifecycle.addObserver(foregroundObserver)
@@ -110,35 +117,49 @@ class SnoutApp : Application() {
  */
 class TimeoutJob(
     private val name: String,
-    private val scope: CoroutineScope,
-    private val onTimeout: suspend () -> Unit,
+    private val application: Application,
+    private val onTimeout: Class<out BroadcastReceiver>,
 ) {
-    private var timeoutJob: Job? = null
+    private var timeoutPendingIntent: PendingIntent? = null
     private val mutex = Mutex()
+    private val alarmManager = application.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
     suspend fun start(timeout: Duration) = mutex.withLock {
-        // Reset timeout if one is already running
-        if (timeoutJob != null) {
-            Log.i(TAG, "Timeout job '$name' already pending; stopping it")
-            timeoutJob!!.cancel()
-        }
+        timeoutPendingIntent?.cancel()
 
         Log.i(TAG, "Executing timeout job '$name' in $timeout")
-        timeoutJob = scope.launch {
-            delay(timeout)
-
-            // If the timeout has already expired, the job is no longer stoppable
-            mutex.withLock {
-                Log.i(TAG, "Timeout expired for job '$name'; executing action")
-                onTimeout()
-                timeoutJob = null
-            }
+        val pendingIntent = Intent(application, onTimeout).let { intent ->
+            PendingIntent.getBroadcast(
+                application,
+                name.hashCode(),
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
         }
+
+        timeoutPendingIntent = pendingIntent
+        alarmManager.set(
+            AlarmManager.ELAPSED_REALTIME,
+            SystemClock.elapsedRealtime() + timeout.inWholeMilliseconds,
+            pendingIntent,
+        )
     }
 
     suspend fun cancel() = mutex.withLock {
-        Log.i(TAG, "Canceling timeout for job '$name'")
-        timeoutJob?.cancel()
-        timeoutJob = null
+        timeoutPendingIntent?.let {
+            Log.i(TAG, "Canceling timeout for job '$name'")
+            alarmManager.cancel(it)
+        }
+    }
+}
+
+class IdleTimeoutReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context?, intent: Intent?) {
+        (context?.applicationContext as? SnoutApp)?.apply {
+            ProcessLifecycleOwner.get().lifecycleScope.launch {
+                Log.d(TAG, "Idle timeout expired")
+                vault.withLock { lock() }
+            }
+        }
     }
 }

@@ -65,6 +65,7 @@ class Vault(
         check(_state.value != InternalState.Uninitialized)
 
         if (_state.value !is InternalState.Unlocked) {
+            Log.i(TAG, "Unlocking vault")
             val repository = withDbDek(authenticator, dbKey) {
                 repositoryFactory(dbFile.value.name, it)
             }
@@ -74,6 +75,7 @@ class Vault(
 
     fun lock() {
         check(_state.value != InternalState.Uninitialized)
+        Log.i(TAG, "Locking vault")
         unlockState?.repository?.close()
         _state.value = InternalState.Locked
     }
