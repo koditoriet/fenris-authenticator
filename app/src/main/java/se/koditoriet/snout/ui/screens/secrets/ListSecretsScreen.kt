@@ -490,7 +490,7 @@ fun DragHandle(
             },
             onClick = {}
         ) {
-            Icon(Icons.Rounded.DragHandle, contentDescription = "Reorder")
+            Icon(Icons.Rounded.DragHandle, contentDescription = appStrings.generic.dragToChangeOrder)
         }
     }
 }
