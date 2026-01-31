@@ -14,6 +14,7 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import se.koditoriet.snout.BiometricPromptAuthenticator
 import se.koditoriet.snout.Config
@@ -41,7 +42,9 @@ class MainActivity : FragmentActivity() {
             if (isBackgrounded) {
                 lifecycleScope.launch {
                     ignoreAuthFailure {
-                        viewModel.unlockVault(BiometricPromptAuthenticator.Factory(this@MainActivity))
+                        if (viewModel.vaultState.first() != Vault.State.Uninitialized) {
+                            viewModel.unlockVault(BiometricPromptAuthenticator.Factory(this@MainActivity))
+                        }
                     }
                 }
             }
