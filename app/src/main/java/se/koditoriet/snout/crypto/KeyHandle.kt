@@ -127,23 +127,32 @@ enum class ECAlgorithm(
 }
 
 sealed interface KeyIdentifier {
+    val type: String
     val name: String
 
     val identifier: String
-        get() = "${this::class.simpleName}:$name"
+        get() = "${type}:$name"
 
-    class Internal(override val name: String) : KeyIdentifier
-    class Random(override val name: String) : KeyIdentifier
+    class Internal(override val name: String) : KeyIdentifier {
+        override val type = TYPE_INTERNAL
+    }
+
+    class Random(override val name: String) : KeyIdentifier {
+        override val type = TYPE_RANDOM
+    }
 
     companion object {
+        const val TYPE_INTERNAL = "internal"
+        const val TYPE_RANDOM = "random"
+
         fun valueOf(identifier: String): KeyIdentifier {
             val parts = identifier.split(':', limit = 2)
             require(parts.size == 2) {
                 "'$identifier' is not a valid key identifier"
             }
             return when (parts[0]) {
-                Internal::class.simpleName -> Internal(parts[1])
-                Random::class.simpleName -> Random(parts[1])
+                TYPE_INTERNAL -> Internal(parts[1])
+                TYPE_RANDOM -> Random(parts[1])
                 else -> throw IllegalArgumentException("'$identifier' is not a valid key identifier")
             }
         }
