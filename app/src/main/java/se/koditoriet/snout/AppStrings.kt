@@ -2,6 +2,7 @@ package se.koditoriet.snout
 
 import android.content.Context
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 
 class AppStrings(private val ctx: Context) {
@@ -14,6 +15,8 @@ class AppStrings(private val ctx: Context) {
     val addSecretScreens by lazy { AddSecretScreens(ctx) }
     val managePasskeysScreen by lazy { ManagePasskeysScreen(ctx) }
     val settingsScreen by lazy { SettingsScreen(ctx) }
+    val restoringBackupScreen by lazy { RestoringBackupScreen(ctx) }
+    val restoreBackupFailedScreen by lazy { RestoreBackupFailedScreen(ctx) }
 
     val totpSecretForm by lazy { TotpSecretForm(ctx) }
 
@@ -61,12 +64,24 @@ class AppStrings(private val ctx: Context) {
         val writeThisDown by ctx.s(R.string.seed_display_write_this_down)
         val keepThemSafe by ctx.s(R.string.seed_display_keep_them_safe)
         val printAsQr by ctx.s(R.string.seed_display_print_qr)
+        val printAsQrTitle by ctx.s(R.string.seed_display_print_qr_warning_title)
         val printAsQrWarning by ctx.s(R.string.seed_display_print_qr_warning)
     }
 
     class SeedInputScreen(ctx: Context) {
         val enterRecoveryPhrase by ctx.s(R.string.seed_input_enter_recovery_phrase)
         val restoreVault by ctx.s(R.string.seed_input_restore_vault)
+    }
+
+    class RestoringBackupScreen(private val ctx: Context) {
+        val heading by ctx.s(R.string.restoring_backup_heading)
+        fun restoredSecrets(done: Int, total: Int) = ctx.resources.getQuantityString(
+            R.plurals.restoring_backup_restored_secrets, done, done, total)
+    }
+
+    class RestoreBackupFailedScreen(private val ctx: Context) {
+        val heading by ctx.s(R.string.restoring_failed_heading)
+        val centerCopy by ctx.s(R.string.restoring_failed_center_copy)
     }
 
     class SecretsScreen(private val ctx: Context) {
@@ -253,7 +268,10 @@ private fun Context.s(id: Int, param: String): String = getString(id, param)
 
 val appStrings: AppStrings
     @Composable
-    get() = AppStrings(LocalContext.current)
+    get() {
+        val ctx = LocalContext.current
+        return remember(ctx) { ctx.appStrings }
+    }
 
 val Context.appStrings: AppStrings
     get() = AppStrings(this)

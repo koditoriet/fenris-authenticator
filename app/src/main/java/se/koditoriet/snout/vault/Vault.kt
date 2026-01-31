@@ -231,7 +231,12 @@ class Vault(
         }
     }
 
-    suspend fun create(requiresAuthentication: Boolean, backupSeed: BackupSeed?): Pair<DbKey, BackupKeys?> {
+    suspend fun create(
+        requiresAuthentication: Boolean,
+        backupSeed: BackupSeed?,
+        backupData: EncryptedData? = null,
+        onSecretImported: (Int, Int) -> Unit = { _, _ -> },
+    ): Pair<DbKey, BackupKeys?> {
         check(state == State.Uninitialized)
         Log.i(TAG, "Creating new vault with backups ${backupSeed?.let { "enabled" } ?: "disabled"}")
         if (requiresAuthentication) {
@@ -252,7 +257,13 @@ class Vault(
         val (dbKey, dbDekPlaintext) = createDbKey(requiresAuthentication)
         val repository = repositoryFactory(dbFile.value.name, dbDekPlaintext)
         dbDekPlaintext.fill(0)
-        _state.value = InternalState.Unlocked(UnlockState(dbKey, backupKeys, repository))
+
+        val unlockState = UnlockState(dbKey, backupKeys, repository)
+        if (backupSeed != null && backupData != null) {
+            importBackup(backupSeed, backupData, unlockState, onSecretImported)
+        }
+
+        _state.value = InternalState.Unlocked(unlockState)
         return Pair(dbKey, backupKeys)
     }
 
@@ -302,20 +313,31 @@ class Vault(
         }
     }
 
-    suspend fun import(backupSeed: BackupSeed, data: EncryptedData) = requireUnlocked { unlockState ->
+    private suspend fun importBackup(
+        backupSeed: BackupSeed,
+        data: EncryptedData,
+        unlockState: UnlockState,
+        onSecretImported: (Int, Int) -> Unit,
+    ) {
         Log.i(TAG, "Importing backup")
         val metadataKeyMaterial = backupSeed.deriveBackupMetadataKey()
         val vaultExport = cryptographer.withDecryptionKey(metadataKeyMaterial, INTERNAL_SYMMETRIC_KEY_ALGORITHM) {
             VaultExport.decode(decrypt(data))
         }
+        val totalItems = vaultExport.secrets.size + vaultExport.passkeys.size
+        onSecretImported(0, totalItems)
 
         Log.d(TAG, "Backup metadata successfully decoded")
         metadataKeyMaterial.fill(0)
 
         val secretKeyMaterial = backupSeed.deriveBackupSecretKey()
         val secretDecryptionContext = DecryptionContext.create(secretKeyMaterial, INTERNAL_SYMMETRIC_KEY_ALGORITHM)
-        importTotpSecrets(vaultExport.secrets, secretDecryptionContext, unlockState)
-        importPasskeys(vaultExport.passkeys, secretDecryptionContext, unlockState)
+        importTotpSecrets(vaultExport.secrets, secretDecryptionContext, unlockState) {
+            onSecretImported(it, totalItems)
+        }
+        importPasskeys(vaultExport.passkeys, secretDecryptionContext, unlockState) {
+            onSecretImported(it + vaultExport.secrets.size, totalItems)
+        }
         secretKeyMaterial.fill(0)
     }
 
@@ -323,14 +345,18 @@ class Vault(
         secrets: List<TotpSecret>,
         secretDecryptionContext: DecryptionContext,
         unlockState: UnlockState,
+        onSecretImported: (Int) -> Unit,
     ) {
         var failedImportedSecrets = 0
+        var successfulImportedSecrets = 0
         for (secret in secrets.sortedBy { it.sortOrder }) {
             try {
                 secretDecryptionContext.importSecret(
                     unlockState.repository.totpSecrets(),
                     secret
                 )
+                successfulImportedSecrets += 1
+                onSecretImported(successfulImportedSecrets)
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to import secret with id ${secret.id} and key alias ${secret.keyAlias}!", e)
                 failedImportedSecrets += 1
@@ -349,14 +375,18 @@ class Vault(
         passkeys: List<Passkey>,
         secretDecryptionContext: DecryptionContext,
         unlockState: UnlockState,
+        onPasskeyImported: (Int) -> Unit,
     ) {
         var failedImportedPasskeys = 0
+        var successfulImportedPasskeys = 0
         for (passkey in passkeys.sortedBy { it.sortOrder }) {
             try {
                 secretDecryptionContext.importPasskey(
                     unlockState.repository.passkeys(),
                     passkey
                 )
+                successfulImportedPasskeys += 1
+                onPasskeyImported(successfulImportedPasskeys)
             } catch (e: Exception) {
                 Log.e(
                     TAG,

@@ -5,6 +5,7 @@ package se.koditoriet.snout.ui.screens.setup
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,7 +15,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -31,6 +31,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import se.koditoriet.snout.appStrings
+import se.koditoriet.snout.ui.components.MAIN_BUTTON_HEIGHT
+import se.koditoriet.snout.ui.components.MainButton
 import se.koditoriet.snout.ui.theme.PADDING_L
 import se.koditoriet.snout.ui.theme.PADDING_XL
 import se.koditoriet.snout.ui.theme.SPACING_L
@@ -53,69 +55,65 @@ fun InitialSetupScreen(
             )
         }
     ) { padding ->
-        LazyColumn(
-            modifier = Modifier
-                .padding(padding)
-                .padding(PADDING_XL)
-                .fillMaxSize(),
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            item {
-                Column {
-                    Text(
-                        text = screenStrings.enableBackups,
-                        style = MaterialTheme.typography.headlineMedium
-                    )
-                    Spacer(Modifier.height(SPACING_L))
-                    Text(
-                        text = screenStrings.enableBackupsDescription,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+        Box(modifier = Modifier.padding(padding)) {
+            LazyColumn(
+                modifier = Modifier
+                    .padding(PADDING_XL)
+                    .padding(bottom = MAIN_BUTTON_HEIGHT)
+                    .fillMaxSize(),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                item {
+                    Column {
+                        Text(
+                            text = screenStrings.enableBackups,
+                            style = MaterialTheme.typography.headlineMedium
+                        )
+                        Spacer(Modifier.height(SPACING_L))
+                        Text(
+                            text = screenStrings.enableBackupsDescription,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
 
-                    Spacer(Modifier.height(SPACING_XXL))
+                        Spacer(Modifier.height(SPACING_XXL))
 
-                    BackupChoiceCard(
-                        title = screenStrings.enableBackupsCardEnable,
-                        description = screenStrings.enableBackupsCardEnableDescription,
-                        selected = backupChoice == BackupChoice.EnableBackups,
-                        onClick = { backupChoice = BackupChoice.EnableBackups }
-                    )
+                        BackupChoiceCard(
+                            title = screenStrings.enableBackupsCardEnable,
+                            description = screenStrings.enableBackupsCardEnableDescription,
+                            selected = backupChoice == BackupChoice.EnableBackups,
+                            onClick = { backupChoice = BackupChoice.EnableBackups }
+                        )
 
-                    Spacer(Modifier.height(SPACING_M))
+                        Spacer(Modifier.height(SPACING_M))
 
-                    BackupChoiceCard(
-                        title = screenStrings.enableBackupsCardDisable,
-                        description = screenStrings.enableBackupsCardDisableDescription,
-                        selected = backupChoice == BackupChoice.DisableBackups,
-                        onClick = { backupChoice = BackupChoice.DisableBackups }
-                    )
+                        BackupChoiceCard(
+                            title = screenStrings.enableBackupsCardDisable,
+                            description = screenStrings.enableBackupsCardDisableDescription,
+                            selected = backupChoice == BackupChoice.DisableBackups,
+                            onClick = { backupChoice = BackupChoice.DisableBackups }
+                        )
 
-                    Spacer(Modifier.height(SPACING_M))
+                        Spacer(Modifier.height(SPACING_M))
 
-                    BackupChoiceCard(
-                        title = screenStrings.enableBackupsCardImport,
-                        description = screenStrings.enableBackupsCardImportDescription,
-                        selected = backupChoice == BackupChoice.ImportAndEnableBackups,
-                        onClick = { backupChoice = BackupChoice.ImportAndEnableBackups }
-                    )
-                }
-            }
-
-            item {
-                Spacer(Modifier.height(SPACING_M))
-                Button(
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = {
-                        when (backupChoice) {
-                            BackupChoice.DisableBackups -> onSkipBackups()
-                            BackupChoice.EnableBackups -> onEnableBackups()
-                            BackupChoice.ImportAndEnableBackups -> onRestoreBackup()
-                        }
+                        BackupChoiceCard(
+                            title = screenStrings.enableBackupsCardImport,
+                            description = screenStrings.enableBackupsCardImportDescription,
+                            selected = backupChoice == BackupChoice.ImportAndEnableBackups,
+                            onClick = { backupChoice = BackupChoice.ImportAndEnableBackups }
+                        )
                     }
-                ) {
-                    Text(appStrings.generic.continueOn)
                 }
             }
+            MainButton(
+                text = appStrings.generic.continueOn,
+                onClick = {
+                    when (backupChoice) {
+                        BackupChoice.DisableBackups -> onSkipBackups()
+                        BackupChoice.EnableBackups -> onEnableBackups()
+                        BackupChoice.ImportAndEnableBackups -> onRestoreBackup()
+                    }
+                }
+            )
         }
     }
 }

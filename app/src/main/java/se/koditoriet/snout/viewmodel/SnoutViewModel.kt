@@ -120,19 +120,25 @@ class SnoutViewModel(private val app: Application) : AndroidViewModel(app) {
         }
     }
 
-    suspend fun restoreVaultFromBackup(backupSeed: BackupSeed, uri: Uri): Unit = vault.withLock {
+    suspend fun restoreVaultFromBackup(
+        backupSeed: BackupSeed,
+        uri: Uri,
+        onSecretImported: (Int, Int) -> Unit = { _, _ -> },
+    ): Unit = vault.withLock {
         Log.i(TAG, "Restoring vault from backup")
         try {
             val backupData = app.contentResolver.openInputStream(uri)!!.use { stream ->
                 EncryptedData.decode(stream.readBytes().decodeToString())
             }
+
+            Log.d(TAG, "Restoring vault backup")
             val (dbKey, backupKeys) = create(
                 requiresAuthentication = config.first().protectAccountList,
                 backupSeed = backupSeed,
+                backupData = backupData,
+                onSecretImported = onSecretImported,
             )
 
-            Log.d(TAG, "Importing vault data")
-            import(backupSeed, backupData)
             Log.d(TAG, "Updating config data")
             configDatastore.updateData {
                 it.copy(

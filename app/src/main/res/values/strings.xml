@@ -24,8 +24,8 @@
     <string name="setup_enable_backups_card_enable_description">You will be able to create manual backups of your secrets.</string>
     <string name="setup_enable_backups_card_disable">Skip backups</string>
     <string name="setup_enable_backups_card_disable_description">Secrets will not be recoverable under any circumstances.</string>
-    <string name="setup_enable_backups_card_import">Import and enable backups</string>
-    <string name="setup_enable_backups_card_import_description">Import your secrets from a previously saved backup. You will be able to create manual backups of your secrets.</string>
+    <string name="setup_enable_backups_card_import">Restore backup and enable</string>
+    <string name="setup_enable_backups_card_import_description">Restore your secrets from a previously saved backup. You will be able to create manual backups of your secrets.</string>
 
 
     <!-- Display backup seed screen -->
@@ -33,12 +33,26 @@
     <string name="seed_display_write_this_down">Write down these words in order. They are the only way to recover your backups.</string>
     <string name="seed_display_keep_them_safe">Keep them in a safe place. Do NOT store them on this device. Never share them with anyone.</string>
     <string name="seed_display_print_qr">Print as QR code</string>
-    <string name="seed_display_print_qr_warning">Please do not save the QR code as a PDF, as this is unsecure.</string>
+    <string name="seed_display_print_qr_warning_title">Print securely!</string>
+    <string name="seed_display_print_qr_warning">Print the QR code using an actual printer, and store it in a safe place.\n\nSaving the QR code to this device as a PDF will leave any backups you create wide open to anyone who can access it.</string>
 
 
     <!-- Input backup seed screen -->
     <string name="seed_input_enter_recovery_phrase">Enter your Recovery Phrase</string>
     <string name="seed_input_restore_vault">Restore vault</string>
+
+
+    <!-- Restoring backup screen -->
+    <string name="restoring_backup_heading">Restoring backup</string>
+    <plurals name="restoring_backup_restored_secrets">
+        <item quantity="one">Restored %1$d/%2$d secret…</item>
+        <item quantity="other">Restored %1$d/%2$d secrets…</item>
+    </plurals>
+
+
+    <!-- Restore backup failed screen -->
+    <string name="restoring_failed_heading">Restore failed</string>
+    <string name="restoring_failed_center_copy">Restore from backup failed</string>
 
 
     <!-- Vault locked screen -->
@@ -66,10 +80,6 @@
     <string name="secrets_actions_sheet_edit">Edit Metadata</string>
     <string name="secrets_actions_sheet_delete">Delete secret</string>
     <string name="secrets_actions_sheet_delete_warning">The selected secret will be deleted. If this is your only 2FA method for that service, you may lose access to your account.</string>
-
-
-    <!-- Edit metadata screen -->
-    <string name="edit_edit">Edit metadata</string>
 
 
     <!-- Add secret screens -->

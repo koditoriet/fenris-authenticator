@@ -1,8 +1,10 @@
 package se.koditoriet.snout.ui.screens.setup
 
 import android.graphics.Bitmap
+import android.graphics.Color
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,9 +14,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -29,15 +30,19 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.set
+import androidx.print.PrintHelper
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.qrcode.QRCodeWriter
 import se.koditoriet.snout.appStrings
 import se.koditoriet.snout.crypto.BackupSeed
+import se.koditoriet.snout.ui.components.MAIN_BUTTON_HEIGHT_WITH_SECONDARY
+import se.koditoriet.snout.ui.components.MainButton
+import se.koditoriet.snout.ui.components.SecondaryButton
 import se.koditoriet.snout.ui.theme.BACKUP_SEED_QR_CODE_HEIGHT
 import se.koditoriet.snout.ui.theme.BACKUP_SEED_QR_CODE_WIDTH
 import se.koditoriet.snout.ui.theme.PADDING_S
@@ -47,22 +52,22 @@ import se.koditoriet.snout.ui.theme.SPACING_L
 import se.koditoriet.snout.ui.theme.SPACING_S
 import se.koditoriet.snout.ui.theme.SPACING_XL
 import se.koditoriet.snout.ui.theme.SPACING_XS
-import android.graphics.Color as BitmapColor
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BackupSeedScreen(
     backupSeed: BackupSeed,
-    onPrintQr: (String, Bitmap) -> Unit,
     onContinue: () -> Unit
 ) {
     val screenStrings = appStrings.seedDisplayScreen
+    val ctx = LocalContext.current
     val openPrintDialog = remember { mutableStateOf(false) }
 
     PrintQrWarningDialog(
         openPrintDialog = openPrintDialog,
         onConfirmation = {
-            printSecret(backupSeed.toBase64(), onPrintQr)
+            val printHelper = PrintHelper(ctx)
+            printHelper.printBitmap("PrintBackupSeed", backupSeed.toBitmap())
             openPrintDialog.value = false
         }
     )
@@ -74,15 +79,14 @@ fun BackupSeedScreen(
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .padding(padding)
-                .padding(PADDING_XL)
-                .fillMaxSize(),
-            verticalArrangement = Arrangement.SpaceBetween,
-        ) {
-
-            Column {
+        Box(modifier = Modifier.padding(padding)) {
+            Column(
+                modifier = Modifier
+                    .padding(PADDING_XL)
+                    .padding(bottom = MAIN_BUTTON_HEIGHT_WITH_SECONDARY)
+                    .fillMaxSize(),
+                verticalArrangement = Arrangement.SpaceBetween,
+            ) {
                 Text(
                     text = screenStrings.writeThisDown,
                     style = MaterialTheme.typography.bodyLarge,
@@ -103,24 +107,14 @@ fun BackupSeedScreen(
                 )
             }
 
-            Row(modifier = Modifier.fillMaxWidth()) {
-                Button(
+            MainButton(
+                text = appStrings.generic.continueOn,
+                onClick = onContinue,
+                secondaryButton = SecondaryButton(
+                    text = screenStrings.printAsQr,
                     onClick = { openPrintDialog.value = true },
-                    modifier = Modifier
-                        .weight(0.5f)
-                        .padding(PADDING_XXS)
-                ) {
-                    Text(screenStrings.printAsQr)
-                }
-                Button(
-                    onClick = onContinue,
-                    modifier = Modifier
-                        .weight(0.5f)
-                        .padding(PADDING_XXS)
-                ) {
-                    Text(appStrings.generic.continueOn)
-                }
-            }
+                )
+            )
         }
     }
 }
@@ -189,8 +183,19 @@ private fun PrintQrWarningDialog(
         openPrintDialog.value -> {
             val onDismissRequest = { openPrintDialog.value = false }
             AlertDialog(
-                icon = { Icon(Icons.Default.Warning, contentDescription = "Warning icon") },
-                text = { Text(text = appStrings.seedDisplayScreen.printAsQrWarning, color = Color.Red) },
+                icon = {
+                    Icon(
+                        Icons.Default.WarningAmber,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                    )
+                },
+                title = {
+                    Text(text = appStrings.seedDisplayScreen.printAsQrTitle)
+                },
+                text = {
+                    Text(text = appStrings.seedDisplayScreen.printAsQrWarning)
+                },
                 onDismissRequest = onDismissRequest,
                 confirmButton = {
                     TextButton(onClick = onConfirmation) {
@@ -207,20 +212,21 @@ private fun PrintQrWarningDialog(
     }
 }
 
-private fun printSecret(secret: String, onPrint: (String, Bitmap) -> Unit) {
-    val bitmap = secretToBitmap(secret)
-    onPrint("PrintRecoveryPhrase", bitmap)
-}
+private fun BackupSeed.toBitmap(): Bitmap {
+    val bitMatrix = QRCodeWriter().encode(
+        toBase64(),
+        BarcodeFormat.QR_CODE,
+        BACKUP_SEED_QR_CODE_WIDTH,
+        BACKUP_SEED_QR_CODE_HEIGHT
+    )
 
-private fun secretToBitmap(secret: String): Bitmap {
-    val bitMatrix =
-        QRCodeWriter().encode(secret, BarcodeFormat.QR_CODE, BACKUP_SEED_QR_CODE_WIDTH, BACKUP_SEED_QR_CODE_HEIGHT)
     val width = bitMatrix.width
     val height = bitMatrix.height
     val bitmap = createBitmap(width, height)
+
     for (y in 0 until height) {
         for (x in 0 until width) {
-            bitmap[x, y] = if (bitMatrix.get(x, y)) BitmapColor.BLACK else BitmapColor.WHITE
+            bitmap[x, y] = if (bitMatrix.get(x, y)) Color.BLACK else Color.WHITE
         }
     }
 

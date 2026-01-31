@@ -415,8 +415,7 @@ private class ListItemEnvironment(
     companion object {
         @Composable
         fun remember(): ListItemEnvironment {
-            val ctx = LocalContext.current
-            val strings = remember(ctx) { ctx.appStrings }
+            val strings = appStrings
             val scope = rememberCoroutineScope()
             val clipboard = LocalClipboard.current
             val view = LocalView.current
