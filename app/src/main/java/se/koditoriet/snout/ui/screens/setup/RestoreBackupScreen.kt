@@ -1,9 +1,11 @@
 package se.koditoriet.snout.ui.screens.setup
 
 import android.net.Uri
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,7 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LocalTextStyle
@@ -36,15 +37,22 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.core.net.toUri
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import se.koditoriet.snout.appStrings
 import se.koditoriet.snout.crypto.BackupSeed
-import se.koditoriet.snout.ui.components.LoadingSpinner
+import se.koditoriet.snout.ui.components.InformationDialog
+import se.koditoriet.snout.ui.components.MainButton
+import se.koditoriet.snout.ui.components.QrScannerScreen
+import se.koditoriet.snout.ui.components.SecondaryButton
 import se.koditoriet.snout.ui.primaryHint
 import se.koditoriet.snout.ui.theme.PADDING_XL
 import se.koditoriet.snout.ui.theme.SPACING_M
 import se.koditoriet.snout.ui.theme.SPACING_S
+
+private const val TAG = "RestoreBackupScreen"
+private val BACKUP_MIME_TYPES = arrayOf("application/octet-stream")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,76 +61,102 @@ fun RestoreBackupScreen(
     seedWords: Set<String>,
     onRestore: (BackupSeed, Uri) -> Unit
 ) {
-    var loading by remember { mutableStateOf(false) }
     val screenStrings = appStrings.seedInputScreen
     val words = remember { MutableList(wordCount) { "" } }
     val focusRequesters = remember { List(wordCount) { FocusRequester() } }
     val scope = rememberCoroutineScope()
+    var scanSecretQRCode by remember { mutableStateOf(false) }
+    var backupSeed by remember { mutableStateOf<BackupSeed?>(null) }
 
     val importFileLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
-        onResult = {
-            it?.run {
-                loading = true
-                val backupSeed = BackupSeed.fromMnemonic(words)
-                onRestore(backupSeed, it)
-                loading = false
-            }
+        onResult = { uri ->
+            uri?.run {
+                backupSeed?.let { backupSeed ->
+                    onRestore(backupSeed, uri)
+                } ?: Log.e(TAG, "Backup seed was null when import file launcher completed!")
+            } ?: backupSeed?.wipe()
         }
     )
-    Scaffold(
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text(screenStrings.enterRecoveryPhrase) }
-            )
-        }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .padding(padding)
-                .padding(PADDING_XL)
-                .fillMaxSize(),
-            verticalArrangement = Arrangement.SpaceBetween,
-        ) {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(3),
-                verticalArrangement = Arrangement.spacedBy(SPACING_S),
-                horizontalArrangement = Arrangement.spacedBy(SPACING_M),
-                modifier = Modifier.weight(1f)
-            ) {
-                items(wordCount) { index ->
-                    SeedWordInput(
-                        index = index,
-                        isLastWord = index == wordCount - 1,
-                        seedWords = seedWords,
-                        onValueChange = { words[index] = it },
-                        onNextWord = {
-                            scope.launch {
-                                delay(50)
-                                focusRequesters[index + 1].requestFocus()
-                            }
-                        },
-                        focusRequester = focusRequesters[index],
-                    )
+
+    if (scanSecretQRCode) {
+        var invalidBackupSeed by remember { mutableStateOf(false) }
+        QrScannerScreen(
+            onQrScanned = {
+                if (!invalidBackupSeed) {
+                    // Don't interpret QR codes while the "invalid backup seed" dialog is active
+                    try {
+                        backupSeed = BackupSeed.fromUri(it.toUri())
+                        importFileLauncher.launch(BACKUP_MIME_TYPES)
+                        scanSecretQRCode = false
+                    } catch (e: Exception) {
+                        invalidBackupSeed = true
+                        Log.w(TAG, "Scanned QR code is not a valid backup seed", e)
+                    }
                 }
             }
-
-            Spacer(Modifier.height(SPACING_M))
-
-            Button(
-                onClick = {
-                    if (words.all { it.isNotBlank() && it in seedWords }) {
-                        importFileLauncher.launch(arrayOf("application/octet-stream"))
+        )
+        if (invalidBackupSeed) {
+            InformationDialog(
+                title = screenStrings.invalidSeedQRCode,
+                text = screenStrings.invalidSeedQRCodeDescription,
+                onDismiss = { invalidBackupSeed = false }
+            )
+        }
+    } else {
+        Scaffold(
+            topBar = {
+                CenterAlignedTopAppBar(
+                    title = { Text(screenStrings.enterRecoveryPhrase) }
+                )
+            }
+        ) { padding ->
+            Box(modifier = Modifier.padding(padding)) {
+                Column(
+                    modifier = Modifier
+                        .padding(PADDING_XL)
+                        .fillMaxSize(),
+                    verticalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(3),
+                        verticalArrangement = Arrangement.spacedBy(SPACING_S),
+                        horizontalArrangement = Arrangement.spacedBy(SPACING_M),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        items(wordCount) { index ->
+                            SeedWordInput(
+                                index = index,
+                                isLastWord = index == wordCount - 1,
+                                seedWords = seedWords,
+                                onValueChange = { words[index] = it },
+                                onNextWord = {
+                                    scope.launch {
+                                        delay(50)
+                                        focusRequesters[index + 1].requestFocus()
+                                    }
+                                },
+                                focusRequester = focusRequesters[index],
+                            )
+                        }
                     }
-                },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !loading
-            ) {
-                if (loading) {
-                    LoadingSpinner()
-                } else {
-                    Text(screenStrings.restoreVault)
+
+                    Spacer(Modifier.height(SPACING_M))
                 }
+
+                MainButton(
+                    text = screenStrings.restoreVault,
+                    onClick = {
+                        if (words.all { it.isNotBlank() && it in seedWords }) {
+                            backupSeed = BackupSeed.fromMnemonic(words)
+                            importFileLauncher.launch(BACKUP_MIME_TYPES)
+                        }
+                    },
+                    secondaryButton = SecondaryButton(
+                        text = screenStrings.scanQRCode,
+                        onClick = { scanSecretQRCode = true },
+                    ),
+                )
             }
         }
     }
@@ -137,7 +171,7 @@ fun SeedWordInput(
     onNextWord: () -> Unit,
     focusRequester: FocusRequester,
 ) {
-    val value = remember { mutableStateOf("") }
+    var value by remember { mutableStateOf("") }
 
     Column {
         Text(
@@ -147,11 +181,11 @@ fun SeedWordInput(
         )
 
         OutlinedTextField(
-            value = value.value,
+            value = value,
             onValueChange = {
-                value.value = it.lowercase().trim()
-                onValueChange(value.value)
-                if (it.endsWith(" ") && !isLastWord) {
+                value = it.lowercase().trim()
+                onValueChange(value)
+                if (it.endsWith(" ") && !isLastWord && it.trim() in seedWords) {
                     onNextWord()
                 }
             },
@@ -162,7 +196,7 @@ fun SeedWordInput(
                 .focusRequester(focusRequester)
                 .fillMaxWidth(),
             singleLine = true,
-            isError = value.value.isNotBlank() && value.value !in seedWords,
+            isError = value.isNotBlank() && value !in seedWords,
             textStyle = LocalTextStyle.current.copy(
                 fontFamily = FontFamily.Monospace
             ),

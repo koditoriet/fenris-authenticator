@@ -214,7 +214,7 @@ private fun PrintQrWarningDialog(
 
 private fun BackupSeed.toBitmap(): Bitmap {
     val bitMatrix = QRCodeWriter().encode(
-        toBase64(),
+        toUri().toString(),
         BarcodeFormat.QR_CODE,
         BACKUP_SEED_QR_CODE_WIDTH,
         BACKUP_SEED_QR_CODE_HEIGHT

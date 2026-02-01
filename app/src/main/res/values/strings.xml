@@ -40,6 +40,9 @@
     <!-- Input backup seed screen -->
     <string name="seed_input_enter_recovery_phrase">Enter your Recovery Phrase</string>
     <string name="seed_input_restore_vault">Restore vault</string>
+    <string name="seed_input_scan_qr_code">Scan QR code</string>
+    <string name="seed_input_invalid_qr_code">Invalid seed QR code</string>
+    <string name="seed_input_invalid_qr_code_description">This QR code does not describe a valid backup seed.</string>
 
 
     <!-- Restoring backup screen -->
