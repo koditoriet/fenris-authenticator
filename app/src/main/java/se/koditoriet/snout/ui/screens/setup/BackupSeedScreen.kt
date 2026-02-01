@@ -91,6 +91,7 @@ fun BackupSeedScreen(
                     text = screenStrings.writeThisDown,
                     style = MaterialTheme.typography.bodyLarge,
                     textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
 
                 Spacer(Modifier.height(SPACING_L))

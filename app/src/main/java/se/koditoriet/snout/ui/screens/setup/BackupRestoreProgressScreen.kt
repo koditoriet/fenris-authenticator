@@ -20,7 +20,7 @@ import se.koditoriet.snout.ui.theme.SPACING_XXL
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RestoringBackupScreen(
+fun BackupRestoreProgressScreen(
     importedSecrets: Int,
     secretsToImport: Int,
 ) {

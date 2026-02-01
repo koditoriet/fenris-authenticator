@@ -1,7 +1,5 @@
 package se.koditoriet.snout.ui.screens.setup
 
-import android.graphics.Bitmap
-import android.graphics.Color
 import androidx.activity.compose.BackHandler
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
@@ -9,18 +7,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.core.graphics.createBitmap
-import androidx.core.graphics.set
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.print.PrintHelper
-import com.google.zxing.BarcodeFormat
-import com.google.zxing.qrcode.QRCodeWriter
 import se.koditoriet.snout.crypto.BackupSeed
 import se.koditoriet.snout.crypto.wordMap
 import se.koditoriet.snout.ui.onIOThread
-import se.koditoriet.snout.ui.theme.BACKUP_SEED_QR_CODE_HEIGHT
-import se.koditoriet.snout.ui.theme.BACKUP_SEED_QR_CODE_WIDTH
 import se.koditoriet.snout.vault.ImportFailedException
 import se.koditoriet.snout.viewmodel.SnoutViewModel
 
@@ -73,7 +64,7 @@ fun FragmentActivity.SetupScreen() {
             )
         }
         ViewState.RestoringBackup -> {
-            RestoringBackupScreen(
+            BackupRestoreProgressScreen(
                 importedSecrets = importProgress.first,
                 secretsToImport = importProgress.second,
             )

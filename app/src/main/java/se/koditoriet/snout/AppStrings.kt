@@ -12,7 +12,6 @@ class AppStrings(private val ctx: Context) {
     val seedInputScreen by lazy { SeedInputScreen(ctx) }
     val lockScreen by lazy { LockScreen(ctx) }
     val secretsScreen by lazy { SecretsScreen(ctx) }
-    val addSecretScreens by lazy { AddSecretScreens(ctx) }
     val managePasskeysScreen by lazy { ManagePasskeysScreen(ctx) }
     val settingsScreen by lazy { SettingsScreen(ctx) }
     val restoringBackupScreen by lazy { RestoringBackupScreen(ctx) }
@@ -44,6 +43,7 @@ class AppStrings(private val ctx: Context) {
         val dragToChangeOrder by ctx.s(R.string.generic_drag_to_change_order)
         val maybeLater by ctx.s(R.string.generic_maybe_later)
         val openSystemSettings by ctx.s(R.string.generic_open_system_settings)
+        val advanced by ctx.s(R.string.generic_advanced_options)
     }
 
     inner class SetupScreen(ctx: Context) {
@@ -118,10 +118,10 @@ class AppStrings(private val ctx: Context) {
         val actionsSheetEdit by ctx.s(R.string.secrets_actions_sheet_edit)
         val actionsSheetDelete by ctx.s(R.string.secrets_actions_sheet_delete)
         val actionsSheetDeleteWarning by ctx.s(R.string.secrets_actions_sheet_delete_warning)
-    }
 
-    class AddSecretScreens(ctx: Context) {
-        val addSecret by ctx.s(R.string.add_secret_add_secret)
+        val editNewSecretSheetHeading by ctx.s(R.string.secrets_edit_new_sheet_heading)
+        val editNewSecretSheetDescription by ctx.s(R.string.secrets_edit_new_sheet_description)
+        val editNewSecretSheetDescriptionManual by ctx.s(R.string.secrets_edit_new_sheet_description_manual)
     }
 
     class LockScreen(ctx: Context) {

@@ -16,6 +16,7 @@
     <string name="generic_drag_to_change_order">Drag to change order</string>
     <string name="generic_open_system_settings">Open system settings</string>
     <string name="generic_maybe_later">Maybe later</string>
+    <string name="generic_advanced_options">Advanced options</string>
 
 
     <!-- Initial setup screen -->
@@ -82,6 +83,10 @@
     <string name="secrets_copy_one_time_code">"Copy code to clipboard"</string>
     <string name="secrets_copied_one_time_code">"Code copied to clipboard"</string>
 
+    <string name="secrets_edit_new_sheet_heading">Add Secret</string>
+    <string name="secrets_edit_new_sheet_description">Customize details before finishing up.</string>
+    <string name="secrets_edit_new_sheet_description_manual">Input OTP secret manually.</string>
+
     <string name="secrets_add_secret_sheet_heading">Add Secret</string>
     <string name="secrets_add_secret_sheet_description">Choose a source to add a new account.</string>
     <string name="secrets_add_secret_sheet_scan_qr_code">Scan QR Code</string>
@@ -93,10 +98,6 @@
     <string name="secrets_actions_sheet_edit">Edit Metadata</string>
     <string name="secrets_actions_sheet_delete">Delete secret</string>
     <string name="secrets_actions_sheet_delete_warning">The selected secret will be deleted. If this is your only 2FA method for that service, you may lose access to your account.</string>
-
-
-    <!-- Add secret screens -->
-    <string name="add_secret_add_secret">Add secret</string>
 
 
     <!-- Manage passkeys screen -->

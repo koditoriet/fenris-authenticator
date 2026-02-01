@@ -67,12 +67,14 @@ fun InitialSetupScreen(
                     Column {
                         Text(
                             text = screenStrings.enableBackups,
-                            style = MaterialTheme.typography.headlineMedium
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
                         )
                         Spacer(Modifier.height(SPACING_L))
                         Text(
                             text = screenStrings.enableBackupsDescription,
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
                         )
 
                         Spacer(Modifier.height(SPACING_XXL))
@@ -150,8 +152,16 @@ private fun BackupChoiceCard(
             Spacer(Modifier.width(SPACING_M))
 
             Column {
-                Text(title, style = MaterialTheme.typography.titleMedium)
-                Text(description, style = MaterialTheme.typography.bodySmall)
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
             }
         }
     }

@@ -2,22 +2,23 @@ package se.koditoriet.snout.ui.components
 
 import android.content.Context
 import android.view.accessibility.AccessibilityManager
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -28,7 +29,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -44,9 +47,9 @@ import se.koditoriet.snout.codec.isValidBase32
 import se.koditoriet.snout.ui.components.SecretVisibility.Hidden
 import se.koditoriet.snout.ui.components.SecretVisibility.Visible
 import se.koditoriet.snout.ui.primaryHint
-import se.koditoriet.snout.ui.theme.BUTTON_FONT_SIZE
 import se.koditoriet.snout.ui.theme.INPUT_FIELD_PADDING
-import se.koditoriet.snout.ui.theme.SPACING_L
+import se.koditoriet.snout.ui.theme.PADDING_M
+import se.koditoriet.snout.ui.theme.PADDING_XXL
 import se.koditoriet.snout.ui.theme.SPACING_S
 import se.koditoriet.snout.vault.NewTotpSecret
 import se.koditoriet.snout.vault.TotpAlgorithm
@@ -59,9 +62,24 @@ inline fun <reified T : TotpSecretFormResult> TotpSecretForm(
     crossinline onSave: (T) -> Unit,
 ) {
     val formStrings = appStrings.totpSecretForm
+    val metadataOnly = T::class != TotpSecretFormResult.TotpSecret::class
     var issuer by remember { mutableStateOf(metadata?.issuer ?: "") }
     var account by remember { mutableStateOf(metadata?.account ?: "") }
     var secretDataFormState by remember { mutableStateOf(SecretDataFormState()) }
+
+    val secretDataIsValid = if (metadataOnly) true else secretDataFormState.isValid
+    val saveData = { metadata: NewTotpSecret.Metadata ->
+        if (metadataOnly) {
+            onSave(TotpSecretFormResult.TotpMetadata(metadata) as T)
+        } else {
+            val newTotpSecret = NewTotpSecret(
+                metadata = metadata,
+                secretData = secretDataFormState.toSecretData(),
+            )
+            val result = TotpSecretFormResult.TotpSecret(newTotpSecret)
+            onSave(result as T)
+        }
+    }
 
     val fieldModifier = Modifier
         .fillMaxWidth()
@@ -71,68 +89,53 @@ inline fun <reified T : TotpSecretFormResult> TotpSecretForm(
         .fillMaxWidth()
         .verticalScroll(rememberScrollState())
 
-    Column(
-        modifier = columnModifier
-            .takeIf { padding != null }
-            ?.padding(padding!!) ?: columnModifier,
-        verticalArrangement = Arrangement.spacedBy(SPACING_S),
-    ) {
-        OutlinedTextField(
-            modifier = fieldModifier,
-            value = issuer,
-            onValueChange = { issuer = it },
-            label = { Text(formStrings.issuer) },
-            isError = issuer.isBlank(),
-            singleLine = true,
-        )
-        OutlinedTextField(
-            modifier = fieldModifier,
-            value = account,
-            onValueChange = { account = it },
-            label = { Text(formStrings.userName) },
-            singleLine = true,
-        )
-
-        // TODO: this part is _really_ ugly...
-        val metadataIsValid = issuer.isNotBlank()
-        val (secretDataIsValid, saveData) = if (T::class == TotpSecretFormResult.TotpSecret::class) {
-            SecretDataPartialForm(
-                fieldModifier = fieldModifier,
-                hideSecretsFromAccessibility = hideSecretsFromAccessibility,
-                secretDataFormState = secretDataFormState,
-                onChange = { secretDataFormState = it },
+    val modifier = if (padding != null) Modifier.padding(padding) else Modifier
+    Box(modifier = modifier.fillMaxWidth()) {
+        Column(
+            modifier = columnModifier
+                .fillMaxSize()
+                .padding(bottom = MAIN_BUTTON_HEIGHT)
+                .padding(bottom = PADDING_XXL),
+            verticalArrangement = Arrangement.spacedBy(SPACING_S),
+        ) {
+            OutlinedTextField(
+                modifier = fieldModifier,
+                value = issuer,
+                onValueChange = { issuer = it },
+                label = { Text(formStrings.issuer) },
+                isError = issuer.isBlank(),
+                singleLine = true,
             )
-            Pair(secretDataFormState.isValid) { metadata: NewTotpSecret.Metadata ->
-                val newTotpSecret = NewTotpSecret(
-                    metadata = metadata,
-                    secretData = secretDataFormState.toSecretData(),
+            OutlinedTextField(
+                modifier = fieldModifier,
+                value = account,
+                onValueChange = { account = it },
+                label = { Text(formStrings.userName) },
+                singleLine = true,
+            )
+
+            if (!metadataOnly) {
+                SecretDataPartialForm(
+                    fieldModifier = fieldModifier,
+                    hideSecretsFromAccessibility = hideSecretsFromAccessibility,
+                    secretDataFormState = secretDataFormState,
+                    onChange = { secretDataFormState = it },
                 )
-                val result = TotpSecretFormResult.TotpSecret(newTotpSecret)
-                onSave(result as T)
-            }
-        } else {
-            Pair(true) { metadata: NewTotpSecret.Metadata ->
-                onSave(TotpSecretFormResult.TotpMetadata(metadata) as T)
             }
         }
 
-        Spacer(Modifier.height(SPACING_L))
-
-        Row(horizontalArrangement = Arrangement.Center, modifier = fieldModifier) {
-            Button(
-                modifier = Modifier.fillMaxSize(),
-                enabled = secretDataIsValid && metadataIsValid,
-                onClick = {
-                    val metadata = NewTotpSecret.Metadata(
-                        issuer = issuer.trim(),
-                        account = account.trim().ifBlank { null },
-                    )
-                    saveData(metadata)
-                },
-            ) {
-                Text(appStrings.generic.save, fontSize = BUTTON_FONT_SIZE)
-            }
-        }
+        val metadataIsValid = issuer.isNotBlank()
+        MainButton(
+            text = appStrings.generic.save,
+            enabled = secretDataIsValid && metadataIsValid,
+            onClick = {
+                val metadata = NewTotpSecret.Metadata(
+                    issuer = issuer.trim(),
+                    account = account.trim().ifBlank { null },
+                )
+                saveData(metadata)
+            },
+        )
     }
 }
 
@@ -187,30 +190,34 @@ fun SecretDataPartialForm(
             }
        },
     )
-    OutlinedTextField(
-        modifier = fieldModifier,
-        value = secretDataFormState.digits,
-        onValueChange = { onChange(secretDataFormState.copy(digits = it.filter { c -> c.isDigit() })) },
-        label = { Text(screenStrings.digits) },
-        keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
-        isError = !secretDataFormState.digitsIsValid,
-        singleLine = true,
-    )
-    OutlinedTextField(
-        modifier = fieldModifier,
-        value = secretDataFormState.period,
-        onValueChange = { onChange(secretDataFormState.copy(period = it.filter { c -> c.isDigit() })) },
-        label = { Text(screenStrings.period) },
-        keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
-        isError = !secretDataFormState.periodIsValid,
-        singleLine = true,
-    )
-    Dropdown<TotpAlgorithm>(
-        label = screenStrings.algorithm,
-        selectedItem = secretDataFormState.algorithm,
-        modifier = fieldModifier,
-        onItemSelected = { onChange(secretDataFormState.copy(algorithm = it)) },
-    )
+    Advanced {
+        Column {
+            OutlinedTextField(
+                modifier = fieldModifier,
+                value = secretDataFormState.digits,
+                onValueChange = { onChange(secretDataFormState.copy(digits = it.filter { c -> c.isDigit() })) },
+                label = { Text(screenStrings.digits) },
+                keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
+                isError = !secretDataFormState.digitsIsValid,
+                singleLine = true,
+            )
+            OutlinedTextField(
+                modifier = fieldModifier,
+                value = secretDataFormState.period,
+                onValueChange = { onChange(secretDataFormState.copy(period = it.filter { c -> c.isDigit() })) },
+                label = { Text(screenStrings.period) },
+                keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
+                isError = !secretDataFormState.periodIsValid,
+                singleLine = true,
+            )
+            Dropdown<TotpAlgorithm>(
+                label = screenStrings.algorithm,
+                selectedItem = secretDataFormState.algorithm,
+                modifier = fieldModifier,
+                onItemSelected = { onChange(secretDataFormState.copy(algorithm = it)) },
+            )
+        }
+    }
 }
 
 sealed interface TotpSecretFormResult {
@@ -276,4 +283,34 @@ data class SecretDataFormState(
             period = period.toInt(),
             algorithm = algorithm,
         )
+}
+
+@Composable
+private fun Advanced(content: @Composable () -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = !expanded }
+                .padding(vertical = PADDING_M),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = appStrings.generic.advanced,
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.weight(1f)
+            )
+            Icon(
+                imageVector = Icons.Default.ExpandMore,
+                modifier = Modifier.rotate(if (expanded) 180f else 0f),
+                contentDescription = null
+            )
+        }
+
+        AnimatedVisibility(expanded) {
+            content()
+        }
+    }
 }

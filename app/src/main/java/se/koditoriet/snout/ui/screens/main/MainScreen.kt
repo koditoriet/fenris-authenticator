@@ -18,8 +18,6 @@ import se.koditoriet.snout.Config
 import se.koditoriet.snout.ui.ignoreAuthFailure
 import se.koditoriet.snout.ui.onIOThread
 import se.koditoriet.snout.ui.screens.main.passkeys.ManagePasskeysScreen
-import se.koditoriet.snout.ui.screens.main.secrets.AddSecretByQrScreen
-import se.koditoriet.snout.ui.screens.main.secrets.AddSecretByTextScreen
 import se.koditoriet.snout.ui.screens.main.secrets.ListSecretsScreen
 import se.koditoriet.snout.ui.screens.main.settings.SettingsScreen
 import se.koditoriet.snout.viewmodel.SnoutViewModel
@@ -59,33 +57,12 @@ fun FragmentActivity.MainScreen(
                 getTotpCodes = { secret -> viewModel.getTotpCodes(authFactory, secret, 2) },
                 onLockVault = onIOThread { viewModel.lockVault() },
                 onSettings = { viewState = ViewState.Settings },
-                onAddSecret = { viewState = ViewState.AddSecret(it) },
-                onAddSecretByQR = { viewState = ViewState.ScanSecretQrCode },
+                onAddSecret = onIOThread { secret -> viewModel.addTotpSecret(secret) },
                 onSortModeChange = onIOThread { mode -> viewModel.setTotpSecretSortMode(mode) },
                 onUpdateSecret = onIOThread { secret -> viewModel.updateTotpSecret(secret) },
                 onDeleteSecret = onIOThread { secret -> viewModel.deleteTotpSecret(secret.id) },
                 onImportFile = onIOThread { uri -> viewModel.importFromFile(uri) },
                 onReindexSecrets = onIOThread { viewModel.reindexTotpSecrets() },
-            )
-        }
-        is ViewState.AddSecret -> {
-            AddSecretByTextScreen(
-                hideSecretsFromAccessibility = config.hideSecretsFromAccessibility,
-                prefilledSecret = (viewState as ViewState.AddSecret).prefilledSecret,
-                onSave = onIOThread { newSecret ->
-                    viewModel.addTotpSecret(newSecret)
-                    viewState = ViewState.ListSecrets
-                },
-                onCancel = { viewState = ViewState.ListSecrets },
-            )
-        }
-        ViewState.ScanSecretQrCode -> {
-            AddSecretByQrScreen(
-                onSave = onIOThread { newSecret ->
-                    viewModel.addTotpSecret(newSecret)
-                    viewState = ViewState.ListSecrets
-                },
-                onCancel = { viewState = ViewState.ListSecrets },
             )
         }
         ViewState.Settings -> {
