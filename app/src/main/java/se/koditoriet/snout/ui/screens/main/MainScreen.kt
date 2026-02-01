@@ -10,7 +10,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -28,17 +27,18 @@ import se.koditoriet.snout.viewmodel.SnoutViewModel
 private const val TAG = "MainScreen"
 
 @Composable
-fun FragmentActivity.MainScreen() {
+fun FragmentActivity.MainScreen(
+    credentialProviderEnabled: Boolean,
+    config: Config,
+    viewModel: SnoutViewModel,
+) {
     val authFactory = remember { BiometricPromptAuthenticator.Factory(this) }
-    val viewModel = viewModel<SnoutViewModel>()
-    val config by viewModel.config.collectAsState(Config.default)
     val totpSecrets by viewModel.secrets.collectAsState(emptyList())
     val passkeys by viewModel.passkeys.collectAsState(emptyList())
     var viewState by remember { mutableStateOf<ViewState>(ViewState.ListSecrets) }
 
     BackHandler {
         Log.d(TAG, "Back pressed on main screen")
-        println("WHAT?! ${viewState.previousViewState}")
         viewState.previousViewState?.apply {
             Log.d(TAG, "Going back to view '$this'")
             viewState = this
@@ -96,6 +96,7 @@ fun FragmentActivity.MainScreen() {
                 lockOnCloseGracePeriod = config.lockOnCloseGracePeriod,
                 screenSecurityEnabled = config.screenSecurityEnabled,
                 hideSecretsFromAccessibility = config.hideSecretsFromAccessibility,
+                credentialProviderEnabled = credentialProviderEnabled,
                 onDisableBackups = onIOThread(viewModel::disableBackups),
                 onLockOnCloseChange = onIOThread(viewModel::setLockOnClose),
                 onLockOnCloseGracePeriodChange = onIOThread(viewModel::setLockOnCloseGracePeriod),

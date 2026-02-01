@@ -20,6 +20,7 @@ data class Config(
     val screenSecurityEnabled: Boolean = true,
     val hideSecretsFromAccessibility: Boolean = false,
     val enableDeveloperFeatures: Boolean = false,
+    val passkeyScreenDismissed: Boolean = false,
 ) {
     val backupsEnabled: Boolean
         get() = backupKeys != null

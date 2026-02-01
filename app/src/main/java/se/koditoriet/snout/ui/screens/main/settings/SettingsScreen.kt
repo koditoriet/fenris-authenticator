@@ -1,6 +1,7 @@
 package se.koditoriet.snout.ui.screens.main.settings
 
 import android.net.Uri
+import android.os.Build
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -16,12 +17,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -42,7 +45,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.credentials.CredentialManager
 import androidx.lifecycle.compose.rememberLifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
@@ -56,11 +62,11 @@ import se.koditoriet.snout.ui.primaryHint
 import se.koditoriet.snout.ui.screens.main.settings.sheets.SecurityReportSheet
 import se.koditoriet.snout.ui.theme.GRACE_PERIOD_INPUT_FIELD_HEIGHT
 import se.koditoriet.snout.ui.theme.GRACE_PERIOD_INPUT_FIELD_WIDTH
+import se.koditoriet.snout.ui.theme.PADDING_S
 import se.koditoriet.snout.ui.theme.ROUNDED_CORNER_PADDING
 import se.koditoriet.snout.ui.theme.ROUNDED_CORNER_SIZE
 import se.koditoriet.snout.ui.theme.SPACING_L
 import se.koditoriet.snout.ui.theme.SPACING_M
-import se.koditoriet.snout.ui.theme.SPACING_S
 import se.koditoriet.snout.ui.theme.SPACING_XS
 import se.koditoriet.snout.viewmodel.SecurityReport
 import kotlin.time.Clock
@@ -84,12 +90,16 @@ fun SettingsScreen(
     onEnableDeveloperFeaturesChange: (Boolean) ->Unit,
     onWipeVault: () -> Unit,
     onExport: (Uri) -> Unit,
+    credentialProviderEnabled: Boolean,
     onManagePasskeys: () -> Unit,
     getSecurityReport: suspend () -> SecurityReport,
     clock: Clock = Clock.System,
     timeZone: TimeZone = TimeZone.currentSystemDefault(),
 ) {
     val screenStrings = appStrings.settingsScreen
+    val credentialManager = LocalContext.current.let {
+        remember(it) { CredentialManager.create(it) }
+    }
     var sheetViewState by remember { mutableStateOf<SettingsScreenSheetViewState?>(null) }
     var showWipeDialog by remember { mutableStateOf(false) }
     var showDisableBackupsDialog by remember { mutableStateOf(false) }
@@ -122,7 +132,31 @@ fun SettingsScreen(
                     title = screenStrings.managePasskeys,
                     description = screenStrings.managePasskeysDescription,
                     onClick = onManagePasskeys,
-                )
+                ) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE && !credentialProviderEnabled) {
+                        Row(verticalAlignment = Alignment.Top) {
+                            val iconSize = with(LocalDensity.current) {
+                                MaterialTheme.typography.bodyMedium.fontSize.toDp()
+                            }
+                            Icon(
+                                modifier = Modifier
+                                    .padding(top = iconSize * 0.18f, end = PADDING_S)
+                                    .size(iconSize),
+                                imageVector = Icons.Default.Info,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primaryHint,
+                            )
+                            SettingsDescription(screenStrings.managePasskeysDisabled)
+                        }
+                        AssistChip(
+                            onClick = {
+                                val pendingIntent = credentialManager.createSettingsPendingIntent()
+                                pendingIntent.send()
+                            },
+                            label = { Text(appStrings.generic.openSystemSettings) },
+                        )
+                    }
+                }
             }
 
             // Enable backups
@@ -136,7 +170,7 @@ fun SettingsScreen(
                 ) {
                     val exportFileLauncher = rememberLauncherForActivityResult(
                         contract = ActivityResultContracts.CreateDocument("application/octet-stream"),
-                        onResult = { it?.run(onExport) }
+                        onResult = { it?.run(onExport) },
                     )
                     val suggestedFileName = fileNameFromDate("vault-export-", ".eve", clock, timeZone)
                     AssistChip(
@@ -333,17 +367,23 @@ private fun SettingActionRow(
     title: String,
     description: String,
     titleColor: Color = MaterialTheme.colorScheme.onSurface,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    extraContent: @Composable () -> Unit = { },
 ) {
     SettingsCard { padding ->
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onClick() }
-                .padding(padding)
+            modifier = Modifier.padding(padding),
+            verticalArrangement = Arrangement.spacedBy(SPACING_M),
         ) {
-            SettingsTitle(title, titleColor)
-            SettingsDescription(description)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onClick() }
+            ) {
+                SettingsTitle(title, titleColor)
+                SettingsDescription(description)
+            }
+            extraContent()
         }
     }
 }
@@ -353,7 +393,7 @@ private fun SettingsCard(content: @Composable ColumnScope.(PaddingValues) -> Uni
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = SPACING_L, vertical = SPACING_S),
+            .padding(horizontal = SPACING_L, vertical = SPACING_XS),
         shape = RoundedCornerShape(ROUNDED_CORNER_SIZE),
     ) {
         content(PaddingValues(ROUNDED_CORNER_PADDING))

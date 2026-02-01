@@ -17,6 +17,7 @@ class AppStrings(private val ctx: Context) {
     val settingsScreen by lazy { SettingsScreen(ctx) }
     val restoringBackupScreen by lazy { RestoringBackupScreen(ctx) }
     val restoreBackupFailedScreen by lazy { RestoreBackupFailedScreen(ctx) }
+    val enablePasskeysScreen by lazy { EnablePasskeysScreen(ctx) }
 
     val totpSecretForm by lazy { TotpSecretForm(ctx) }
 
@@ -31,7 +32,7 @@ class AppStrings(private val ctx: Context) {
         val ok by ctx.s(R.string.generic_ok)
         val back by ctx.s(R.string.generic_back)
         val cancel by ctx.s(R.string.generic_cancel)
-        val continueOn by ctx.s(R.string.generic_continue)
+        val next by ctx.s(R.string.generic_continue)
         val save by ctx.s(R.string.generic_save)
         val seconds by ctx.s(R.string.generic_seconds)
         val selectItem by ctx.s(R.string.generic_select_item)
@@ -40,7 +41,9 @@ class AppStrings(private val ctx: Context) {
         val keyStorageTee by ctx.s(R.string.generic_key_storage_tee)
         val keyStorageSoftware by ctx.s(R.string.generic_key_storage_software)
         val keyStorageUnknown by ctx.s(R.string.generic_key_storage_unknown)
-        val dragToChangeOrder by ctx.s(R.string.generic_key_drag_to_change_order)
+        val dragToChangeOrder by ctx.s(R.string.generic_drag_to_change_order)
+        val maybeLater by ctx.s(R.string.generic_maybe_later)
+        val openSystemSettings by ctx.s(R.string.generic_open_system_settings)
     }
 
     inner class SetupScreen(ctx: Context) {
@@ -89,6 +92,12 @@ class AppStrings(private val ctx: Context) {
         val centerCopy by ctx.s(R.string.restoring_failed_center_copy)
     }
 
+    class EnablePasskeysScreen(private val ctx: Context) {
+        val heading by ctx.s(R.string.enable_passkeys_heading)
+        val useForPasskeys by ctx.s(R.string.enable_passkeys_use_for_passkeys)
+        val description by ctx.s(R.string.enable_passkeys_description)
+    }
+
     class SecretsScreen(private val ctx: Context) {
         val addSecret by ctx.s(R.string.secrets_add_secret)
         val filterPlaceholder by ctx.s(R.string.secrets_filter_placeholder)
@@ -133,6 +142,7 @@ class AppStrings(private val ctx: Context) {
 
         val managePasskeys by ctx.s(R.string.settings_manage_passkeys)
         val managePasskeysDescription by ctx.s(R.string.settings_manage_passkeys_description)
+        val managePasskeysDisabled by ctx.s(R.string.settings_manage_passkeys_disabled)
 
         val enableBackups by ctx.s(R.string.settings_enable_backups)
         val enableBackupsDescription by ctx.s(R.string.settings_enable_backups_description)

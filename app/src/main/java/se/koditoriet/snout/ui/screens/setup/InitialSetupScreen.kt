@@ -105,7 +105,7 @@ fun InitialSetupScreen(
                 }
             }
             MainButton(
-                text = appStrings.generic.continueOn,
+                text = appStrings.generic.next,
                 onClick = {
                     when (backupChoice) {
                         BackupChoice.DisableBackups -> onSkipBackups()
