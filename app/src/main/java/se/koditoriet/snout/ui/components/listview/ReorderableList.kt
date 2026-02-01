@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.DragHandle
+import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -28,14 +29,13 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import se.koditoriet.snout.SortMode
 import se.koditoriet.snout.appStrings
-import se.koditoriet.snout.ui.theme.PADDING_M
-import se.koditoriet.snout.ui.theme.PADDING_S
-import se.koditoriet.snout.ui.theme.PADDING_XS
+import se.koditoriet.snout.ui.theme.ROUNDED_CORNER_PADDING
 import se.koditoriet.snout.ui.theme.ROUNDED_CORNER_SIZE
+import se.koditoriet.snout.ui.theme.SPACING_L
+import se.koditoriet.snout.ui.theme.SPACING_XS
 import sh.calvin.reorderable.ReorderableCollectionItemScope
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
@@ -94,7 +94,6 @@ fun <T : ReorderableListItem> ReorderableList(
         LazyColumn(
             state = lazyListState,
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(PADDING_S)
         ) {
             val filterQuery = filter ?: ""
             val filteredSecrets = when (filterQuery.isNotBlank()) {
@@ -159,26 +158,30 @@ private fun <T : ReorderableListItem> ListRow(
     dragHandle: @Composable () -> Unit,
 ) {
     val backgroundColor = when (selected) {
-        true -> MaterialTheme.colorScheme.surfaceBright
-        false -> MaterialTheme.colorScheme.surfaceVariant
+        true -> MaterialTheme.colorScheme.surfaceContainer
+        false -> MaterialTheme.colorScheme.surfaceContainerHighest
     }
-    Row(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(PADDING_XS)
-            .clip(RoundedCornerShape(ROUNDED_CORNER_SIZE))
-            .background(backgroundColor)
-            .combinedClickable(
-                onClick = { item.onClick() },
-                onClickLabel = item.onClickLabel,
-                onLongClick = { item.onLongClick() },
-                onLongClickLabel = item.onLongClickLabel,
-            )
-            .padding(PADDING_M),
-        verticalAlignment = Alignment.CenterVertically,
+            .padding(horizontal = SPACING_L, vertical = SPACING_XS),
+        shape = RoundedCornerShape(ROUNDED_CORNER_SIZE),
     ) {
-        item.apply { Render() }
-        dragHandle()
+        Row(
+            modifier = Modifier
+                .background(backgroundColor)
+                .combinedClickable(
+                    onClick = { item.onClick() },
+                    onClickLabel = item.onClickLabel,
+                    onLongClick = { item.onLongClick() },
+                    onLongClickLabel = item.onLongClickLabel,
+                )
+                .padding(ROUNDED_CORNER_PADDING),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            item.apply { Render() }
+            dragHandle()
+        }
     }
 }
 

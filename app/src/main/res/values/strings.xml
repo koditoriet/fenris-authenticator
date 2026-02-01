@@ -13,7 +13,9 @@
     <string name="generic_key_storage_tee">Trusted Environment</string>
     <string name="generic_key_storage_software">software</string>
     <string name="generic_key_storage_unknown">unknown storage</string>
-    <string name="generic_key_drag_to_change_order">Drag to change order</string>
+    <string name="generic_drag_to_change_order">Drag to change order</string>
+    <string name="generic_open_system_settings">Open system settings</string>
+    <string name="generic_maybe_later">Maybe later</string>
 
 
     <!-- Initial setup screen -->
@@ -29,7 +31,7 @@
 
 
     <!-- Display backup seed screen -->
-    <string name="seed_display_recovery_phrase">Your Recovery Phrase</string>
+    <string name="seed_display_recovery_phrase">Your recovery phrase</string>
     <string name="seed_display_write_this_down">Write down these words in order. They are the only way to recover your backups.</string>
     <string name="seed_display_keep_them_safe">Keep them in a safe place. Do NOT store them on this device. Never share them with anyone.</string>
     <string name="seed_display_print_qr">Print as QR code</string>
@@ -38,13 +40,13 @@
 
 
     <!-- Input backup seed screen -->
-    <string name="seed_input_enter_recovery_phrase">Enter your Recovery Phrase</string>
+    <string name="seed_input_enter_recovery_phrase">Enter your recovery phrase</string>
     <string name="seed_input_restore_vault">Restore vault</string>
     <string name="seed_input_scan_qr_code">Scan QR code</string>
-    <string name="seed_input_invalid_qr_code">Invalid seed QR code</string>
+    <string name="seed_input_invalid_qr_code">Invalid recovery QR code</string>
     <string name="seed_input_invalid_qr_code_description">This QR code does not describe a valid backup seed.</string>
-    <string name="seed_input_invalid_seed_phrase">Invalid seed phrase</string>
-    <string name="seed_input_invalid_seed_phrase_description">The seed phrase you entered is invalid. Please double check it against your stored copy.</string>
+    <string name="seed_input_invalid_seed_phrase">Invalid recovery phrase</string>
+    <string name="seed_input_invalid_seed_phrase_description">The recovery phrase you entered is invalid. Please double check it against your stored copy.</string>
 
 
     <!-- Restoring backup screen -->
@@ -58,6 +60,12 @@
     <!-- Restore backup failed screen -->
     <string name="restoring_failed_heading">Restore failed</string>
     <string name="restoring_failed_center_copy">Restore from backup failed</string>
+
+
+    <!-- Enable passkeys screen -->
+    <string name="enable_passkeys_heading">Passkey support</string>
+    <string name="enable_passkeys_use_for_passkeys">Use Snout for passkeys?</string>
+    <string name="enable_passkeys_description">Passkeys are a secure and modern alternative to passwords and one-time codes. They do not require you to remember anything or copy six digit codes into text fields, and can not be intercepted by malicious apps and websites.\n\nTo save and use passkeys, Android needs Snout to be set as a credential provider. You can change this at any time in the system settings.\n\nTo set Snout as your credential provider, click the \'Change\' button on the settings screen and set Snout as your preferred service.</string>
 
 
     <!-- Vault locked screen -->
@@ -103,7 +111,8 @@
     <string name="settings_heading">Settings</string>
 
     <string name="settings_manage_passkeys">Manage passkeys</string>
-    <string name="settings_manage_passkeys_description">View and remove passkey credentials.</string>
+    <string name="settings_manage_passkeys_description">View, edit and remove passkey credentials.</string>
+    <string name="settings_manage_passkeys_disabled">To manage passkeys, Snout must be set as your credential provider.</string>
 
     <string name="settings_enable_backups">Enable backups</string>
     <string name="settings_enable_backups_description">Allow the creation of encrypted backups.\n\nEven when enabled, backups are not created automatically. You need to export them manually.</string>
@@ -111,8 +120,8 @@
     <string name="settings_enable_backups_disable_dialog_confirm">Disable backups</string>
     <string name="settings_enable_backups_disable_dialog_text">Backups will be permanently disabled. If you lose access to your device, your secrets will be gone forever.</string>
 
-    <string name="settings_biometric_lock">Biometric lock</string>
-    <string name="settings_biometric_lock_description">Require biometric unlock to view accounts.\n\nAccount list is always encrypted and unlock is always required to view OTP codes, regardless of this setting.</string>
+    <string name="settings_biometric_lock">Privacy lock</string>
+    <string name="settings_biometric_lock_description">Require authentication when opening the app to protect your information.\n\nCredential use always requires authentication and all data is encrypted at rest, regardless of this setting.</string>
 
     <string name="settings_lock_on_minimize">Lock on minimize</string>
     <string name="settings_lock_on_minimize_description">Automatically lock the vault after a grace period when the app is minimized.</string>

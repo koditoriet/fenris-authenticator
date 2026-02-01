@@ -108,7 +108,7 @@ fun BackupSeedScreen(
             }
 
             MainButton(
-                text = appStrings.generic.continueOn,
+                text = appStrings.generic.next,
                 onClick = onContinue,
                 secondaryButton = SecondaryButton(
                     text = screenStrings.printAsQr,
@@ -199,7 +199,7 @@ private fun PrintQrWarningDialog(
                 onDismissRequest = onDismissRequest,
                 confirmButton = {
                     TextButton(onClick = onConfirmation) {
-                        Text(appStrings.generic.continueOn)
+                        Text(appStrings.generic.next)
                     }
                 },
                 dismissButton = {

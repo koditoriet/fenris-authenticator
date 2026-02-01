@@ -55,7 +55,6 @@ import se.koditoriet.snout.ui.theme.SPACING_S
 private const val TAG = "RestoreBackupScreen"
 private val BACKUP_MIME_TYPES = arrayOf("application/octet-stream")
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RestoreBackupScreen(
     wordCount: Int = 24,
@@ -152,7 +151,7 @@ private fun SeedPhraseInput(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text(screenStrings.enterRecoveryPhrase) }
+                title = { Text(screenStrings.enterRecoveryPhrase) },
             )
         }
     ) { padding ->

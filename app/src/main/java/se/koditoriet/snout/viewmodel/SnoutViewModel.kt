@@ -233,6 +233,9 @@ class SnoutViewModel(private val app: Application) : AndroidViewModel(app) {
         eraseBackups()
     }
 
+    suspend fun setPasskeyScreenDismissed() {
+        configDatastore.updateData { it.copy(passkeyScreenDismissed = true) }
+    }
 
     suspend fun setLockOnClose(enabled: Boolean) = vault.withLock {
         configDatastore.updateData {
