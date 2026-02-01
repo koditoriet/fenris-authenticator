@@ -4,6 +4,7 @@
     <string name="generic_ok">OK</string>
     <string name="generic_back">Back</string>
     <string name="generic_cancel">Cancel</string>
+    <string name="generic_close">Close</string>
     <string name="generic_continue">Continue</string>
     <string name="generic_save">Save</string>
     <string name="generic_seconds">seconds</string>
@@ -17,6 +18,11 @@
     <string name="generic_open_system_settings">Open system settings</string>
     <string name="generic_maybe_later">Maybe later</string>
     <string name="generic_advanced_options">Advanced options</string>
+
+
+    <!-- QR scanner -->
+    <string name="qrscanner_title">Scan QR code</string>
+    <string name="qrscanner_permissions_required">Camera permissions are required to scan QR codes</string>
 
 
     <!-- Initial setup screen -->
@@ -45,7 +51,7 @@
     <string name="seed_input_restore_vault">Restore vault</string>
     <string name="seed_input_scan_qr_code">Scan QR code</string>
     <string name="seed_input_invalid_qr_code">Invalid recovery QR code</string>
-    <string name="seed_input_invalid_qr_code_description">This QR code does not describe a valid backup seed.</string>
+    <string name="seed_input_invalid_qr_code_description">This QR code does not contain a valid backup seed.</string>
     <string name="seed_input_invalid_seed_phrase">Invalid recovery phrase</string>
     <string name="seed_input_invalid_seed_phrase_description">The recovery phrase you entered is invalid. Please double check it against your stored copy.</string>
 
@@ -98,6 +104,9 @@
     <string name="secrets_actions_sheet_edit">Edit Metadata</string>
     <string name="secrets_actions_sheet_delete">Delete secret</string>
     <string name="secrets_actions_sheet_delete_warning">The selected secret will be deleted. If this is your only 2FA method for that service, you may lose access to your account.</string>
+
+    <string name="secrets_scan_totp_qr_code_invalid">Invalid OTP QR code</string>
+    <string name="secrets_scan_totp_qr_code_invalid_description">This QR code does not contain an OTP secret.</string>
 
 
     <!-- Manage passkeys screen -->
