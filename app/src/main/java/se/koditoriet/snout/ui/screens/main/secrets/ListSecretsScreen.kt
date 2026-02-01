@@ -19,7 +19,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -27,8 +26,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import se.koditoriet.snout.SortMode
 import se.koditoriet.snout.appStrings
+import se.koditoriet.snout.ui.components.BadInputInformationDialog
 import se.koditoriet.snout.ui.components.IrrevocableActionConfirmationDialog
-import se.koditoriet.snout.ui.components.QrScannerScreen
+import se.koditoriet.snout.ui.components.QrScanner
 import se.koditoriet.snout.ui.components.listview.ListViewTopBar
 import se.koditoriet.snout.ui.components.listview.ReorderableList
 import se.koditoriet.snout.ui.components.sheet.BottomSheet
@@ -65,8 +65,8 @@ fun ListSecretsScreen(
     val screenStrings = remember { appStrings.secretsScreen }
     var confirmDeleteSecret by remember { mutableStateOf<TotpSecret?>(null) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var sheetViewState by remember { mutableStateOf<SheetViewState?>(null) }
-    var screenViewState by remember { mutableStateOf<ViewState>(ViewState.ListSecrets) }
+    var sheetViewState by remember { mutableStateOf<SheetViewState>(SheetViewState.Inactive) }
+    var qrScannerState by remember { mutableStateOf<QRScannerState>(QRScannerState.Inactive) }
     var filter by remember { mutableStateOf<String?>(null) }
     val listItemEnvironment = ListItemEnvironment.remember()
 
@@ -82,105 +82,104 @@ fun ListSecretsScreen(
         )
     }
 
-    LaunchedEffect(screenViewState, sheetViewState) {
-        // Sheet doesn't expand completely when we transition from QR scanner to list view and open it
-        // at the same time, so we have to poke it here.
-        if (sheetViewState != null) {
-            sheetState.show()
-        } else {
-            sheetState.hide()
+    Scaffold(
+        topBar = {
+            ListViewTopBar(
+                title = appStrings.generic.appName,
+                sortMode = sortMode,
+                onSortModeChange = onSortModeChange,
+                filterEnabled = filter != null,
+                onFilterToggle = { filter = if (filter == null) "" else null },
+            ) {
+                IconButton(onClick = onLockVault) {
+                    Icon(Icons.Filled.LockOpen, screenStrings.lockScreen)
+                }
+                IconButton(onClick = onSettings) {
+                    Icon(Icons.Filled.Settings, screenStrings.settings)
+                }
+            }
+        },
+        floatingActionButton = {
+            Column(verticalArrangement = Arrangement.spacedBy(SPACING_L)) {
+                FloatingActionButton(onClick = { sheetViewState = SheetViewState.AddSecretActions }) {
+                    Icon(Icons.Filled.Add, screenStrings.addSecret)
+                }
+            }
+        }
+    ) { padding ->
+        val comparator = compareBy<TotpSecretListItem> { it.totpSecret.issuer.lowercase() }
+            .thenBy { it.totpSecret.account?.lowercase() }
+
+        ReorderableList(
+            padding = padding,
+            filter = filter,
+            items = secretListItems,
+            selectedItem = (sheetViewState as? SheetViewState.SecretActions)?.selectedItem,
+            sortMode = sortMode,
+            alphabeticItemComparator = comparator,
+            filterPlaceholderText = screenStrings.filterPlaceholder,
+            onFilterChange = { filter = it },
+            onReindexItems = onReindexSecrets,
+        )
+
+        confirmDeleteSecret?.let { secret ->
+            IrrevocableActionConfirmationDialog(
+                text = screenStrings.actionsSheetDeleteWarning,
+                buttonText = screenStrings.actionsSheetDelete,
+                onCancel = { confirmDeleteSecret = null },
+                onConfirm = {
+                    confirmDeleteSecret = null
+                    sheetViewState = SheetViewState.Inactive
+                    onDeleteSecret(secret)
+                }
+            )
+        }
+
+        if (sheetViewState != SheetViewState.Inactive) {
+            ListSecretsBottomSheet(
+                viewState = sheetViewState,
+                sheetState = sheetState,
+                padding = padding,
+                hideSecretsFromAccessibility = hideSecretsFromAccessibility,
+                enableDeveloperFeatures = enableDeveloperFeatures,
+                onImportFile = onImportFile,
+                onAddSecret = onAddSecret,
+                onUpdateSecret = onUpdateSecret,
+                onDeleteSecret = { confirmDeleteSecret = it },
+                onChangeSheetViewState = { sheetViewState = it },
+                onInitiateQRCodeScan = { qrScannerState = QRScannerState.ScanTOTPSecret }
+            )
         }
     }
+    when (qrScannerState) {
+        QRScannerState.Inactive -> { /* NOP! */ }
+        QRScannerState.ScanTOTPSecret -> {
+            var invalidTotpQRCode by remember { mutableStateOf(false) }
+            if (invalidTotpQRCode) {
+                BadInputInformationDialog(
+                    title = screenStrings.invalidTotpQRCode,
+                    text = screenStrings.invalidTotpQRCodeDescription,
+                    onDismiss = { invalidTotpQRCode = false }
+                )
+            }
 
-    when (screenViewState) {
-        ViewState.ListSecrets -> {
-            Scaffold(
-                topBar = {
-                    ListViewTopBar(
-                        title = appStrings.generic.appName,
-                        sortMode = sortMode,
-                        onSortModeChange = onSortModeChange,
-                        filterEnabled = filter != null,
-                        onFilterToggle = { filter = if (filter == null) "" else null },
-                    ) {
-                        IconButton(onClick = onLockVault) {
-                            Icon(Icons.Filled.LockOpen, screenStrings.lockScreen)
-                        }
-                        IconButton(onClick = onSettings) {
-                            Icon(Icons.Filled.Settings, screenStrings.settings)
-                        }
+            BackHandler {
+                qrScannerState = QRScannerState.Inactive
+            }
+            QrScanner(
+                onQrScanned = {
+                    try {
+                        val secret = NewTotpSecret.fromUri(it)
+                        qrScannerState = QRScannerState.Inactive
+                        sheetViewState = SheetViewState.AddingNewSecret(secret)
+                    } catch (e: Exception) {
+                        invalidTotpQRCode = true
+                        Log.w(TAG, "Scanned non-TOTP secret QR code", e)
                     }
                 },
-                floatingActionButton = {
-                    Column(verticalArrangement = Arrangement.spacedBy(SPACING_L)) {
-                        FloatingActionButton(onClick = { sheetViewState = SheetViewState.AddSecretActions }) {
-                            Icon(Icons.Filled.Add, screenStrings.addSecret)
-                        }
-                    }
-                }
-            ) { padding ->
-                val comparator = compareBy<TotpSecretListItem> { it.totpSecret.issuer.lowercase() }
-                    .thenBy { it.totpSecret.account?.lowercase() }
-
-                ReorderableList(
-                    padding = padding,
-                    filter = filter,
-                    items = secretListItems,
-                    selectedItem = (sheetViewState as? SheetViewState.SecretActions)?.selectedItem,
-                    sortMode = sortMode,
-                    alphabeticItemComparator = comparator,
-                    filterPlaceholderText = screenStrings.filterPlaceholder,
-                    onFilterChange = { filter = it },
-                    onReindexItems = onReindexSecrets,
-                )
-
-                confirmDeleteSecret?.let { secret ->
-                    IrrevocableActionConfirmationDialog(
-                        text = screenStrings.actionsSheetDeleteWarning,
-                        buttonText = screenStrings.actionsSheetDelete,
-                        onCancel = { confirmDeleteSecret = null },
-                        onConfirm = {
-                            confirmDeleteSecret = null
-                            sheetViewState = null
-                            onDeleteSecret(secret)
-                        }
-                    )
-                }
-
-                sheetViewState?.let { viewState ->
-                    ListSecretsBottomSheet(
-                        viewState = viewState,
-                        sheetState = sheetState,
-                        padding = padding,
-                        hideSecretsFromAccessibility = hideSecretsFromAccessibility,
-                        enableDeveloperFeatures = enableDeveloperFeatures,
-                        onImportFile = onImportFile,
-                        onAddSecret = onAddSecret,
-                        onUpdateSecret = onUpdateSecret,
-                        onDeleteSecret = { confirmDeleteSecret = it },
-                        onChangeScreenViewState = { screenViewState = it },
-                        onChangeSheetViewState = { sheetViewState = it }
-                    )
-                }
-            }
+                onAbort = { qrScannerState = QRScannerState.Inactive }
+            )
         }
-        ViewState.ScanQRCode -> {
-            BackHandler {
-                screenViewState = ViewState.ListSecrets
-                sheetViewState = SheetViewState.AddSecretActions
-            }
-            QrScannerScreen {
-                try {
-                    val secret = NewTotpSecret.fromUri(it)
-                    screenViewState = ViewState.ListSecrets
-                    sheetViewState = SheetViewState.AddingNewSecret(secret)
-                } catch (e: Exception) {
-                    // TODO: display indicator to the user of why the code they're pointing their phone at isn't working
-                    Log.w(TAG, "Scanned non-TOTP secret QR code", e)
-                }
-            }
-        }
-
     }
 }
 
@@ -196,28 +195,26 @@ private fun ListSecretsBottomSheet(
     onAddSecret: (NewTotpSecret) -> Unit,
     onUpdateSecret: (TotpSecret) -> Unit,
     onDeleteSecret: (TotpSecret) -> Unit,
-    onChangeScreenViewState: (ViewState) -> Unit,
-    onChangeSheetViewState: (SheetViewState?) -> Unit,
+    onInitiateQRCodeScan: () -> Unit,
+    onChangeSheetViewState: (SheetViewState) -> Unit,
 ) {
     BottomSheet(
-        hideSheet = { onChangeSheetViewState(null) },
+        hideSheet = { onChangeSheetViewState(SheetViewState.Inactive) },
         sheetState = sheetState,
         sheetViewState = viewState,
         padding = padding,
     ) { state ->
         when (state) {
+            SheetViewState.Inactive -> { /* NOP! */ }
             SheetViewState.AddSecretActions -> {
                 AddSecretsSheet(
                     enableFileImport = enableDeveloperFeatures,
-                    onAddSecretByQR = {
-                        onChangeSheetViewState(null)
-                        onChangeScreenViewState(ViewState.ScanQRCode)
-                    },
+                    onAddSecretByQR = { onInitiateQRCodeScan() },
                     onAddSecret = {
                         onChangeSheetViewState(SheetViewState.AddingNewSecret(it))
                     },
                     onImportFile = {
-                        onChangeSheetViewState(null)
+                        onChangeSheetViewState(SheetViewState.Inactive)
                         onImportFile(it)
                     }
                 )
@@ -252,7 +249,7 @@ private fun ListSecretsBottomSheet(
                             account = newMetadata.account
                         )
                         onUpdateSecret(updatedSecret)
-                        onChangeSheetViewState(null)
+                        onChangeSheetViewState(SheetViewState.Inactive)
                     },
                 )
             }
@@ -266,7 +263,7 @@ private fun ListSecretsBottomSheet(
                     hideSecretsFromAccessibility = hideSecretsFromAccessibility,
                     onSave = { newSecret ->
                         onAddSecret(newSecret)
-                        onChangeSheetViewState(null)
+                        onChangeSheetViewState(SheetViewState.Inactive)
                     },
                 )
             }
@@ -275,13 +272,14 @@ private fun ListSecretsBottomSheet(
 }
 
 private sealed interface SheetViewState {
+    object Inactive : SheetViewState
     object AddSecretActions : SheetViewState
     data class SecretActions(val selectedItem: TotpSecretListItem) : SheetViewState
     data class EditSecretMetadata(val selectedItem: TotpSecretListItem) : SheetViewState
     data class AddingNewSecret(val prefilledSecret: NewTotpSecret?) : SheetViewState
 }
 
-private sealed interface ViewState {
-    object ListSecrets : ViewState
-    object ScanQRCode : ViewState
+private sealed interface QRScannerState {
+    object Inactive : QRScannerState
+    object ScanTOTPSecret : QRScannerState
 }

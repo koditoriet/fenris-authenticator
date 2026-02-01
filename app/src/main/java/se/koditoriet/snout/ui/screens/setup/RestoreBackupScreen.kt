@@ -44,7 +44,7 @@ import se.koditoriet.snout.appStrings
 import se.koditoriet.snout.crypto.BackupSeed
 import se.koditoriet.snout.ui.components.BadInputInformationDialog
 import se.koditoriet.snout.ui.components.MainButton
-import se.koditoriet.snout.ui.components.QrScannerScreen
+import se.koditoriet.snout.ui.components.QrScanner
 import se.koditoriet.snout.ui.components.SecondaryButton
 import se.koditoriet.snout.ui.primaryHint
 import se.koditoriet.snout.ui.theme.PADDING_XL
@@ -112,7 +112,8 @@ private fun SeedQRCodeInput(
         onCancel()
     }
 
-    QrScannerScreen(
+    QrScanner(
+        onAbort = { onCancel() },
         onQrScanned = {
             if (!invalidBackupSeedQR) {
                 // Don't interpret QR codes while the "invalid backup seed" dialog is active

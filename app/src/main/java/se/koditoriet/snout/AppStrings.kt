@@ -7,6 +7,7 @@ import androidx.compose.ui.platform.LocalContext
 
 class AppStrings(private val ctx: Context) {
     val generic by lazy { Generic(ctx) }
+    val qrScanner by lazy { QRScanner(ctx) }
     val setupScreen by lazy { SetupScreen(ctx) }
     val seedDisplayScreen by lazy { SeedDisplayScreen(ctx) }
     val seedInputScreen by lazy { SeedInputScreen(ctx) }
@@ -31,6 +32,7 @@ class AppStrings(private val ctx: Context) {
         val ok by ctx.s(R.string.generic_ok)
         val back by ctx.s(R.string.generic_back)
         val cancel by ctx.s(R.string.generic_cancel)
+        val close by ctx.s(R.string.generic_close)
         val next by ctx.s(R.string.generic_continue)
         val save by ctx.s(R.string.generic_save)
         val seconds by ctx.s(R.string.generic_seconds)
@@ -44,6 +46,11 @@ class AppStrings(private val ctx: Context) {
         val maybeLater by ctx.s(R.string.generic_maybe_later)
         val openSystemSettings by ctx.s(R.string.generic_open_system_settings)
         val advanced by ctx.s(R.string.generic_advanced_options)
+    }
+
+    inner class QRScanner(ctx: Context) {
+        val title by ctx.s(R.string.qrscanner_title)
+        val permissionsRequired by ctx.s(R.string.qrscanner_permissions_required)
     }
 
     inner class SetupScreen(ctx: Context) {
@@ -122,6 +129,9 @@ class AppStrings(private val ctx: Context) {
         val editNewSecretSheetHeading by ctx.s(R.string.secrets_edit_new_sheet_heading)
         val editNewSecretSheetDescription by ctx.s(R.string.secrets_edit_new_sheet_description)
         val editNewSecretSheetDescriptionManual by ctx.s(R.string.secrets_edit_new_sheet_description_manual)
+
+        val invalidTotpQRCode by ctx.s(R.string.secrets_scan_totp_qr_code_invalid)
+        val invalidTotpQRCodeDescription by ctx.s(R.string.secrets_scan_totp_qr_code_invalid_description)
     }
 
     class LockScreen(ctx: Context) {

@@ -17,7 +17,7 @@ import android.os.HandlerThread
 import android.util.Log
 import android.view.Surface
 import android.view.TextureView
-import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -45,6 +45,9 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import se.koditoriet.snout.appStrings
 import se.koditoriet.snout.codec.QrCodeReader
 import java.util.concurrent.Executors
 import kotlin.concurrent.atomics.AtomicBoolean
@@ -56,40 +59,53 @@ private const val TAG = "QrScanner"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun QrScannerScreen(onQrScanned: (String) -> Unit) {
-    val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        topBar = {
-            TopAppBar(
-                title = { Text("Scan QR code") },
-                navigationIcon = {
-                    IconButton(onClick = { backDispatcher?.onBackPressed() }) {
-                        Icon(Icons.Default.Close, "Close")
+fun QrScanner(
+    onQrScanned: (String) -> Unit,
+    onAbort: () -> Unit,
+) {
+    BackHandler {
+        onAbort()
+    }
+    Dialog(
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+        onDismissRequest = onAbort,
+    ) {
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            topBar = {
+                TopAppBar(
+                    title = { Text(appStrings.qrScanner.title) },
+                    navigationIcon = {
+                        IconButton(onClick = onAbort) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = appStrings.generic.close,
+                            )
+                        }
                     }
-                }
-            )
-        }
-    ) { padding ->
-        Row(
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxWidth()
-                .aspectRatio(9f / 16f),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            RequiresPermission(
-                permission = CAMERA,
-                permissionsRequiredMessage = "Camera permissions are required to scan QR codes",
+                )
+            }
+        ) { padding ->
+            Row(
+                modifier = Modifier
+                    .padding(padding)
+                    .fillMaxWidth()
+                    .aspectRatio(9f / 16f),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(Modifier.fillMaxSize()) {
-                    QrScannerView(
-                        modifier = Modifier.fillMaxSize(),
-                        onQrScanned = onQrScanned,
-                    )
-                    QrViewfinderOverlay(
-                        modifier = Modifier.fillMaxSize(),
-                    )
+                RequiresPermission(
+                    permission = CAMERA,
+                    permissionsRequiredMessage = appStrings.qrScanner.permissionsRequired,
+                ) {
+                    Box(Modifier.fillMaxSize()) {
+                        QrScannerView(
+                            modifier = Modifier.fillMaxSize(),
+                            onQrScanned = onQrScanned,
+                        )
+                        QrViewfinderOverlay(
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
                 }
             }
         }
