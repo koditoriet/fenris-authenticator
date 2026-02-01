@@ -1,9 +1,12 @@
 package se.koditoriet.snout.crypto
 
+import android.net.Uri
+import androidx.core.net.toUri
+import se.koditoriet.snout.codec.Base64Url
+import se.koditoriet.snout.codec.Base64Url.Companion.toBase64Url
 import java.security.MessageDigest
 import java.security.MessageDigest.getInstance
 import java.security.SecureRandom
-import kotlin.io.encoding.Base64
 
 private const val BACKUP_KEY_SIZE: Int = 32
 private const val DOMAIN_BACKUP_SECRET_DEK: String = "backup_secret_dek"
@@ -25,9 +28,11 @@ class BackupSeed(private val secret: ByteArray) {
         return (secret + checksum).bitChunks(11).map { wordList[it] }
     }
 
-    fun toBase64(): String {
-        return Base64.encode(secret)
-    }
+    fun toBase64Url(): Base64Url =
+        secret.toBase64Url()
+
+    fun toUri(): Uri =
+        "snout://seed/${toBase64Url().string}".toUri()
 
     private fun deriveKey(domain: String): ByteArray {
         val prk = HmacContext.create(ByteArray(BACKUP_KEY_SIZE), HmacAlgorithm.SHA256).run {
@@ -39,8 +44,18 @@ class BackupSeed(private val secret: ByteArray) {
     }
 
     companion object {
+        const val URI_PREFIX: String = "seed"
+
         fun generate(secureRandom: SecureRandom = SecureRandom()): BackupSeed =
             BackupSeed(ByteArray(BACKUP_KEY_SIZE).apply(secureRandom::nextBytes))
+
+        fun fromUri(uri: Uri): BackupSeed {
+            require(uri.scheme == "snout")
+            require(uri.host == URI_PREFIX)
+            require(uri.pathSegments.size == 1)
+            val base64url = Base64Url.fromBase64UrlString(uri.pathSegments.first())
+            return BackupSeed(base64url.toByteArray())
+        }
 
         fun fromMnemonic(words: List<String>): BackupSeed {
             require(words.size == 24)

@@ -66,6 +66,8 @@ fun FragmentActivity.SetupScreen() {
                         }
                     } catch (e: ImportFailedException) {
                         viewState = ViewState.RestoreBackupFailed(e)
+                    } finally {
+                        backupSeed.wipe()
                     }
                 }
             )

@@ -71,6 +71,11 @@ class AppStrings(private val ctx: Context) {
     class SeedInputScreen(ctx: Context) {
         val enterRecoveryPhrase by ctx.s(R.string.seed_input_enter_recovery_phrase)
         val restoreVault by ctx.s(R.string.seed_input_restore_vault)
+        val scanQRCode by ctx.s(R.string.seed_input_scan_qr_code)
+        val invalidSeedQRCode by ctx.s(R.string.seed_input_invalid_qr_code)
+        val invalidSeedQRCodeDescription by ctx.s(R.string.seed_input_invalid_qr_code_description)
+        val invalidSeedPhrase by ctx.s(R.string.seed_input_invalid_seed_phrase)
+        val invalidSeedPhraseDescription by ctx.s(R.string.seed_input_invalid_seed_phrase_description)
     }
 
     class RestoringBackupScreen(private val ctx: Context) {

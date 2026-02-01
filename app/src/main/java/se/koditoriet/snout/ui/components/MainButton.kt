@@ -21,6 +21,7 @@ val MAIN_BUTTON_HEIGHT_WITH_SECONDARY = 120.dp
 @Composable
 fun BoxScope.MainButton(
     text: String,
+    enabled: Boolean = true,
     secondaryButton: SecondaryButton? = null,
     onClick: () -> Unit,
 ) {
@@ -31,6 +32,7 @@ fun BoxScope.MainButton(
     ) {
         Button(
             onClick = onClick,
+            enabled = enabled,
             elevation = ButtonDefaults.buttonElevation(),
             modifier = Modifier
                 .fillMaxWidth()
@@ -45,6 +47,7 @@ fun BoxScope.MainButton(
         secondaryButton?.let {
             TextButton(
                 modifier = Modifier.fillMaxWidth(),
+                enabled = it.enabled,
                 onClick = it.onClick,
             ) {
                 Text(it.text)
@@ -55,5 +58,6 @@ fun BoxScope.MainButton(
 
 class SecondaryButton(
     val text: String,
+    val enabled: Boolean = true,
     val onClick: () -> Unit,
 )
