@@ -20,7 +20,6 @@ import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import se.koditoriet.snout.BiometricPromptAuthenticator
 import se.koditoriet.snout.Config
@@ -39,13 +38,16 @@ private const val TAG = "MainActivity"
 
 class MainActivity : FragmentActivity() {
     val viewModel: SnoutViewModel by viewModels()
-    var _isEnabledCredentialProvider = MutableStateFlow(false)
+
+    private var _isEnabledCredentialProvider = MutableStateFlow(false)
     val isEnabledCredentialProvider: StateFlow<Boolean> = _isEnabledCredentialProvider.asStateFlow()
-    private var isBackgrounded: Boolean = true
+
+    private var _isBackgrounded = MutableStateFlow(true)
+    var isBackgrounded: StateFlow<Boolean> = _isBackgrounded.asStateFlow()
 
     private val foregroundObserver = object : DefaultLifecycleObserver {
         override fun onStop(owner: LifecycleOwner) {
-            isBackgrounded = true
+            _isBackgrounded.value = true
         }
 
         override fun onStart(owner: LifecycleOwner) {
@@ -53,17 +55,7 @@ class MainActivity : FragmentActivity() {
             if (credentialProviderEnabled != _isEnabledCredentialProvider.value) {
                 _isEnabledCredentialProvider.value = credentialProviderEnabled
             }
-
-            if (isBackgrounded) {
-                lifecycleScope.launch {
-                    ignoreAuthFailure {
-                        if (viewModel.vaultState.first() != Vault.State.Uninitialized) {
-                            viewModel.unlockVault(BiometricPromptAuthenticator.Factory(this@MainActivity))
-                        }
-                    }
-                }
-            }
-            isBackgrounded = false
+            _isBackgrounded.value = false
         }
     }
 
@@ -86,6 +78,18 @@ fun MainActivity.MainActivityContent() {
     val vaultState by viewModel.vaultState.collectAsState(Vault.State.Uninitialized)
     val config by viewModel.config.collectAsState(Config.default)
     val credentialProviderEnabled by isEnabledCredentialProvider.collectAsState()
+    val isBackgrounded by isBackgrounded.collectAsState()
+
+    LaunchedEffect(isBackgrounded) {
+        if (!isBackgrounded) {
+            ignoreAuthFailure {
+                if (vaultState != Vault.State.Uninitialized) {
+                    val authFactory = BiometricPromptAuthenticator.Factory(this@MainActivityContent)
+                    viewModel.unlockVault(authFactory)
+                }
+            }
+        }
+    }
 
     LaunchedEffect(config.screenSecurityEnabled) {
         if (config.screenSecurityEnabled) {
