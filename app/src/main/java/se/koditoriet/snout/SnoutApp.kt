@@ -66,7 +66,7 @@ class SnoutApp : Application() {
         }
 
         Log.i(TAG, "Creating vault")
-        vault = Sync {
+        vault = Sync("vault") {
             Vault(
                 repositoryFactory = repositoryFactory,
                 cryptographer = Cryptographer(),
