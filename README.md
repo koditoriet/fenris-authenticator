@@ -7,10 +7,8 @@ Snout is a security-focused passkey and TOTP authenticator.
 This is the SHA256 hash of the Snout signing certificate. Use it to verify the app's authenticity.
 
 ```
-b7d455b87a1224e78af319e4af5e15a6af670fbb6b6906a0f3f527c0f36f1d83
+d88a60b9b362391306dd8386ff1f7c995184664e8bf49bc181126cdb435264d3
 ```
-
-Note that the fingerprint *will* change when Snout leaves pre-release status.
 
 
 ## Features
