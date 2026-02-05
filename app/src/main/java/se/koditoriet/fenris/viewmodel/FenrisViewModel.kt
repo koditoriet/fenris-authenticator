@@ -149,9 +149,9 @@ class FenrisViewModel(private val app: Application) : AndroidViewModel(app) {
             Log.i(TAG, "Backup successfully imported")
         } catch (e: Exception) {
             // Make sure we go back to a clean slate if something went wrong
-            // TODO: inform the user what happened
             Log.e(TAG, "Unable to restore backup", e)
             wipe()
+            throw e
         }
     }
 

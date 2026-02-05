@@ -52,9 +52,11 @@ fun FragmentActivity.SetupScreen() {
                 onRestore = onIOThread { backupSeed, uri ->
                     viewState = ViewState.RestoringBackup
                     try {
-                        viewModel.restoreVaultFromBackup(backupSeed, uri) { done, total ->
-                            importProgress = Pair(done, total)
-                        }
+                        viewModel.restoreVaultFromBackup(
+                            backupSeed = backupSeed,
+                            uri = uri,
+                            onSecretImported = { done, total -> importProgress = Pair(done, total) },
+                        )
                     } catch (e: ImportFailedException) {
                         viewState = ViewState.RestoreBackupFailed(e)
                     } finally {
