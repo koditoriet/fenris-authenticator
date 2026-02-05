@@ -427,7 +427,6 @@ class Vault(
 
     private suspend fun DecryptionContext.importSecret(secrets: TotpSecrets, secret: TotpSecret) {
         val secretBytes = decrypt(EncryptedData.decode(secret.encryptedBackupSecret!!))
-        val encryptedSecret = encryptBackupSecretIfEnabled(secretBytes)?.encode()
         val newKeyHandle = cryptographer.storeHmacKey(
             keyIdentifier = null,
             hmacAlgorithm = secret.algorithm.toHmacAlgorithm(),
@@ -439,7 +438,6 @@ class Vault(
         val newSecret = secret.copy(
             sortOrder = secrets.getNextSortOrder(),
             keyAlias = newKeyHandle.alias,
-            encryptedBackupSecret = encryptedSecret,
         )
         secrets.insert(newSecret)
         Log.d(TAG, "Imported TOTP secret with id ${newSecret.id} and key alias ${newSecret.keyAlias}")
@@ -447,7 +445,6 @@ class Vault(
 
     private suspend fun DecryptionContext.importPasskey(passkeys: Passkeys, passkey: Passkey) {
         val privateKeyBytes = decrypt(EncryptedData.decode(passkey.encryptedBackupPrivateKey!!))
-        val encryptedPrivateKey = encryptBackupSecretIfEnabled(privateKeyBytes)?.encode()
         val newKeyHandle = cryptographer.storePrivateKey(
             keyIdentifier = null,
             algorithm = passkey.keyHandle.algorithm,
@@ -459,7 +456,6 @@ class Vault(
         val newPasskey = passkey.copy(
             sortOrder = passkeys.getNextSortOrder(),
             keyAlias = newKeyHandle.alias,
-            encryptedBackupPrivateKey = encryptedPrivateKey,
         )
         passkeys.insert(newPasskey)
         Log.d(TAG, "Imported passkey with id ${newPasskey.credentialId} and key alias ${newPasskey.keyAlias}")
