@@ -44,6 +44,7 @@ fun LockedScreen(
                 Text(
                     text = screenStrings.vaultLocked,
                     style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
 
                 Spacer(Modifier.height(SPACING_XXL))
@@ -59,6 +60,7 @@ fun LockedScreen(
             Text(
                 text = screenStrings.tapToUnlock,
                 style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = PADDING_XXL)

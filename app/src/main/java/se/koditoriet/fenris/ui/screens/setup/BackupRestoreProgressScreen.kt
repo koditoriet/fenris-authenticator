@@ -45,6 +45,7 @@ fun BackupRestoreProgressScreen(
             Text(
                 text = screenStrings.restoredSecrets(importedSecrets, secretsToImport),
                 style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
             )
         }
     }

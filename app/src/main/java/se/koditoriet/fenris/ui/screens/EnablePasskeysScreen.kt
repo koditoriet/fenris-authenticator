@@ -64,12 +64,14 @@ fun EnablePasskeysScreen(
                     Text(
                         text = screenStrings.useForPasskeys,
                         style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                 }
                 Spacer(Modifier.height(SPACING_L))
                 Text(
                     text = screenStrings.description,
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
             }
             MainButton(

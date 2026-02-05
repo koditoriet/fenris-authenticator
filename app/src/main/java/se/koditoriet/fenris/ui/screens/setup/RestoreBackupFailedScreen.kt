@@ -48,6 +48,7 @@ fun RestoreBackupFailedScreen(onDismiss: () -> Unit) {
                 Text(
                     text = screenStrings.centerCopy,
                     style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
 
                 Spacer(Modifier.height(SPACING_XXL))
