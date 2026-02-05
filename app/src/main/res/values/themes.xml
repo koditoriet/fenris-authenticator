@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.Snout" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.Fenris" parent="android:Theme.Material.Light.NoActionBar" />
 
-    <style name="Theme.Snout.Splash" parent="Theme.AppCompat.DayNight.NoActionBar">
+    <style name="Theme.Fenris.Splash" parent="Theme.AppCompat.DayNight.NoActionBar">
         <item name="android:windowSplashScreenBackground">?attr/colorPrimary</item>
     </style>
 </resources>

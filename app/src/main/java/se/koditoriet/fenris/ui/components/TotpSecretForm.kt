@@ -1,0 +1,316 @@
+package se.koditoriet.fenris.ui.components
+
+import android.content.Context
+import android.view.accessibility.AccessibilityManager
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.hideFromAccessibility
+import androidx.compose.ui.semantics.isSensitiveData
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import se.koditoriet.fenris.appStrings
+import se.koditoriet.fenris.codec.isValidBase32
+import se.koditoriet.fenris.ui.components.SecretVisibility.Hidden
+import se.koditoriet.fenris.ui.components.SecretVisibility.Visible
+import se.koditoriet.fenris.ui.primaryHint
+import se.koditoriet.fenris.ui.theme.INPUT_FIELD_PADDING
+import se.koditoriet.fenris.ui.theme.PADDING_M
+import se.koditoriet.fenris.ui.theme.PADDING_XXL
+import se.koditoriet.fenris.ui.theme.SPACING_S
+import se.koditoriet.fenris.vault.NewTotpSecret
+import se.koditoriet.fenris.vault.TotpAlgorithm
+
+@Composable
+inline fun <reified T : TotpSecretFormResult> TotpSecretForm(
+    padding: PaddingValues? = null,
+    metadata: NewTotpSecret.Metadata? = null,
+    hideSecretsFromAccessibility: Boolean,
+    crossinline onSave: (T) -> Unit,
+) {
+    val formStrings = appStrings.totpSecretForm
+    val metadataOnly = T::class != TotpSecretFormResult.TotpSecret::class
+    var issuer by remember { mutableStateOf(metadata?.issuer ?: "") }
+    var account by remember { mutableStateOf(metadata?.account ?: "") }
+    var secretDataFormState by remember { mutableStateOf(SecretDataFormState()) }
+
+    val secretDataIsValid = if (metadataOnly) true else secretDataFormState.isValid
+    val saveData = { metadata: NewTotpSecret.Metadata ->
+        if (metadataOnly) {
+            onSave(TotpSecretFormResult.TotpMetadata(metadata) as T)
+        } else {
+            val newTotpSecret = NewTotpSecret(
+                metadata = metadata,
+                secretData = secretDataFormState.toSecretData(),
+            )
+            val result = TotpSecretFormResult.TotpSecret(newTotpSecret)
+            onSave(result as T)
+        }
+    }
+
+    val fieldModifier = Modifier
+        .fillMaxWidth()
+        .padding(INPUT_FIELD_PADDING)
+
+    val columnModifier = Modifier
+        .fillMaxWidth()
+        .verticalScroll(rememberScrollState())
+
+    val modifier = if (padding != null) Modifier.padding(padding) else Modifier
+    Box(modifier = modifier.fillMaxWidth()) {
+        Column(
+            modifier = columnModifier
+                .fillMaxSize()
+                .padding(bottom = MAIN_BUTTON_HEIGHT)
+                .padding(bottom = PADDING_XXL),
+            verticalArrangement = Arrangement.spacedBy(SPACING_S),
+        ) {
+            OutlinedTextField(
+                modifier = fieldModifier,
+                value = issuer,
+                onValueChange = { issuer = it },
+                label = { Text(formStrings.issuer) },
+                isError = issuer.isBlank(),
+                singleLine = true,
+            )
+            OutlinedTextField(
+                modifier = fieldModifier,
+                value = account,
+                onValueChange = { account = it },
+                label = { Text(formStrings.userName) },
+                singleLine = true,
+            )
+
+            if (!metadataOnly) {
+                SecretDataPartialForm(
+                    fieldModifier = fieldModifier,
+                    hideSecretsFromAccessibility = hideSecretsFromAccessibility,
+                    secretDataFormState = secretDataFormState,
+                    onChange = { secretDataFormState = it },
+                )
+            }
+        }
+
+        val metadataIsValid = issuer.isNotBlank()
+        MainButton(
+            text = appStrings.generic.save,
+            enabled = secretDataIsValid && metadataIsValid,
+            onClick = {
+                val metadata = NewTotpSecret.Metadata(
+                    issuer = issuer.trim(),
+                    account = account.trim().ifBlank { null },
+                )
+                saveData(metadata)
+            },
+        )
+    }
+}
+
+@Composable
+fun SecretDataPartialForm(
+    fieldModifier: Modifier,
+    hideSecretsFromAccessibility: Boolean,
+    secretDataFormState: SecretDataFormState,
+    onChange: (SecretDataFormState) -> Unit,
+) {
+    val screenStrings = appStrings.totpSecretForm
+    var secretVisibility by remember { mutableStateOf(Hidden) }
+
+    val accessibilityManager = LocalContext
+        .current
+        .getSystemService(Context.ACCESSIBILITY_SERVICE) as AccessibilityManager
+    val isA11yEnabled = accessibilityManager.isEnabled
+
+    if (isA11yEnabled && hideSecretsFromAccessibility) {
+        Text(
+            modifier = Modifier
+                .semantics {
+                    liveRegion = LiveRegionMode.Assertive
+                }
+                .padding(horizontal = INPUT_FIELD_PADDING),
+            text = screenStrings.currentlyUnusableWithScreenReader,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.primaryHint,
+        )
+    }
+
+    OutlinedTextField(
+        modifier = fieldModifier.semantics {
+            isSensitiveData = true
+            if (hideSecretsFromAccessibility) {
+                hideFromAccessibility()
+            }
+        },
+        value = secretDataFormState.secret,
+        onValueChange = { onChange(secretDataFormState.copy(secret = it.trim())) },
+        label = { Text(screenStrings.secret) },
+        isError = !secretDataFormState.secretIsValid,
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(
+            autoCorrectEnabled = false,
+            keyboardType = KeyboardType.Password,
+        ),
+        visualTransformation = secretVisibility.visualTransformation,
+        trailingIcon = {
+            secretVisibility.TrailingIcon {
+                secretVisibility = secretVisibility.toggle()
+            }
+       },
+    )
+    Advanced {
+        Column {
+            OutlinedTextField(
+                modifier = fieldModifier,
+                value = secretDataFormState.digits,
+                onValueChange = { onChange(secretDataFormState.copy(digits = it.filter { c -> c.isDigit() })) },
+                label = { Text(screenStrings.digits) },
+                keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
+                isError = !secretDataFormState.digitsIsValid,
+                singleLine = true,
+            )
+            OutlinedTextField(
+                modifier = fieldModifier,
+                value = secretDataFormState.period,
+                onValueChange = { onChange(secretDataFormState.copy(period = it.filter { c -> c.isDigit() })) },
+                label = { Text(screenStrings.period) },
+                keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
+                isError = !secretDataFormState.periodIsValid,
+                singleLine = true,
+            )
+            Dropdown<TotpAlgorithm>(
+                label = screenStrings.algorithm,
+                selectedItem = secretDataFormState.algorithm,
+                modifier = fieldModifier,
+                onItemSelected = { onChange(secretDataFormState.copy(algorithm = it)) },
+            )
+        }
+    }
+}
+
+sealed interface TotpSecretFormResult {
+    data class TotpSecret(val secret: NewTotpSecret) : TotpSecretFormResult
+    data class TotpMetadata(val metadata: NewTotpSecret.Metadata) : TotpSecretFormResult
+}
+
+private enum class SecretVisibility(
+    val icon: ImageVector,
+    val iconDescription: @Composable () -> String,
+    val visualTransformation: VisualTransformation,
+) {
+    Visible(
+        icon = Icons.Default.VisibilityOff,
+        iconDescription = { appStrings.totpSecretForm.hideSecret },
+        visualTransformation = VisualTransformation.None,
+    ),
+    Hidden(
+        icon = Icons.Default.Visibility,
+        iconDescription = { appStrings.totpSecretForm.showSecret },
+        visualTransformation = PasswordVisualTransformation(),
+    ),
+}
+
+private fun SecretVisibility.toggle(): SecretVisibility =
+    when (this) {
+        Visible -> Hidden
+        Hidden -> Visible
+    }
+
+@Composable
+private fun SecretVisibility.TrailingIcon(onClick: () -> Unit) {
+    IconButton(onClick = onClick) {
+        Icon(
+            imageVector = icon,
+            contentDescription = iconDescription(),
+        )
+    }
+}
+
+data class SecretDataFormState(
+    val secret: String = "",
+    val digits: String = "6",
+    val period: String = "30",
+    val algorithm: TotpAlgorithm = TotpAlgorithm.SHA1,
+) {
+    val secretIsValid: Boolean
+        get() = secret.isNotBlank() && isValidBase32(secret)
+
+    val digitsIsValid: Boolean
+        get() = digits.toIntOrNull()?.let { it > 0 } ?: false
+
+    val periodIsValid: Boolean
+        get() = period.toIntOrNull()?.let { it > 0 } ?: false
+
+    val isValid: Boolean
+        get() = secretIsValid && digitsIsValid && periodIsValid
+
+    fun toSecretData(): NewTotpSecret.SecretData =
+        NewTotpSecret.SecretData(
+            secret = secret.toCharArray(),
+            digits = digits.toInt(),
+            period = period.toInt(),
+            algorithm = algorithm,
+        )
+}
+
+@Composable
+private fun Advanced(content: @Composable () -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = !expanded }
+                .padding(vertical = PADDING_M),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = appStrings.generic.advanced,
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.weight(1f)
+            )
+            Icon(
+                imageVector = Icons.Default.ExpandMore,
+                modifier = Modifier.rotate(if (expanded) 180f else 0f),
+                contentDescription = null
+            )
+        }
+
+        AnimatedVisibility(expanded) {
+            content()
+        }
+    }
+}

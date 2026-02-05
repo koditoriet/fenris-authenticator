@@ -1,6 +1,6 @@
 <resources>
     <!-- Generic strings -->
-    <string name="app_name">Snout</string>
+    <string name="app_name">Fenris</string>
     <string name="generic_ok">OK</string>
     <string name="generic_back">Back</string>
     <string name="generic_cancel">Cancel</string>
@@ -28,7 +28,7 @@
     <!-- Initial setup screen -->
     <string name="setup_welcome">Welcome to %1$s</string>
     <string name="setup_enable_backups">Enable encrypted backups?</string>
-    <string name="setup_enable_backups_description">Snout uses your phone’s secure hardware to ensure that your secrets can not be extracted by anyone - including by you.\n\nIf you choose to enable backups, Snout will store an additional copy of your secrets encrypted using a key which is not capable of decrypting them.\n\nYou may erase and disable encrypted backups at any time. Once backups are disabled however, they can not be re-enabled unless you reset your vault and re-add all your secrets.</string>
+    <string name="setup_enable_backups_description">Fenris uses your phone’s secure hardware to ensure that your secrets can not be extracted by anyone - including by you.\n\nIf you choose to enable backups, Fenris will store an additional copy of your secrets encrypted using a key which is not capable of decrypting them.\n\nYou may erase and disable encrypted backups at any time. Once backups are disabled however, they can not be re-enabled unless you reset your vault and re-add all your secrets.</string>
     <string name="setup_enable_backups_card_enable">Enable backups</string>
     <string name="setup_enable_backups_card_enable_description">You will be able to create manual backups of your secrets.</string>
     <string name="setup_enable_backups_card_disable">Skip backups</string>
@@ -71,8 +71,8 @@
 
     <!-- Enable passkeys screen -->
     <string name="enable_passkeys_heading">Passkey support</string>
-    <string name="enable_passkeys_use_for_passkeys">Use Snout for passkeys?</string>
-    <string name="enable_passkeys_description">Passkeys are a secure and modern alternative to passwords and one-time codes. They do not require you to remember anything or copy six digit codes into text fields, and can not be intercepted by malicious apps and websites.\n\nTo save and use passkeys, Android needs Snout to be set as a credential provider. You can change this at any time in the system settings.\n\nTo set Snout as your credential provider, click the \'Change\' button on the settings screen and set Snout as your preferred service.</string>
+    <string name="enable_passkeys_use_for_passkeys">Use Fenris for passkeys?</string>
+    <string name="enable_passkeys_description">Passkeys are a secure and modern alternative to passwords and one-time codes. They do not require you to remember anything or copy six digit codes into text fields, and can not be intercepted by malicious apps and websites.\n\nTo save and use passkeys, Android needs Fenris to be set as a credential provider. You can change this at any time in the system settings.\n\nTo set Fenris as your credential provider, click the \'Change\' button on the settings screen and set Fenris as your preferred service.</string>
 
 
     <!-- Vault locked screen -->
@@ -122,7 +122,7 @@
 
     <string name="settings_manage_passkeys">Manage passkeys</string>
     <string name="settings_manage_passkeys_description">View, edit and remove passkey credentials.</string>
-    <string name="settings_manage_passkeys_disabled">To manage passkeys, Snout must be set as your credential provider.</string>
+    <string name="settings_manage_passkeys_disabled">To manage passkeys, Fenris must be set as your credential provider.</string>
 
     <string name="settings_enable_backups">Enable backups</string>
     <string name="settings_enable_backups_description">Allow the creation of encrypted backups.\n\nEven when enabled, backups are not created automatically. You need to export them manually.</string>
@@ -198,11 +198,11 @@
 
 
     <!-- Credential provider service -->
-    <string name="credential_provider_authentication_action_title">Unlock Snout</string>
+    <string name="credential_provider_authentication_action_title">Unlock Fenris</string>
     <string name="credential_provider_passkey_already_exists">Passkey already exists</string>
     <string name="credential_provider_passkey_already_exists_explanation">You already have an active passkey for this service. Try to sign in with that one instead.</string>
     <string name="credential_provider_unable_to_establish_trust">Unable to establish trust</string>
-    <string name="credential_provider_unable_to_establish_trust_explanation">Snout could not determine that this service should have access to the passkey.</string>
+    <string name="credential_provider_unable_to_establish_trust_explanation">Fenris could not determine that this service should have access to the passkey.</string>
     <string name="credential_provider_edit_passkey_display_name">Save Passkey</string>
     <string name="credential_provider_passkey_display_name">Passkey display name</string>
 

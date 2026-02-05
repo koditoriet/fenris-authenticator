@@ -5,7 +5,7 @@
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <application
-        android:name=".SnoutApp"
+        android:name=".FenrisApp"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -13,12 +13,12 @@
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Snout.Splash">
+        android:theme="@style/Theme.Fenris.Splash">
 
         <activity
             android:name=".ui.activities.MainActivity"
             android:exported="true"
-            android:theme="@style/Theme.Snout.Splash">
+            android:theme="@style/Theme.Fenris.Splash">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -27,20 +27,20 @@
 
         <activity
             android:name=".ui.activities.credentialprovider.CreatePasskeyActivity"
-            android:theme="@style/Theme.Snout.Splash" />
+            android:theme="@style/Theme.Fenris.Splash" />
 
         <activity
             android:name=".ui.activities.credentialprovider.AuthenticateActivity"
-            android:theme="@style/Theme.Snout.Splash" />
+            android:theme="@style/Theme.Fenris.Splash" />
 
         <activity
             android:name=".ui.activities.credentialprovider.ListPasskeysActivity"
-            android:theme="@style/Theme.Snout.Splash" />
+            android:theme="@style/Theme.Fenris.Splash" />
 
-        <service android:name=".credentialprovider.SnoutCredentialProviderService"
+        <service android:name=".credentialprovider.FenrisCredentialProviderService"
             android:enabled="true"
             android:exported="true"
-            android:label="@string/app_name"
+            android:label="Fenris Authenticator"
             android:icon="@mipmap/ic_launcher"
             android:roundIcon="@mipmap/ic_launcher_round"
             android:permission="android.permission.BIND_CREDENTIAL_PROVIDER_SERVICE"

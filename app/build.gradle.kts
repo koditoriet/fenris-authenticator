@@ -17,13 +17,13 @@ configurations.all {
 }
 
 android {
-    namespace = "se.koditoriet.snout"
+    namespace = "se.koditoriet.fenris"
     compileSdk {
         version = release(36)
     }
 
     defaultConfig {
-        applicationId = "se.koditoriet.snout"
+        applicationId = "se.koditoriet.fenris"
         minSdk = 31
         targetSdk = 36
         versionCode = 1
