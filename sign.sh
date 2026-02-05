@@ -11,4 +11,4 @@ apksigner \
     --min-sdk-version 31 \
     --max-sdk-version 36 \
     --in app/build/outputs/apk/release/app-release-unsigned.apk \
-    --out snout-authenticator.apk
+    --out fenris-authenticator.apk

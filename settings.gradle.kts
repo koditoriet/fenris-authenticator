@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Snout"
+rootProject.name = "Fenris"
 include(":app")
  
