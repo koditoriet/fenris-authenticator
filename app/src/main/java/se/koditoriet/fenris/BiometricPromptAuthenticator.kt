@@ -21,24 +21,18 @@ class BiometricPromptAuthenticator(
     private val reason: String,
     private val subtitle: String,
 ) : Authenticator {
-    override suspend fun <T> authenticate(authenticatedAction: suspend () -> T): T =
-        authenticate(null) {
-            authenticatedAction()
-        }
+    override suspend fun authenticate() {
+        authenticate(null)
+    }
 
-    override suspend fun <T> authenticate(sig: Signature, authenticatedAction: suspend (Signature) -> T): T =
-        authenticate(BiometricPrompt.CryptoObject(sig)) {
-            authenticatedAction(it?.signature!!)
-        }
+    override suspend fun authenticate(sig: Signature): Signature =
+        authenticate(BiometricPrompt.CryptoObject(sig))?.signature!!
 
-    private suspend fun <T> authenticate(
-        cryptoObject: BiometricPrompt.CryptoObject?,
-        authenticatedAction: suspend (BiometricPrompt.CryptoObject?) -> T,
-    ): T {
+    private suspend fun authenticate(cryptoObject: BiometricPrompt.CryptoObject?): BiometricPrompt.CryptoObject? {
         Log.i(TAG, "Authenticating user")
         val result = withContext(Dispatchers.Main) {
             suspendCoroutine { continuation ->
-                val callback = AuthenticationCallback(continuation, authenticatedAction)
+                val callback = AuthenticationCallback(continuation)
                 val prompt = BiometricPrompt(activity, callback)
                 when (cryptoObject) {
                     null -> prompt.authenticate(promptInfo)
@@ -46,7 +40,10 @@ class BiometricPromptAuthenticator(
                 }
             }
         }
-        return result?.invoke() ?: throw AuthenticationFailedException("user canceled authentication")
+        when (result) {
+            AuthenticationResult.Failure -> throw AuthenticationFailedException("user canceled authentication")
+            is AuthenticationResult.Success -> return result.cryptoObject
+        }
     }
 
     private val promptInfo by lazy {
@@ -54,7 +51,8 @@ class BiometricPromptAuthenticator(
             setTitle(reason)
             setSubtitle(subtitle)
             setAllowedAuthenticators(
-                BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager.Authenticators.DEVICE_CREDENTIAL
+                BiometricManager.Authenticators.BIOMETRIC_STRONG or
+                BiometricManager.Authenticators.DEVICE_CREDENTIAL
             )
         }.build()
     }
@@ -65,14 +63,13 @@ class BiometricPromptAuthenticator(
     }
 }
 
-private class AuthenticationCallback<T>(
-    private val continuation: Continuation<(suspend () -> T)?>,
-    private val onSuccess: suspend (BiometricPrompt.CryptoObject?) -> T,
+private class AuthenticationCallback(
+    private val continuation: Continuation<AuthenticationResult>,
 ) : BiometricPrompt.AuthenticationCallback() {
     override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
         super.onAuthenticationSucceeded(result)
         Log.i(TAG, "Authentication succeeded")
-        continuation.resume({ onSuccess(result.cryptoObject) })
+        continuation.resume(AuthenticationResult.Success(result.cryptoObject))
     }
 
     override fun onAuthenticationFailed() {
@@ -84,6 +81,11 @@ private class AuthenticationCallback<T>(
     override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
         super.onAuthenticationError(errorCode, errString)
         Log.w(TAG, "Authentication errored ($errorCode): $errString")
-        continuation.resume(null)
+        continuation.resume(AuthenticationResult.Failure)
     }
+}
+
+private sealed interface AuthenticationResult {
+    class Success(val cryptoObject: BiometricPrompt.CryptoObject?) : AuthenticationResult
+    object Failure : AuthenticationResult
 }

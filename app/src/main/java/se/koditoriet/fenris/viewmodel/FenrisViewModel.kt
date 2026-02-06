@@ -20,10 +20,10 @@ import se.koditoriet.fenris.crypto.AuthenticatorFactory
 import se.koditoriet.fenris.crypto.BackupSeed
 import se.koditoriet.fenris.crypto.EncryptedData
 import se.koditoriet.fenris.crypto.KeySecurityLevel
-import se.koditoriet.fenris.synchronization.Sync
 import se.koditoriet.fenris.vault.CredentialId
 import se.koditoriet.fenris.vault.NewTotpSecret
 import se.koditoriet.fenris.vault.Passkey
+import se.koditoriet.fenris.vault.SynchronizedVault
 import se.koditoriet.fenris.vault.TotpAlgorithm
 import se.koditoriet.fenris.vault.TotpSecret
 import se.koditoriet.fenris.vault.Vault
@@ -33,16 +33,21 @@ private const val TAG = "FenrisViewModel"
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class FenrisViewModel(private val app: Application) : AndroidViewModel(app) {
-    private val vault: Sync<Vault>
+    private val vault: SynchronizedVault
         get() = (app as FenrisApp).vault
 
     private val configDatastore = (app as FenrisApp).config
     val config: Flow<Config>
         get() = configDatastore.data
 
-    val vaultState = vault.unsafeReadOnly { observeState() }
-    val secrets = vault.unsafeReadOnly { observeTotpSecrets() }
-    val passkeys = vault.unsafeReadOnly { observePasskeys() }
+    val vaultState
+        get() = vault.state
+
+    val secrets
+        get() = vault.totpSecrets
+
+    val passkeys
+        get() = vault.passkeys
 
     private val strings = app.appStrings.viewModel
 
@@ -66,10 +71,7 @@ class FenrisViewModel(private val app: Application) : AndroidViewModel(app) {
         configDatastore.updateData { Config.default }
     }
 
-    suspend fun lockVault() = vault.withLock {
-        Log.i(TAG, "Locking vault")
-        lock()
-    }
+    suspend fun lockVault() = vault.lockVault()
 
     suspend fun setTotpSecretSortMode(sortMode: SortMode) = vault.withLock {
         configDatastore.updateData { it.copy(totpSecretSortMode = sortMode) }
@@ -79,19 +81,15 @@ class FenrisViewModel(private val app: Application) : AndroidViewModel(app) {
         configDatastore.updateData { it.copy(passkeySortMode = sortMode) }
     }
 
-    suspend fun unlockVault(authFactory: AuthenticatorFactory) = vault.withLock {
-        if (state == Vault.State.Unlocked) {
-            return@withLock
-        }
+    suspend fun unlockVault(authFactory: AuthenticatorFactory) {
         Log.i(TAG, "Attempting to unlock vault")
         val config = config.first()
         check(config.encryptedDbKey != null)
-        authFactory.withReason(
+        val authenticator = authFactory.withReason(
             reason = strings.authUnlockVault,
             subtitle = strings.authUnlockVaultSubtitle,
-        ) {
-            unlock(it, config.encryptedDbKey, config.backupKeys?.toVaultBackupKeys())
-        }
+        )
+        vault.unlockVault(authenticator, config.encryptedDbKey, config.backupKeys?.toVaultBackupKeys())
         Log.i(TAG, "Vault unlocked")
     }
 

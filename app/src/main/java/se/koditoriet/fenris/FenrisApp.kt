@@ -24,7 +24,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import se.koditoriet.fenris.crypto.Cryptographer
 import se.koditoriet.fenris.repository.VaultRepository
-import se.koditoriet.fenris.synchronization.Sync
+import se.koditoriet.fenris.vault.SynchronizedVault
 import se.koditoriet.fenris.vault.Vault
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
@@ -34,7 +34,7 @@ private const val TAG = "FenrisApp"
 private val idleTimeoutScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
 class FenrisApp : Application() {
-    val vault: Sync<Vault>
+    val vault: SynchronizedVault
     val config: DataStore<Config> by dataStore("config", ConfigSerializer)
     private var idleTimeout: TimeoutJob? = null
 
@@ -66,7 +66,7 @@ class FenrisApp : Application() {
         }
 
         Log.i(TAG, "Creating vault")
-        vault = Sync("vault") {
+        vault = SynchronizedVault {
             Vault(
                 repositoryFactory = repositoryFactory,
                 cryptographer = Cryptographer(),

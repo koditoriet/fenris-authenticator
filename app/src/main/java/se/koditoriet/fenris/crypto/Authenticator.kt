@@ -13,20 +13,29 @@ interface AuthenticatorFactory {
 }
 
 interface Authenticator {
-    suspend fun <T> authenticate(authenticatedAction: suspend () -> T): T
-    suspend fun <T> authenticate(sig: Signature, authenticatedAction: suspend (Signature) -> T): T
+    /**
+     * Authenticate the user to use a key for some period of time following authentication.
+     * Must throw AuthenticationFailedException if authentication fails.
+     */
+    suspend fun authenticate()
+
+    /**
+     * Authenticate the user to use the given Signature object for a single signature.
+     * Must throw AuthenticationFailedException if authentication fails.
+     */
+    suspend fun authenticate(sig: Signature): Signature
 }
 
 /**
  * Authenticator that always fails.
  */
 object DummyAuthenticator : Authenticator {
-    override suspend fun <T> authenticate(authenticatedAction: suspend () -> T) =
+    override suspend fun authenticate() =
         throw AuthenticationFailedException(
             "Authentication always fails with DummyAuthenticator"
         )
 
-    override suspend fun <T> authenticate(sig: Signature, authenticatedAction: suspend (Signature) -> T): T =
+    override suspend fun authenticate(sig: Signature): Signature =
         throw AuthenticationFailedException(
             "Authentication always fails with DummyAuthenticator"
         )

@@ -103,7 +103,7 @@ fun FragmentActivity.MainScreen(
                 onSortModeChange = onIOThread { it -> viewModel.setPasskeySortMode(it) },
                 onUpdatePasskey = onIOThread { it -> viewModel.updatePasskey(it) },
                 onDeletePasskey = onIOThread { it -> viewModel.deletePasskey(it.credentialId) },
-                onReindexPasskeys = onIOThread { viewModel.reindexTotpSecrets() }
+                onReindexPasskeys = onIOThread { viewModel.reindexPasskeys() }
             )
         }
     }

@@ -113,7 +113,7 @@ class Cryptographer(
             if (keyHandle.requiresAuthentication) {
                 val sig = Signature.getInstance(keyHandle.algorithm.algorithmName)
                 sig.initSign(this)
-                authenticator.authenticate(sig) {
+                authenticator.authenticate(sig).let {
                     SignatureContext.create(it).action()
                 }
             } else {
@@ -142,10 +142,9 @@ class Cryptographer(
     ): T =
         keyStore.getKey(keyHandle.alias, null)?.run {
             if (keyHandle.requiresAuthentication) {
-                authenticator.authenticate { action() }
-            } else {
-                action()
+                authenticator.authenticate()
             }
+            action()
         } ?: throw IllegalArgumentException("key '${keyHandle.alias}' does not exist")
 
     fun deleteKey(keyHandle: KeyHandle<*>): Unit =
