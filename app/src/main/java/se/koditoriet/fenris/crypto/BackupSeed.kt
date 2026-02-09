@@ -8,6 +8,7 @@ import java.security.MessageDigest
 import java.security.MessageDigest.getInstance
 import java.security.SecureRandom
 
+const val BACKUP_SEED_PHRASE_WORDS = 24
 private const val BACKUP_KEY_SIZE: Int = 32
 private const val DOMAIN_BACKUP_SECRET_DEK: String = "backup_secret_dek"
 private const val DOMAIN_BACKUP_METADATA_DEK: String = "backup_metadata_dek"

@@ -1,6 +1,7 @@
 package se.koditoriet.fenris.ui.components
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
@@ -8,6 +9,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import se.koditoriet.fenris.appStrings
 
 @Composable
@@ -74,6 +76,26 @@ fun WarningInformationDialog(
                 imageVector = Icons.Default.WarningAmber,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.error,
+            )
+        },
+        onDismiss = onDismiss,
+    )
+}
+
+@Composable
+fun SuccessInformationDialog(
+    title: String,
+    text: String,
+    onDismiss: () -> Unit,
+) {
+    InformationDialog(
+        title = title,
+        text = text,
+        icon = {
+            Icon(
+                imageVector = Icons.Default.CheckCircle,
+                contentDescription = null,
+                tint = Color.Green,
             )
         },
         onDismiss = onDismiss,
