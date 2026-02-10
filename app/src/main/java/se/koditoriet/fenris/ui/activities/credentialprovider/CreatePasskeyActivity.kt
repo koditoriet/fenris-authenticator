@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -37,11 +38,14 @@ import se.koditoriet.fenris.ui.theme.BACKGROUND_ICON_SIZE
 import se.koditoriet.fenris.ui.theme.FenrisTheme
 import se.koditoriet.fenris.vault.CredentialId
 import se.koditoriet.fenris.vault.Passkey
+import se.koditoriet.fenris.viewmodel.CredentialProviderViewModel
 import se.koditoriet.fenris.viewmodel.FenrisViewModel
 
 private const val TAG = "CreatePasskeyActivity"
 
 class CreatePasskeyActivity : FragmentActivity() {
+    private val viewModel by viewModels<CredentialProviderViewModel>()
+
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,7 +56,6 @@ class CreatePasskeyActivity : FragmentActivity() {
         enableEdgeToEdge()
         setContent {
             Log.d(TAG, "Starting activity")
-            val viewModel = viewModel<FenrisViewModel>()
             val passkeys by viewModel.passkeys.collectAsState(emptyList())
             val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -91,7 +94,7 @@ class CreatePasskeyActivity : FragmentActivity() {
                         EditPasskeyNameSheet(
                             prefilledDisplayName = requestInfo.requestJson.rp.id,
                             onSave = onIOThread { displayName ->
-                                val response = createPasskey(viewModel, displayName, requestInfo)
+                                val response = createPasskey(displayName, requestInfo)
                                 Log.i(
                                     TAG,
                                     "Created passkey with credential id ${response.credentialId}"
@@ -117,7 +120,6 @@ class CreatePasskeyActivity : FragmentActivity() {
     }
 
     private suspend fun createPasskey(
-        viewModel: FenrisViewModel,
         displayName: String,
         requestInfo: CreateRequestInfo,
     ): CreateResponse {

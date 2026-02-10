@@ -13,14 +13,14 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import se.koditoriet.fenris.crypto.BackupSeed
 import se.koditoriet.fenris.crypto.wordMap
 import se.koditoriet.fenris.ui.onIOThread
-import se.koditoriet.fenris.viewmodel.FenrisViewModel
+import se.koditoriet.fenris.viewmodel.SetupViewModel
 
 private const val TAG = "SetupScreen"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FragmentActivity.SetupScreen() {
-    val viewModel = viewModel<FenrisViewModel>()
+    val viewModel = viewModel<SetupViewModel>()
     var viewState by remember { mutableStateOf<ViewState>(ViewState.InitialSetup) }
     var importProgress by remember { mutableStateOf(Pair(0, 0)) }
 

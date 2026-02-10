@@ -332,12 +332,15 @@ class Vault(
         oldBackupSeed: BackupSeed,
         newBackupSeed: BackupSeed,
     ): Unit = requireUnlocked { unlockState ->
+        Log.i(TAG, "Rekeying backup secrets")
         val oldBackupSecretKey = oldBackupSeed.deriveBackupSecretKey()
         val newBackupKeys = newBackupSeed.let {
+            Log.d(TAG, "Creating new secret backup key")
             val secretDekMaterial = it.deriveBackupSecretKey()
             val secretsBackupKey = createBackupKey(secretDekMaterial, BACKUP_SECRET_DEK_IDENTIFIER)
             secretDekMaterial.fill(0)
 
+            Log.d(TAG, "Creating new metadata backup key")
             val metadataDekMaterial = it.deriveBackupMetadataKey()
             val metadataBackupKey = createBackupKey(metadataDekMaterial, BACKUP_METADATA_DEK_IDENTIFIER)
             metadataDekMaterial.fill(0)
@@ -350,6 +353,7 @@ class Vault(
 
         cryptographer.withDecryptionKey(oldBackupSecretKey, oldBackupKeyAlgorithm) {
             cryptographer.withEncryptionKey(DummyAuthenticator, newBackupKeys.secretsBackupKey) {
+                Log.d(TAG, "Re-encrypting TOTP secrets...")
                 for (item in secrets.getAll()) {
                     val decryptedSecret = decrypt(EncryptedData.decode(item.encryptedBackupSecret!!))
                     val encryptedSecret = encrypt(decryptedSecret)
@@ -358,7 +362,9 @@ class Vault(
                     val updatedItem = item.copy(encryptedBackupSecret = encryptedSecret.encode())
                     secrets.update(updatedItem)
                 }
+                Log.d(TAG, "All TOTP secrets re-encrypted!")
 
+                Log.d(TAG, "Re-encrypting passkeys...")
                 for (item in passkeys.getAll()) {
                     val decryptedPrivKey = decrypt(EncryptedData.decode(item.encryptedBackupPrivateKey!!))
                     val encryptedPrivKey = encrypt(decryptedPrivKey)
@@ -367,6 +373,7 @@ class Vault(
                     val updatedItem = item.copy(encryptedBackupPrivateKey = encryptedPrivKey.encode())
                     passkeys.update(updatedItem)
                 }
+                Log.d(TAG, "All passkeys re-encrypted!")
             }
         }
         oldBackupSecretKey.fill(0)

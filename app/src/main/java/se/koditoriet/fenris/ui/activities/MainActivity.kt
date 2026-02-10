@@ -136,7 +136,6 @@ private fun MainActivity.UnlockedScreens(
     } else {
         MainScreen(
             credentialProviderEnabled = credentialProviderEnabled,
-            config = config,
             viewModel = viewModel,
         )
     }
