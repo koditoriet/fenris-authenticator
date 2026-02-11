@@ -245,11 +245,11 @@ class Vault(
             Log.i(TAG, "New vault does not require authentication to list accounts")
         }
         val backupKeys = backupSeed?.let {
-            val secretDekMaterial = backupSeed.deriveBackupSecretKey()
+            val secretDekMaterial = it.deriveBackupSecretKey()
             val secretsBackupKey = createBackupKey(secretDekMaterial, BACKUP_SECRET_DEK_IDENTIFIER)
             secretDekMaterial.fill(0)
 
-            val metadataDekMaterial = backupSeed.deriveBackupMetadataKey()
+            val metadataDekMaterial = it.deriveBackupMetadataKey()
             val metadataBackupKey = createBackupKey(metadataDekMaterial, BACKUP_METADATA_DEK_IDENTIFIER)
             metadataDekMaterial.fill(0)
             BackupKeys(secretsBackupKey, metadataBackupKey)
@@ -297,6 +297,75 @@ class Vault(
             cryptographer.deleteKey(it.secretsBackupKey)
         }
         unlockState.repository.totpSecrets().eraseBackups()
+        unlockState.repository.passkeys().eraseBackups()
+    }
+
+    /**
+     * Returns true if the given seed can decrypt data encrypted with the backup key, otherwise false.
+     */
+    suspend fun validateSeed(seed: BackupSeed): Boolean = requireUnlocked { unlockState ->
+        check(unlockState.backupKeys != null)
+        val encryptionKey = unlockState.backupKeys.metadataBackupKey
+        val testPlaintext = ByteArray(32).apply { secureRandom.nextBytes(this) }
+        val testCiphertext = cryptographer.withEncryptionKey(DummyAuthenticator, encryptionKey) {
+            encrypt(testPlaintext)
+        }
+        val decryptionKey = seed.deriveBackupMetadataKey()
+        try {
+            cryptographer.withDecryptionKey(decryptionKey, encryptionKey.algorithm) {
+                decrypt(testCiphertext)
+            }
+            decryptionKey.fill(0)
+            Log.d(TAG, "Seed validation succeeded")
+            true
+        } catch (_: Exception) {
+            Log.w(TAG, "Seed validation failed")
+            false
+        }
+    }
+
+    suspend fun rekeyBackups(
+        oldBackupSeed: BackupSeed,
+        newBackupSeed: BackupSeed,
+    ): Unit = requireUnlocked { unlockState ->
+        val oldBackupSecretKey = oldBackupSeed.deriveBackupSecretKey()
+        val newBackupKeys = newBackupSeed.let {
+            val secretDekMaterial = it.deriveBackupSecretKey()
+            val secretsBackupKey = createBackupKey(secretDekMaterial, BACKUP_SECRET_DEK_IDENTIFIER)
+            secretDekMaterial.fill(0)
+
+            val metadataDekMaterial = it.deriveBackupMetadataKey()
+            val metadataBackupKey = createBackupKey(metadataDekMaterial, BACKUP_METADATA_DEK_IDENTIFIER)
+            metadataDekMaterial.fill(0)
+            BackupKeys(secretsBackupKey, metadataBackupKey)
+        }
+
+        val oldBackupKeyAlgorithm = unlockState.backupKeys!!.secretsBackupKey.algorithm
+        val secrets = unlockState.repository.totpSecrets()
+        val passkeys = unlockState.repository.passkeys()
+
+        cryptographer.withDecryptionKey(oldBackupSecretKey, oldBackupKeyAlgorithm) {
+            cryptographer.withEncryptionKey(DummyAuthenticator, newBackupKeys.secretsBackupKey) {
+                for (item in secrets.getAll()) {
+                    val decryptedSecret = decrypt(EncryptedData.decode(item.encryptedBackupSecret!!))
+                    val encryptedSecret = encrypt(decryptedSecret)
+                    decryptedSecret.fill(0)
+
+                    val updatedItem = item.copy(encryptedBackupSecret = encryptedSecret.encode())
+                    secrets.update(updatedItem)
+                }
+
+                for (item in passkeys.getAll()) {
+                    val decryptedPrivKey = decrypt(EncryptedData.decode(item.encryptedBackupPrivateKey!!))
+                    val encryptedPrivKey = encrypt(decryptedPrivKey)
+                    decryptedPrivKey.fill(0)
+
+                    val updatedItem = item.copy(encryptedBackupPrivateKey = encryptedPrivKey.encode())
+                    passkeys.update(updatedItem)
+                }
+            }
+        }
+        oldBackupSecretKey.fill(0)
     }
 
     suspend fun export(): EncryptedData = requireUnlocked { unlockState ->

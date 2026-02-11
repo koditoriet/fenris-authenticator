@@ -11,6 +11,7 @@ class AppStrings(private val ctx: Context) {
     val setupScreen by lazy { SetupScreen(ctx) }
     val seedDisplayScreen by lazy { SeedDisplayScreen(ctx) }
     val seedInputScreen by lazy { SeedInputScreen(ctx) }
+    val regenerateBackupSeedScreen by lazy { RegenerateBackupSeedScreen(ctx) }
     val lockScreen by lazy { LockScreen(ctx) }
     val secretsScreen by lazy { SecretsScreen(ctx) }
     val managePasskeysScreen by lazy { ManagePasskeysScreen(ctx) }
@@ -48,7 +49,7 @@ class AppStrings(private val ctx: Context) {
         val advanced by ctx.s(R.string.generic_advanced_options)
     }
 
-    inner class QRScanner(ctx: Context) {
+    class QRScanner(ctx: Context) {
         val title by ctx.s(R.string.qrscanner_title)
         val permissionsRequired by ctx.s(R.string.qrscanner_permissions_required)
     }
@@ -88,24 +89,36 @@ class AppStrings(private val ctx: Context) {
         val invalidSeedPhraseDescription by ctx.s(R.string.seed_input_invalid_seed_phrase_description)
     }
 
+    class RegenerateBackupSeedScreen(ctx: Context) {
+        val heading by ctx.s(R.string.regenerate_seed_heading)
+        val newSeedExplanation by ctx.s(R.string.regenerate_seed_display_text)
+        val confirmNewSeed by ctx.s(R.string.regenerate_seed_confirm_seed)
+        val successDialogTitle by ctx.s(R.string.regenerate_seed_success_dialog_title)
+        val successDialogText by ctx.s(R.string.regenerate_seed_success_dialog_text)
+        val invalidSeedDialogTitle by ctx.s(R.string.regenerate_seed_invalid_seed_dialog_title)
+        val invalidSeedDialogText by ctx.s(R.string.regenerate_seed_invalid_seed_dialog_text)
+        val failureDialogTitle by ctx.s(R.string.regenerate_seed_failure_dialog_title)
+        val failureDialogText by ctx.s(R.string.regenerate_seed_failure_dialog_text)
+    }
+
     class RestoringBackupScreen(private val ctx: Context) {
         val heading by ctx.s(R.string.restoring_backup_heading)
         fun restoredSecrets(done: Int, total: Int) = ctx.resources.getQuantityString(
             R.plurals.restoring_backup_restored_secrets, done, done, total)
     }
 
-    class RestoreBackupFailedScreen(private val ctx: Context) {
+    class RestoreBackupFailedScreen(ctx: Context) {
         val heading by ctx.s(R.string.restoring_failed_heading)
         val centerCopy by ctx.s(R.string.restoring_failed_center_copy)
     }
 
-    class EnablePasskeysScreen(private val ctx: Context) {
+    class EnablePasskeysScreen(ctx: Context) {
         val heading by ctx.s(R.string.enable_passkeys_heading)
         val useForPasskeys by ctx.s(R.string.enable_passkeys_use_for_passkeys)
         val description by ctx.s(R.string.enable_passkeys_description)
     }
 
-    class SecretsScreen(private val ctx: Context) {
+    class SecretsScreen(ctx: Context) {
         val addSecret by ctx.s(R.string.secrets_add_secret)
         val filterPlaceholder by ctx.s(R.string.secrets_filter_placeholder)
         val lockScreen by ctx.s(R.string.secrets_lock_screen)
@@ -157,6 +170,10 @@ class AppStrings(private val ctx: Context) {
         val enableBackups by ctx.s(R.string.settings_enable_backups)
         val enableBackupsDescription by ctx.s(R.string.settings_enable_backups_description)
         val enableBackupsExport by ctx.s(R.string.settings_enable_backups_export)
+        val enableBackupsRegenerateSeed by ctx.s(R.string.settings_enable_backups_regenerate_seed)
+        val enableBackupsRegenerateSeedDescription by ctx.s(
+            R.string.settings_enable_backups_regenerate_seed_description
+        )
         val enableBackupsDisableDialogConfirm by ctx.s(R.string.settings_enable_backups_disable_dialog_confirm)
         val enableBackupsDisableDialogText by ctx.s(R.string.settings_enable_backups_disable_dialog_text)
 

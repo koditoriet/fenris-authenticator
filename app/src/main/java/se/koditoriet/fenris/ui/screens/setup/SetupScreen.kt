@@ -1,5 +1,6 @@
 package se.koditoriet.fenris.ui.screens.setup
 
+import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
@@ -12,8 +13,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import se.koditoriet.fenris.crypto.BackupSeed
 import se.koditoriet.fenris.crypto.wordMap
 import se.koditoriet.fenris.ui.onIOThread
-import se.koditoriet.fenris.vault.ImportFailedException
 import se.koditoriet.fenris.viewmodel.FenrisViewModel
+
+private const val TAG = "SetupScreen"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,6 +38,7 @@ fun FragmentActivity.SetupScreen() {
                 onRestoreBackup = { viewState = ViewState.RestoreBackup }
             )
         }
+
         ViewState.ShowBackupSeed -> {
             val seed = remember { BackupSeed.generate() }
             BackupSeedScreen(
@@ -46,6 +49,7 @@ fun FragmentActivity.SetupScreen() {
                 }
             )
         }
+
         ViewState.RestoreBackup -> {
             RestoreBackupScreen(
                 seedWords = wordMap.keys,
@@ -57,21 +61,24 @@ fun FragmentActivity.SetupScreen() {
                             uri = uri,
                             onSecretImported = { done, total -> importProgress = Pair(done, total) },
                         )
-                    } catch (e: ImportFailedException) {
-                        viewState = ViewState.RestoreBackupFailed(e)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to restore from backup", e)
+                        viewState = ViewState.RestoreBackupFailed
                     } finally {
                         backupSeed.wipe()
                     }
                 }
             )
         }
+
         ViewState.RestoringBackup -> {
             BackupRestoreProgressScreen(
                 importedSecrets = importProgress.first,
                 secretsToImport = importProgress.second,
             )
         }
-        is ViewState.RestoreBackupFailed -> {
+
+        ViewState.RestoreBackupFailed -> {
             RestoreBackupFailedScreen(
                 onDismiss = { viewState = ViewState.InitialSetup }
             )

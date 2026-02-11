@@ -15,6 +15,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import se.koditoriet.fenris.BiometricPromptAuthenticator
 import se.koditoriet.fenris.Config
+import se.koditoriet.fenris.appStrings
+import se.koditoriet.fenris.ui.components.SuccessInformationDialog
+import se.koditoriet.fenris.ui.components.WarningInformationDialog
 import se.koditoriet.fenris.ui.ignoreAuthFailure
 import se.koditoriet.fenris.ui.onIOThread
 import se.koditoriet.fenris.ui.screens.main.passkeys.ManagePasskeysScreen
@@ -88,6 +91,7 @@ fun FragmentActivity.MainScreen(
                 onEnableDeveloperFeaturesChange = onIOThread(viewModel::setEnableDeveloperFeatures),
                 onWipeVault = onIOThread(viewModel::wipeVault),
                 onExport = onIOThread(viewModel::exportVault),
+                onRegenerateBackupSeed = { viewState = ViewState.RegenerateBackupSeed },
                 onManagePasskeys = { viewState = ViewState.ManagePasskeys },
                 getSecurityReport = {
                     withContext(Dispatchers.IO) {
@@ -105,6 +109,40 @@ fun FragmentActivity.MainScreen(
                 onDeletePasskey = onIOThread { it -> viewModel.deletePasskey(it.credentialId) },
                 onReindexPasskeys = onIOThread { viewModel.reindexPasskeys() }
             )
+        }
+        ViewState.RegenerateBackupSeed -> {
+            var showBackupReseedCompleteDialog by remember { mutableStateOf(false) }
+            var showBackupReseedFailedDialog by remember { mutableStateOf(false) }
+
+            RegenerateBackupSeedScreen(
+                validateSeed = { withContext(Dispatchers.IO) { viewModel.validateSeed(it) } },
+                onRekeyBackups = onIOThread { oldSeed, newSeed ->
+                    try {
+                        viewModel.rekeyBackups(oldSeed, newSeed)
+                        showBackupReseedCompleteDialog = true
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to re-encrypt backups secrets", e)
+                        showBackupReseedFailedDialog = true
+                    } finally {
+                        newSeed.wipe()
+                        oldSeed.wipe()
+                    }
+                }
+            )
+            if (showBackupReseedCompleteDialog) {
+                SuccessInformationDialog(
+                    title = appStrings.regenerateBackupSeedScreen.successDialogTitle,
+                    text = appStrings.regenerateBackupSeedScreen.successDialogText,
+                    onDismiss = { viewState = ViewState.Settings },
+                )
+            }
+            if (showBackupReseedFailedDialog) {
+                WarningInformationDialog(
+                    title = appStrings.regenerateBackupSeedScreen.failureDialogTitle,
+                    text = appStrings.regenerateBackupSeedScreen.failureDialogText,
+                    onDismiss = { showBackupReseedFailedDialog = false },
+                )
+            }
         }
     }
 }
