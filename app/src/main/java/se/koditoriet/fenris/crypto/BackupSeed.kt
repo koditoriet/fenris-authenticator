@@ -8,7 +8,6 @@ import java.security.MessageDigest
 import java.security.MessageDigest.getInstance
 import java.security.SecureRandom
 
-const val BACKUP_SEED_PHRASE_WORDS = 24
 private const val BACKUP_KEY_SIZE: Int = 32
 private const val DOMAIN_BACKUP_SECRET_DEK: String = "backup_secret_dek"
 private const val DOMAIN_BACKUP_METADATA_DEK: String = "backup_metadata_dek"
@@ -46,6 +45,7 @@ class BackupSeed(private val secret: ByteArray) {
 
     companion object {
         const val URI_PREFIX: String = "seed"
+        const val MNEMONIC_LENGTH_WORDS: Int = 24
 
         fun generate(secureRandom: SecureRandom = SecureRandom()): BackupSeed =
             BackupSeed(ByteArray(BACKUP_KEY_SIZE).apply(secureRandom::nextBytes))
@@ -59,7 +59,7 @@ class BackupSeed(private val secret: ByteArray) {
         }
 
         fun fromMnemonic(words: List<String>): BackupSeed {
-            require(words.size == 24)
+            require(words.size == MNEMONIC_LENGTH_WORDS)
             val bitWriter = BitWriter()
             for (word in words) {
                 val index = wordMap[word.lowercase().trim()] ?: throw AssertionError(

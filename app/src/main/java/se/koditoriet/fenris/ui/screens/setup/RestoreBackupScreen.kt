@@ -16,7 +16,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import se.koditoriet.fenris.appStrings
-import se.koditoriet.fenris.crypto.BACKUP_SEED_PHRASE_WORDS
 import se.koditoriet.fenris.crypto.BackupSeed
 import se.koditoriet.fenris.ui.components.backupseed.SeedPhraseInput
 import se.koditoriet.fenris.ui.components.backupseed.SeedQRCodeInput
@@ -27,7 +26,7 @@ private val BACKUP_MIME_TYPES = arrayOf("application/octet-stream")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RestoreBackupScreen(
-    wordCount: Int = BACKUP_SEED_PHRASE_WORDS,
+    wordCount: Int = BackupSeed.MNEMONIC_LENGTH_WORDS,
     seedWords: Set<String>,
     onRestore: (BackupSeed, Uri) -> Unit
 ) {

@@ -21,7 +21,6 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import se.koditoriet.fenris.appStrings
-import se.koditoriet.fenris.crypto.BACKUP_SEED_PHRASE_WORDS
 import se.koditoriet.fenris.crypto.BackupSeed
 import se.koditoriet.fenris.crypto.wordMap
 import se.koditoriet.fenris.ui.components.BadInputInformationDialog
@@ -74,7 +73,7 @@ fun RegenerateBackupSeedScreen(
                 RegenerateBackupSeedViewState.InputSeedPhrase -> {
                     SeedPhraseInput(
                         confirmButtonText = appStrings.generic.next,
-                        wordCount = BACKUP_SEED_PHRASE_WORDS,
+                        wordCount = BackupSeed.MNEMONIC_LENGTH_WORDS,
                         seedWords = wordMap.keys,
                         modifier = Modifier.padding(padding),
                         onScanQRClick = { viewState = RegenerateBackupSeedViewState.InputSeedQR },
