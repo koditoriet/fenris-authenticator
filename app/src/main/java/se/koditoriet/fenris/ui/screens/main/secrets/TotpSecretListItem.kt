@@ -82,6 +82,7 @@ class TotpSecretListItem(
         when (viewState) {
             ListRowViewState.CodeHidden -> environment.scope.launch {
                 ignoreAuthFailure {
+                    onUpdateSecret(totpSecret.copy(timeOfLastUse = System.currentTimeMillis()))
                     val codes = getTotpCodes(totpSecret)
                     viewState = ListRowViewState.CodeVisible(codes)
                 }

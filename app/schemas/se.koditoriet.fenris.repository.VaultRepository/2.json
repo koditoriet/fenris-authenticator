@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 2,
-    "identityHash": "851c3ee3a54ae183273280649ed7c274",
+    "identityHash": "4d6098dcc7e0e9ac972968008972a794",
     "entities": [
       {
         "tableName": "totp_secrets",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `sortOrder` INTEGER NOT NULL, `issuer` TEXT NOT NULL, `account` TEXT, `digits` INTEGER NOT NULL, `period` INTEGER NOT NULL, `algorithm` TEXT NOT NULL, `keyAlias` TEXT NOT NULL, `encryptedBackupSecret` TEXT)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `sortOrder` INTEGER NOT NULL, `issuer` TEXT NOT NULL, `account` TEXT, `digits` INTEGER NOT NULL, `period` INTEGER NOT NULL, `algorithm` TEXT NOT NULL, `keyAlias` TEXT NOT NULL, `encryptedBackupSecret` TEXT, `timeOfCreation` INTEGER NOT NULL, `timeOfLastUse` INTEGER)",
         "fields": [
           {
             "fieldPath": "id",
@@ -59,6 +59,17 @@
             "fieldPath": "encryptedBackupSecret",
             "columnName": "encryptedBackupSecret",
             "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "timeOfCreation",
+            "columnName": "timeOfCreation",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timeOfLastUse",
+            "columnName": "timeOfLastUse",
+            "affinity": "INTEGER"
           }
         ],
         "primaryKey": {
@@ -136,7 +147,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '851c3ee3a54ae183273280649ed7c274')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '4d6098dcc7e0e9ac972968008972a794')"
     ]
   }
 }

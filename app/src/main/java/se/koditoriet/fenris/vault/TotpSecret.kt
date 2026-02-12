@@ -27,6 +27,8 @@ data class TotpSecret(
     val algorithm: TotpAlgorithm,
     val keyAlias: String,
     val encryptedBackupSecret: String?,
+    val timeOfCreation: Long,
+    val timeOfLastUse: Long? = null,
 ) {
     val keyHandle: KeyHandle<HmacAlgorithm> by lazy {
         KeyHandle.fromAlias(keyAlias)

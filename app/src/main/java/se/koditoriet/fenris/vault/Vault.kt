@@ -193,6 +193,7 @@ class Vault(
             algorithm = newSecret.secretData.algorithm,
             keyAlias = keyHandle.alias,
             encryptedBackupSecret = encryptedSecret,
+            timeOfCreation = System.currentTimeMillis(),
         )
         secrets.insert(secret)
     }
