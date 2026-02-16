@@ -50,6 +50,7 @@ class FenrisViewModel(private val app: Application) : AndroidViewModel(app) {
 
     val passkeys
         get() = vault.passkeys
+            .distinctUntilChanged { oldList, newList -> oldList.map { it.copy(timeOfLastUse = null) } == newList.map { it.copy(timeOfLastUse = null) } }
 
     private val strings = app.appStrings.viewModel
 

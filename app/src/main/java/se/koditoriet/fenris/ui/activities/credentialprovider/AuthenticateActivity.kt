@@ -37,6 +37,7 @@ import se.koditoriet.fenris.ui.theme.FenrisTheme
 import se.koditoriet.fenris.vault.CredentialId
 import se.koditoriet.fenris.vault.Passkey
 import se.koditoriet.fenris.viewmodel.FenrisViewModel
+import kotlin.time.Clock
 
 private const val TAG = "AuthenticateActivity"
 
@@ -45,6 +46,7 @@ class AuthenticateActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         val screenStrings = appStrings.credentialProvider
         val authFactory = BiometricPromptAuthenticator.Factory(this@AuthenticateActivity)
+        val clock: Clock = Clock.System
 
         enableEdgeToEdge()
         setContent {
@@ -82,6 +84,7 @@ class AuthenticateActivity : FragmentActivity() {
                         Log.i(TAG, "Signing authentication request")
                         viewModel.signWithPasskey(authFactory, passkey, it)
                     }
+                    viewModel.updatePasskey(passkey.copy(timeOfLastUse = clock.now().toEpochMilliseconds()))
                     finishWithResult(signedResponse)
                 } catch (_: AuthenticationFailedException) {
                     Log.i(TAG, "Aborting signing")

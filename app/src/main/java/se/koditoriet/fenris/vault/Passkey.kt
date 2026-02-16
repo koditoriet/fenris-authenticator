@@ -21,6 +21,8 @@ data class Passkey(
     val keyAlias: String,
     val publicKey: Base64Url,
     val encryptedBackupPrivateKey: String?,
+    val timeOfCreation: Long,
+    val timeOfLastUse: Long? = null,
 ) {
     val keyHandle: KeyHandle<ECAlgorithm> by lazy {
         KeyHandle.fromAlias(keyAlias)

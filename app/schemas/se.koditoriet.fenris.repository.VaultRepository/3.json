@@ -1,12 +1,12 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 2,
-    "identityHash": "851c3ee3a54ae183273280649ed7c274",
+    "version": 3,
+    "identityHash": "2541b590cd62996094dcb6b8f70ad2e5",
     "entities": [
       {
         "tableName": "totp_secrets",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `sortOrder` INTEGER NOT NULL, `issuer` TEXT NOT NULL, `account` TEXT, `digits` INTEGER NOT NULL, `period` INTEGER NOT NULL, `algorithm` TEXT NOT NULL, `keyAlias` TEXT NOT NULL, `encryptedBackupSecret` TEXT)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `sortOrder` INTEGER NOT NULL, `issuer` TEXT NOT NULL, `account` TEXT, `digits` INTEGER NOT NULL, `period` INTEGER NOT NULL, `algorithm` TEXT NOT NULL, `keyAlias` TEXT NOT NULL, `encryptedBackupSecret` TEXT, `timeOfCreation` INTEGER NOT NULL, `timeOfLastUse` INTEGER)",
         "fields": [
           {
             "fieldPath": "id",
@@ -59,6 +59,17 @@
             "fieldPath": "encryptedBackupSecret",
             "columnName": "encryptedBackupSecret",
             "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "timeOfCreation",
+            "columnName": "timeOfCreation",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timeOfLastUse",
+            "columnName": "timeOfLastUse",
+            "affinity": "INTEGER"
           }
         ],
         "primaryKey": {
@@ -70,7 +81,7 @@
       },
       {
         "tableName": "passkeys",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`credentialId` TEXT NOT NULL, `sortOrder` INTEGER NOT NULL, `userId` TEXT NOT NULL, `userName` TEXT NOT NULL, `displayName` TEXT NOT NULL, `rpId` TEXT NOT NULL, `keyAlias` TEXT NOT NULL, `publicKey` TEXT NOT NULL, `encryptedBackupPrivateKey` TEXT, PRIMARY KEY(`credentialId`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`credentialId` TEXT NOT NULL, `sortOrder` INTEGER NOT NULL, `userId` TEXT NOT NULL, `userName` TEXT NOT NULL, `displayName` TEXT NOT NULL, `rpId` TEXT NOT NULL, `keyAlias` TEXT NOT NULL, `publicKey` TEXT NOT NULL, `encryptedBackupPrivateKey` TEXT, `timeOfCreation` INTEGER NOT NULL, `timeOfLastUse` INTEGER, PRIMARY KEY(`credentialId`))",
         "fields": [
           {
             "fieldPath": "credentialId",
@@ -124,6 +135,17 @@
             "fieldPath": "encryptedBackupPrivateKey",
             "columnName": "encryptedBackupPrivateKey",
             "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "timeOfCreation",
+            "columnName": "timeOfCreation",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timeOfLastUse",
+            "columnName": "timeOfLastUse",
+            "affinity": "INTEGER"
           }
         ],
         "primaryKey": {
@@ -136,7 +158,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '851c3ee3a54ae183273280649ed7c274')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '2541b590cd62996094dcb6b8f70ad2e5')"
     ]
   }
 }

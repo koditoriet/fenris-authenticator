@@ -12,7 +12,7 @@ import se.koditoriet.fenris.vault.Passkey
 import se.koditoriet.fenris.vault.TotpSecret
 import se.koditoriet.fenris.vault.UserId
 
-@Database(entities = [TotpSecret::class, Passkey::class], version = 2)
+@Database(entities = [TotpSecret::class, Passkey::class], version = 3)
 @TypeConverters(
     TotpSecret.Id.TypeConverters::class,
     UserId.TypeConverters::class,

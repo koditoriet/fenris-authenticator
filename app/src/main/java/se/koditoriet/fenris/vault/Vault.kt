@@ -138,6 +138,7 @@ class Vault(
             keyAlias = keyPairInfo.keyHandle.alias,
             publicKey = keyPairInfo.publicKey.toBase64Url(),
             encryptedBackupPrivateKey = keyPairInfo.encryptedPrivateKey?.encode(),
+            timeOfCreation = clock.now().toEpochMilliseconds()
         )
         passkeys.insert(passkey)
         Pair(credentialId, keyPairInfo.publicKey)
