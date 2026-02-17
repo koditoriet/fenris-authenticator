@@ -156,6 +156,17 @@ class FenrisViewModel(private val app: Application) : AndroidViewModel(app) {
         }
     }
 
+    suspend fun validateSeed(seed: BackupSeed): Boolean = vault.withLock {
+        validateSeed(seed)
+    }
+
+    suspend fun rekeyBackups(
+        oldSeed: BackupSeed,
+        newSeed: BackupSeed,
+    ): Unit = vault.withLock {
+        rekeyBackups(oldSeed, newSeed)
+    }
+
     suspend fun addTotpSecret(newSecret: NewTotpSecret) = vault.withLock {
         Log.d(TAG, "Adding new TOTP secret")
         addTotpSecret(newSecret)

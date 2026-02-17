@@ -55,6 +55,7 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import se.koditoriet.fenris.AppStrings
 import se.koditoriet.fenris.appStrings
 import se.koditoriet.fenris.ui.components.IrrevocableActionConfirmationDialog
 import se.koditoriet.fenris.ui.components.sheet.BottomSheet
@@ -91,15 +92,13 @@ fun SettingsScreen(
     onWipeVault: () -> Unit,
     onExport: (Uri) -> Unit,
     credentialProviderEnabled: Boolean,
+    onRegenerateBackupSeed: () -> Unit,
     onManagePasskeys: () -> Unit,
     getSecurityReport: suspend () -> SecurityReport,
     clock: Clock = Clock.System,
     timeZone: TimeZone = TimeZone.currentSystemDefault(),
 ) {
     val screenStrings = appStrings.settingsScreen
-    val credentialManager = LocalContext.current.let {
-        remember(it) { CredentialManager.create(it) }
-    }
     var sheetViewState by remember { mutableStateOf<SettingsScreenSheetViewState?>(null) }
     var showWipeDialog by remember { mutableStateOf(false) }
     var showDisableBackupsDialog by remember { mutableStateOf(false) }
@@ -128,59 +127,28 @@ fun SettingsScreen(
                 .padding(padding)
         ) {
             item {
-                SettingActionRow(
-                    title = screenStrings.managePasskeys,
-                    description = screenStrings.managePasskeysDescription,
-                    onClick = onManagePasskeys,
-                ) {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE && !credentialProviderEnabled) {
-                        Row(verticalAlignment = Alignment.Top) {
-                            val iconSize = with(LocalDensity.current) {
-                                MaterialTheme.typography.bodyMedium.fontSize.toDp()
-                            }
-                            Icon(
-                                modifier = Modifier
-                                    .padding(top = iconSize * 0.18f, end = PADDING_S)
-                                    .size(iconSize),
-                                imageVector = Icons.Default.Info,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primaryHint,
-                            )
-                            SettingsDescription(screenStrings.managePasskeysDisabled)
-                        }
-                        AssistChip(
-                            onClick = {
-                                val pendingIntent = credentialManager.createSettingsPendingIntent()
-                                pendingIntent.send()
-                            },
-                            label = { Text(appStrings.generic.openSystemSettings) },
-                        )
-                    }
-                }
+                // Manage passkeys
+                PasskeySettingsRow(
+                    screenStrings = screenStrings,
+                    credentialProviderEnabled = credentialProviderEnabled,
+                    onManagePasskeys = onManagePasskeys,
+                )
             }
 
             // Enable backups
             item {
-                SettingSwitchRow(
-                    title = screenStrings.enableBackups,
-                    description = screenStrings.enableBackupsDescription,
-                    checked = enableBackups,
-                    enabled = enableBackups,
-                    onCheckedChange = { showDisableBackupsDialog = true },
-                ) {
-                    val exportFileLauncher = rememberLauncherForActivityResult(
-                        contract = ActivityResultContracts.CreateDocument("application/octet-stream"),
-                        onResult = { it?.run(onExport) },
-                    )
-                    val suggestedFileName = fileNameFromDate("vault-export-", ".eve", clock, timeZone)
-                    AssistChip(
-                        onClick = { exportFileLauncher.launch(suggestedFileName) },
-                        label = { Text(screenStrings.enableBackupsExport) },
-                    )
-                }
+                BackupSettingsRow(
+                    screenStrings = screenStrings,
+                    enableBackups = enableBackups,
+                    clock = clock,
+                    timeZone = timeZone,
+                    onExport = onExport,
+                    onRegenerateBackupSeed = onRegenerateBackupSeed,
+                    onDisableBackups = { showDisableBackupsDialog = true }
+                )
             }
 
-            // Biometric lock
+            // Biometric lock for account list
             item {
                 SettingSwitchRow(
                     title = screenStrings.biometricLock,
@@ -327,6 +295,83 @@ fun SettingsScreen(
 }
 
 @Composable
+private fun BackupSettingsRow(
+    screenStrings: AppStrings.SettingsScreen,
+    enableBackups: Boolean,
+    clock: Clock,
+    timeZone: TimeZone,
+    onExport: (Uri) -> Unit,
+    onRegenerateBackupSeed: () -> Unit,
+    onDisableBackups: () -> Unit,
+) {
+    SettingSwitchRow(
+        title = screenStrings.enableBackups,
+        description = screenStrings.enableBackupsDescription,
+        checked = enableBackups,
+        enabled = enableBackups,
+        onCheckedChange = { onDisableBackups() },
+    ) {
+        val exportFileLauncher = rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.CreateDocument("application/octet-stream"),
+            onResult = { it?.run(onExport) },
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(SPACING_M)) {
+            val suggestedFileName = fileNameFromDate("vault-export-", ".eve", clock, timeZone)
+            AssistChip(
+                onClick = { exportFileLauncher.launch(suggestedFileName) },
+                label = { Text(screenStrings.enableBackupsExport) },
+            )
+            SettingsDescription(screenStrings.enableBackupsRegenerateSeedDescription)
+            AssistChip(
+                onClick = onRegenerateBackupSeed,
+                label = { Text(screenStrings.enableBackupsRegenerateSeed) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun PasskeySettingsRow(
+    screenStrings: AppStrings.SettingsScreen,
+    credentialProviderEnabled: Boolean,
+    onManagePasskeys: () -> Unit,
+) {
+    val credentialManager = LocalContext.current.let {
+        remember(it) { CredentialManager.create(it) }
+    }
+
+    SettingActionRow(
+        title = screenStrings.managePasskeys,
+        description = screenStrings.managePasskeysDescription,
+        onClick = onManagePasskeys,
+    ) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE && !credentialProviderEnabled) {
+            Row(verticalAlignment = Alignment.Top) {
+                val iconSize = with(LocalDensity.current) {
+                    MaterialTheme.typography.bodyMedium.fontSize.toDp()
+                }
+                Icon(
+                    modifier = Modifier
+                        .padding(top = iconSize * 0.18f, end = PADDING_S)
+                        .size(iconSize),
+                    imageVector = Icons.Default.Info,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primaryHint,
+                )
+                SettingsDescription(screenStrings.managePasskeysDisabled)
+            }
+            AssistChip(
+                onClick = {
+                    val pendingIntent = credentialManager.createSettingsPendingIntent()
+                    pendingIntent.send()
+                },
+                label = { Text(appStrings.generic.openSystemSettings) },
+            )
+        }
+    }
+}
+
+@Composable
 fun SettingSwitchRow(
     title: String,
     description: String,
@@ -343,7 +388,7 @@ fun SettingSwitchRow(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.Top,
-                horizontalArrangement = Arrangement.spacedBy(SPACING_XS)
+                horizontalArrangement = Arrangement.spacedBy(SPACING_M)
             ) {
                 SettingsInfo(title, description)
                 Switch(

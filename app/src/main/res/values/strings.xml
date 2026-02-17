@@ -48,7 +48,7 @@
 
     <!-- Input backup seed screen -->
     <string name="seed_input_enter_recovery_phrase">Enter your recovery phrase</string>
-    <string name="seed_input_restore_vault">Restore vault</string>
+    <string name="seed_input_restore_vault">Restore from backup</string>
     <string name="seed_input_scan_qr_code">Scan QR code</string>
     <string name="seed_input_invalid_qr_code">Invalid recovery QR code</string>
     <string name="seed_input_invalid_qr_code_description">This QR code does not contain a valid backup seed.</string>
@@ -56,7 +56,19 @@
     <string name="seed_input_invalid_seed_phrase_description">The recovery phrase you entered is invalid. Please double check it against your stored copy.</string>
 
 
-    <!-- Restoring backup screen -->
+    <!-- Regenerate backup seed screen -->
+    <string name="regenerate_seed_heading">Regenerate backup seed</string>
+    <string name="regenerate_seed_display_text">This is your new backup seed.\nWrite down these words in order. They will be the only way to recover your backups once you confirm the new backup seed.</string>
+    <string name="regenerate_seed_confirm_seed">Confirm backup seed</string>
+    <string name="regenerate_seed_success_dialog_title">Backup seed regenerated</string>
+    <string name="regenerate_seed_success_dialog_text">Your backup seed has been successfully regenerated. Any backups created from this point will only be recoverable using this seed.\n\nYou should destroy any existing backups.</string>
+    <string name="regenerate_seed_invalid_seed_dialog_title">Invalid backup seed</string>
+    <string name="regenerate_seed_invalid_seed_dialog_text">The backup seed you provided is not the one used to encrypt your backups. You must provide your actual backup seed in order to generate a new one.</string>
+    <string name="regenerate_seed_failure_dialog_title">Seed regeneration failed</string>
+    <string name="regenerate_seed_failure_dialog_text">Something went wrong trying to regenerate your backup seed. You should restore your vault from backup immediately!</string>
+
+
+    <!-- Restore backup screens -->
     <string name="restoring_backup_heading">Restoring backup</string>
     <plurals name="restoring_backup_restored_secrets">
         <item quantity="one">Restored %1$d/%2$d secret…</item>
@@ -127,6 +139,8 @@
     <string name="settings_enable_backups">Enable backups</string>
     <string name="settings_enable_backups_description">Allow the creation of encrypted backups.\n\nEven when enabled, backups are not created automatically. You need to export them manually.</string>
     <string name="settings_enable_backups_export">Export backup</string>
+    <string name="settings_enable_backups_regenerate_seed">Regenerate backup seed</string>
+    <string name="settings_enable_backups_regenerate_seed_description">If you suspect that your backup seed has been compromised, you should regenerate it and destroy all existing backups.</string>
     <string name="settings_enable_backups_disable_dialog_confirm">Disable backups</string>
     <string name="settings_enable_backups_disable_dialog_text">Backups will be permanently disabled. If you lose access to your device, your secrets will be gone forever.</string>
 

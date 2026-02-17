@@ -45,6 +45,7 @@ class BackupSeed(private val secret: ByteArray) {
 
     companion object {
         const val URI_PREFIX: String = "seed"
+        const val MNEMONIC_LENGTH_WORDS: Int = 24
 
         fun generate(secureRandom: SecureRandom = SecureRandom()): BackupSeed =
             BackupSeed(ByteArray(BACKUP_KEY_SIZE).apply(secureRandom::nextBytes))
@@ -58,7 +59,7 @@ class BackupSeed(private val secret: ByteArray) {
         }
 
         fun fromMnemonic(words: List<String>): BackupSeed {
-            require(words.size == 24)
+            require(words.size == MNEMONIC_LENGTH_WORDS)
             val bitWriter = BitWriter()
             for (word in words) {
                 val index = wordMap[word.lowercase().trim()] ?: throw AssertionError(
