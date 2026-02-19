@@ -76,10 +76,19 @@ class Vault(
     }
 
     fun lock() {
-        check(_state.value != InternalState.Uninitialized)
-        Log.i(TAG, "Locking vault")
-        unlockState?.repository?.close()
-        _state.value = InternalState.Locked
+        when (_state.value) {
+            InternalState.Locked -> {
+                Log.d(TAG, "Attempted to lock already locked vault; doing nothing instead")
+            }
+            InternalState.Uninitialized -> {
+                Log.w(TAG, "Attempted to lock uninitialized vault; doing nothing instead")
+            }
+            is InternalState.Unlocked -> {
+                Log.i(TAG, "Locking vault")
+                unlockState?.repository?.close()
+                _state.value = InternalState.Locked
+            }
+        }
     }
 
     fun observeState(): Flow<State> =
