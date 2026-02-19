@@ -19,32 +19,38 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import se.koditoriet.fenris.appStrings
 import se.koditoriet.fenris.crypto.BackupSeed
 import se.koditoriet.fenris.crypto.wordMap
 import se.koditoriet.fenris.ui.components.BadInputInformationDialog
+import se.koditoriet.fenris.ui.components.SuccessInformationDialog
+import se.koditoriet.fenris.ui.components.WarningInformationDialog
 import se.koditoriet.fenris.ui.components.backupseed.BackupSeedDisplay
 import se.koditoriet.fenris.ui.components.backupseed.SeedPhraseInput
 import se.koditoriet.fenris.ui.components.backupseed.SeedQRCodeInput
+import se.koditoriet.fenris.viewmodel.RegenerateBackupSeedViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RegenerateBackupSeedScreen(
-    validateSeed: suspend (seed: BackupSeed) -> Boolean,
-    onRekeyBackups: (oldSeed: BackupSeed, newSeed: BackupSeed) -> Unit,
-) {
+fun RegenerateBackupSeedScreen() {
+    val viewModel = viewModel<RegenerateBackupSeedViewModel>()
     val screenStrings = appStrings.regenerateBackupSeedScreen
     val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
     val lifecycleScope = LocalLifecycleOwner.current.lifecycleScope
+
     var viewState by remember {
         mutableStateOf<RegenerateBackupSeedViewState>(RegenerateBackupSeedViewState.InputSeedPhrase)
     }
     var showBadSeedDialog by remember { mutableStateOf(false) }
+    var showBackupReseedCompleteDialog by remember { mutableStateOf(false) }
+    var showBackupReseedFailedDialog by remember { mutableStateOf(false) }
 
     fun continueIfSeedIsValid(seed: BackupSeed) {
-        lifecycleScope.launch {
-            if (validateSeed(seed)) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            if (viewModel.validateSeed(seed)) {
                 viewState = RegenerateBackupSeedViewState.ShowNewSeed(seed)
             } else {
                 seed.wipe()
@@ -96,12 +102,36 @@ fun RegenerateBackupSeedScreen(
                         text = screenStrings.newSeedExplanation,
                         confirmButtonText = screenStrings.confirmNewSeed,
                         modifier = Modifier.padding(padding),
-                        onContinue = { onRekeyBackups(frozenViewState.oldSeed, newSeed) },
+                        onContinue = {
+                            lifecycleScope.launch(Dispatchers.IO) {
+                                if (viewModel.rekeyBackups(frozenViewState.oldSeed, newSeed)) {
+                                    showBackupReseedCompleteDialog = true
+                                } else {
+                                    showBackupReseedCompleteDialog = false
+                                }
+                                frozenViewState.oldSeed.wipe()
+                                newSeed.wipe()
+                            }
+                        },
                     )
                 }
             }
         }
 
+        if (showBackupReseedCompleteDialog) {
+            SuccessInformationDialog(
+                title = appStrings.regenerateBackupSeedScreen.successDialogTitle,
+                text = appStrings.regenerateBackupSeedScreen.successDialogText,
+                onDismiss = { backDispatcher?.onBackPressed() },
+            )
+        }
+        if (showBackupReseedFailedDialog) {
+            WarningInformationDialog(
+                title = appStrings.regenerateBackupSeedScreen.failureDialogTitle,
+                text = appStrings.regenerateBackupSeedScreen.failureDialogText,
+                onDismiss = { showBackupReseedFailedDialog = false },
+            )
+        }
         if (showBadSeedDialog) {
             BadInputInformationDialog(
                 title = appStrings.regenerateBackupSeedScreen.invalidSeedDialogTitle,

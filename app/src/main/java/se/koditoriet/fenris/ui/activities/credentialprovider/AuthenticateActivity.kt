@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
@@ -16,7 +17,6 @@ import androidx.credentials.PublicKeyCredential
 import androidx.credentials.provider.CallingAppInfo
 import androidx.credentials.provider.PendingIntentHandler
 import androidx.fragment.app.FragmentActivity
-import androidx.lifecycle.viewmodel.compose.viewModel
 import se.koditoriet.fenris.BiometricPromptAuthenticator
 import se.koditoriet.fenris.appStrings
 import se.koditoriet.fenris.credentialprovider.CREDENTIAL_DATA
@@ -36,12 +36,13 @@ import se.koditoriet.fenris.ui.theme.BACKGROUND_ICON_SIZE
 import se.koditoriet.fenris.ui.theme.FenrisTheme
 import se.koditoriet.fenris.vault.CredentialId
 import se.koditoriet.fenris.vault.Passkey
-import se.koditoriet.fenris.viewmodel.FenrisViewModel
+import se.koditoriet.fenris.viewmodel.CredentialProviderViewModel
 import kotlin.time.Clock
 
 private const val TAG = "AuthenticateActivity"
 
 class AuthenticateActivity : FragmentActivity() {
+    private val viewModel by viewModels<CredentialProviderViewModel>()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val screenStrings = appStrings.credentialProvider
@@ -50,7 +51,6 @@ class AuthenticateActivity : FragmentActivity() {
 
         enableEdgeToEdge()
         setContent {
-            val viewModel = viewModel<FenrisViewModel>()
             val showUnableToEstablishTrustDialog = remember { mutableStateOf(false) }
 
             LaunchedEffect(Unit) {

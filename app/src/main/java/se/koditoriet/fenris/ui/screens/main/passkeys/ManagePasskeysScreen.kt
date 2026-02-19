@@ -10,12 +10,13 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
-import se.koditoriet.fenris.SortMode
+import androidx.lifecycle.viewmodel.compose.viewModel
+import se.koditoriet.fenris.Config
 import se.koditoriet.fenris.appStrings
 import se.koditoriet.fenris.ui.components.IrrevocableActionConfirmationDialog
 import se.koditoriet.fenris.ui.components.listview.ListViewTopBar
@@ -24,19 +25,16 @@ import se.koditoriet.fenris.ui.components.sheet.BottomSheet
 import se.koditoriet.fenris.ui.screens.main.passkeys.sheets.EditPasskeyNameSheet
 import se.koditoriet.fenris.ui.screens.main.passkeys.sheets.PasskeyActionsSheet
 import se.koditoriet.fenris.vault.Passkey
+import se.koditoriet.fenris.viewmodel.ManagePasskeysViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ManagePasskeysScreen(
-    passkeys: List<Passkey>,
-    sortMode: SortMode,
-    onSortModeChange: (SortMode) -> Unit,
-    onUpdatePasskey: (Passkey) -> Unit,
-    onDeletePasskey: (Passkey) -> Unit,
-    onReindexPasskeys: () -> Unit,
-) {
-    val appStrings = LocalContext.current.let { remember(it) { it.appStrings } }
-    val screenStrings = remember(appStrings) { appStrings.managePasskeysScreen }
+fun ManagePasskeysScreen() {
+    val viewModel = viewModel<ManagePasskeysViewModel>()
+    val passkeys by viewModel.passkeys.collectAsState(emptyList())
+    val config by viewModel.config.collectAsState(Config.default)
+    val screenStrings = remember { viewModel.appStrings.managePasskeysScreen }
+
     val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
     var sheetViewState by remember { mutableStateOf<SheetViewState?>(null) }
     var confirmDeletePasskey by remember { mutableStateOf<Passkey?>(null) }
@@ -45,8 +43,8 @@ fun ManagePasskeysScreen(
     val passkeyListItems = passkeys.map { passkey ->
         PasskeyListItem(
             passkey = passkey,
-            onUpdatePasskey = onUpdatePasskey,
-            appStrings = appStrings,
+            onUpdatePasskey = viewModel::onUpdatePasskey,
+            appStrings = viewModel.appStrings,
             onLongClickPasskey = { sheetViewState = SheetViewState.Actions(it) },
         )
     }
@@ -63,8 +61,8 @@ fun ManagePasskeysScreen(
                         )
                     }
                 },
-                sortMode = sortMode,
-                onSortModeChange = onSortModeChange,
+                sortMode = config.passkeySortMode,
+                onSortModeChange = viewModel::onSortModeChange,
                 filterEnabled = filter != null,
                 onFilterToggle = { filter = if (filter == null) "" else null },
             )
@@ -79,11 +77,11 @@ fun ManagePasskeysScreen(
             filter = filter,
             items = passkeyListItems,
             selectedItem = (sheetViewState as? SheetViewState.Actions)?.selectedItem,
-            sortMode = sortMode,
+            sortMode = config.passkeySortMode,
             alphabeticItemComparator = comparator,
             filterPlaceholderText = screenStrings.filterPlaceholder,
             onFilterChange = { filter = it },
-            onReindexItems = onReindexPasskeys,
+            onReindexItems = viewModel::onReindexPasskeys,
         )
 
         confirmDeletePasskey?.let { passkey ->
@@ -94,7 +92,7 @@ fun ManagePasskeysScreen(
                 onConfirm = {
                     confirmDeletePasskey = null
                     sheetViewState = null
-                    onDeletePasskey(passkey)
+                    viewModel.onDeletePasskey(passkey.credentialId)
                 }
             )
         }
@@ -125,7 +123,7 @@ fun ManagePasskeysScreen(
                         EditPasskeyNameSheet(
                             existingPasskey = viewState.selectedItem.passkey,
                             onSave = {
-                                onUpdatePasskey(viewState.selectedItem.passkey.copy(displayName = it))
+                                viewModel.onUpdatePasskey(viewState.selectedItem.passkey.copy(displayName = it))
                                 sheetViewState = null
                             }
                         )

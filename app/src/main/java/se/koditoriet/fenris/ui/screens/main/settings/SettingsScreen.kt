@@ -38,6 +38,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,12 +52,15 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.credentials.CredentialManager
 import androidx.lifecycle.compose.rememberLifecycleOwner
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import se.koditoriet.fenris.AppStrings
+import se.koditoriet.fenris.Config
 import se.koditoriet.fenris.appStrings
+import se.koditoriet.fenris.crypto.AuthenticatorFactory
 import se.koditoriet.fenris.ui.components.IrrevocableActionConfirmationDialog
 import se.koditoriet.fenris.ui.components.sheet.BottomSheet
 import se.koditoriet.fenris.ui.primaryHint
@@ -70,34 +74,21 @@ import se.koditoriet.fenris.ui.theme.SPACING_L
 import se.koditoriet.fenris.ui.theme.SPACING_M
 import se.koditoriet.fenris.ui.theme.SPACING_XS
 import se.koditoriet.fenris.viewmodel.SecurityReport
+import se.koditoriet.fenris.viewmodel.SettingsViewModel
 import kotlin.time.Clock
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    enableBackups: Boolean,
-    onDisableBackups: () -> Unit,
-    protectAccountList: Boolean,
-    onProtectAccountListChange: (Boolean) -> Unit,
-    lockOnClose: Boolean,
-    onLockOnCloseChange: (Boolean) -> Unit,
-    lockOnCloseGracePeriod: Int,
-    onLockOnCloseGracePeriodChange: (Int) -> Unit,
-    screenSecurityEnabled: Boolean,
-    onScreenSecurityEnabledChange: (Boolean) ->Unit,
-    hideSecretsFromAccessibility: Boolean,
-    onHideSecretsFromAccessibilityChange: (Boolean) ->Unit,
-    enableDeveloperFeatures: Boolean,
-    onEnableDeveloperFeaturesChange: (Boolean) ->Unit,
-    onWipeVault: () -> Unit,
-    onExport: (Uri) -> Unit,
     credentialProviderEnabled: Boolean,
     onRegenerateBackupSeed: () -> Unit,
     onManagePasskeys: () -> Unit,
-    getSecurityReport: suspend () -> SecurityReport,
+    authFactory: AuthenticatorFactory,
     clock: Clock = Clock.System,
     timeZone: TimeZone = TimeZone.currentSystemDefault(),
 ) {
+    val viewModel = viewModel<SettingsViewModel>()
+    val config by viewModel.config.collectAsState(Config.default)
     val screenStrings = appStrings.settingsScreen
     var sheetViewState by remember { mutableStateOf<SettingsScreenSheetViewState?>(null) }
     var showWipeDialog by remember { mutableStateOf(false) }
@@ -139,10 +130,10 @@ fun SettingsScreen(
             item {
                 BackupSettingsRow(
                     screenStrings = screenStrings,
-                    enableBackups = enableBackups,
+                    enableBackups = config.backupsEnabled,
                     clock = clock,
                     timeZone = timeZone,
-                    onExport = onExport,
+                    onExport = viewModel::onExportVault,
                     onRegenerateBackupSeed = onRegenerateBackupSeed,
                     onDisableBackups = { showDisableBackupsDialog = true }
                 )
@@ -153,8 +144,8 @@ fun SettingsScreen(
                 SettingSwitchRow(
                     title = screenStrings.biometricLock,
                     description = screenStrings.biometricLockDescription,
-                    checked = protectAccountList,
-                    onCheckedChange = onProtectAccountListChange,
+                    checked = config.protectAccountList,
+                    onCheckedChange = { viewModel.onPrivacyLockChange(authFactory, it) },
                 )
             }
 
@@ -163,10 +154,10 @@ fun SettingsScreen(
                 SettingSwitchRow(
                     title = screenStrings.lockOnMinimize,
                     description = screenStrings.lockOnMinimizeDescription,
-                    checked = lockOnClose,
-                    onCheckedChange = onLockOnCloseChange,
+                    checked = config.lockOnClose,
+                    onCheckedChange = { viewModel.onLockOnCloseChange(it, config.lockOnCloseGracePeriod) },
                 ) {
-                    val partialValue = remember { mutableStateOf(lockOnCloseGracePeriod.toString()) }
+                    val partialValue = remember { mutableStateOf(config.lockOnCloseGracePeriod.toString()) }
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         OutlinedTextField(
@@ -174,7 +165,7 @@ fun SettingsScreen(
                             onValueChange = { value ->
                                 partialValue.value = value
                                 partialValue.value.toIntOrNull()?.takeIf { it >= 0 }?.let {
-                                    onLockOnCloseGracePeriodChange(it)
+                                    viewModel.onLockOnCloseChange(config.lockOnClose, it)
                                 }
                             },
                             label = { Text(screenStrings.lockOnMinimizeGracePeriod) },
@@ -201,8 +192,8 @@ fun SettingsScreen(
                 SettingSwitchRow(
                     title = screenStrings.screenSecurity,
                     description = screenStrings.screenSecurityDescription,
-                    checked = screenSecurityEnabled,
-                    onCheckedChange = onScreenSecurityEnabledChange,
+                    checked = config.screenSecurityEnabled,
+                    onCheckedChange = viewModel::onScreenSecurityEnabledChange,
                 )
             }
 
@@ -211,8 +202,8 @@ fun SettingsScreen(
                 SettingSwitchRow(
                     title = screenStrings.hideSecretsFromScreenReaders,
                     description = screenStrings.hideSecretsFromScreenReadersDescription,
-                    checked = hideSecretsFromAccessibility,
-                    onCheckedChange = onHideSecretsFromAccessibilityChange,
+                    checked = config.hideSecretsFromAccessibility,
+                    onCheckedChange = viewModel::onHideSecretsFromAccessibilityChange,
                 )
             }
 
@@ -221,8 +212,8 @@ fun SettingsScreen(
                 SettingSwitchRow(
                     title = screenStrings.enableDeveloperFeatures,
                     description = screenStrings.enableDeveloperFeaturesDescription,
-                    checked = enableDeveloperFeatures,
-                    onCheckedChange = onEnableDeveloperFeaturesChange,
+                    checked = config.enableDeveloperFeatures,
+                    onCheckedChange = viewModel::onEnableDeveloperFeaturesChange,
                 )
             }
 
@@ -233,7 +224,9 @@ fun SettingsScreen(
                     description = screenStrings.keyStorageOverviewDescription,
                     onClick = {
                         lifecycleOwner.lifecycleScope.launch {
-                            sheetViewState = SettingsScreenSheetViewState.SecurityReportSheet(getSecurityReport())
+                            sheetViewState = SettingsScreenSheetViewState.SecurityReportSheet(
+                                viewModel.getSecurityReport()
+                            )
                         }
                     }
                 )
@@ -258,7 +251,7 @@ fun SettingsScreen(
                 onCancel = { showWipeDialog = false },
                 onConfirm = {
                     showWipeDialog = false
-                    onWipeVault()
+                    viewModel.onWipeVault()
                 }
             )
         }
@@ -271,7 +264,7 @@ fun SettingsScreen(
                 onCancel = { showDisableBackupsDialog = false },
                 onConfirm = {
                     showDisableBackupsDialog = false
-                    onDisableBackups()
+                    viewModel.onDisableBackups()
                 }
             )
         }

@@ -19,13 +19,14 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
-import se.koditoriet.fenris.SortMode
-import se.koditoriet.fenris.appStrings
+import androidx.lifecycle.viewmodel.compose.viewModel
+import se.koditoriet.fenris.Config
+import se.koditoriet.fenris.crypto.AuthenticatorFactory
 import se.koditoriet.fenris.ui.components.BadInputInformationDialog
 import se.koditoriet.fenris.ui.components.IrrevocableActionConfirmationDialog
 import se.koditoriet.fenris.ui.components.QrScanner
@@ -39,6 +40,7 @@ import se.koditoriet.fenris.ui.screens.main.secrets.sheets.SecretActionsSheet
 import se.koditoriet.fenris.ui.theme.SPACING_L
 import se.koditoriet.fenris.vault.NewTotpSecret
 import se.koditoriet.fenris.vault.TotpSecret
+import se.koditoriet.fenris.viewmodel.ListSecretsViewModel
 import kotlin.time.Clock
 
 private const val TAG = "ListSecretsScreen"
@@ -46,23 +48,14 @@ private const val TAG = "ListSecretsScreen"
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun ListSecretsScreen(
-    secrets: List<TotpSecret>,
-    sortMode: SortMode,
-    enableDeveloperFeatures: Boolean,
-    hideSecretsFromAccessibility: Boolean,
-    getTotpCodes: suspend (TotpSecret) -> List<String>,
-    onLockVault: () -> Unit,
+    authFactory: AuthenticatorFactory,
     onSettings: () -> Unit,
-    onAddSecret: (NewTotpSecret) -> Unit,
-    onImportFile: (Uri) -> Unit,
-    onSortModeChange: (SortMode) -> Unit,
-    onUpdateSecret: (TotpSecret) -> Unit,
-    onDeleteSecret: (TotpSecret) -> Unit,
-    onReindexSecrets: () -> Unit,
     clock: Clock = Clock.System,
 ) {
-    val appStrings = LocalContext.current.let { remember(it) { it.appStrings } }
-    val screenStrings = remember { appStrings.secretsScreen }
+    val viewModel = viewModel<ListSecretsViewModel>()
+    val config by viewModel.config.collectAsState(Config.default)
+    val secrets by viewModel.secrets.collectAsState(emptyList())
+    val screenStrings = remember { viewModel.appStrings.secretsScreen }
     var confirmDeleteSecret by remember { mutableStateOf<TotpSecret?>(null) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var sheetViewState by remember { mutableStateOf<SheetViewState>(SheetViewState.Inactive) }
@@ -73,11 +66,11 @@ fun ListSecretsScreen(
     val secretListItems = secrets.map { secret ->
         TotpSecretListItem(
             totpSecret = secret,
-            hideSecretsFromAccessibility = hideSecretsFromAccessibility,
+            hideSecretsFromAccessibility = config.hideSecretsFromAccessibility,
             clock = clock,
             environment = listItemEnvironment,
-            getTotpCodes = getTotpCodes,
-            onUpdateSecret = onUpdateSecret,
+            getTotpCodes = { viewModel.getTotpCodes(authFactory, it) },
+            onUpdateSecret = viewModel::onUpdateSecret,
             onLongClickSecret = { sheetViewState = SheetViewState.SecretActions(it) },
         )
     }
@@ -85,13 +78,13 @@ fun ListSecretsScreen(
     Scaffold(
         topBar = {
             ListViewTopBar(
-                title = appStrings.generic.appName,
-                sortMode = sortMode,
-                onSortModeChange = onSortModeChange,
+                title = viewModel.appStrings.generic.appName,
+                sortMode = config.totpSecretSortMode,
+                onSortModeChange = viewModel::onSortModeChange,
                 filterEnabled = filter != null,
                 onFilterToggle = { filter = if (filter == null) "" else null },
             ) {
-                IconButton(onClick = onLockVault) {
+                IconButton(onClick = viewModel::onLockVault) {
                     Icon(Icons.Filled.LockOpen, screenStrings.lockScreen)
                 }
                 IconButton(onClick = onSettings) {
@@ -115,11 +108,11 @@ fun ListSecretsScreen(
             filter = filter,
             items = secretListItems,
             selectedItem = (sheetViewState as? SheetViewState.SecretActions)?.selectedItem,
-            sortMode = sortMode,
+            sortMode = config.totpSecretSortMode,
             alphabeticItemComparator = comparator,
             filterPlaceholderText = screenStrings.filterPlaceholder,
             onFilterChange = { filter = it },
-            onReindexItems = onReindexSecrets,
+            onReindexItems = viewModel::onReindexSecrets,
         )
 
         confirmDeleteSecret?.let { secret ->
@@ -130,7 +123,7 @@ fun ListSecretsScreen(
                 onConfirm = {
                     confirmDeleteSecret = null
                     sheetViewState = SheetViewState.Inactive
-                    onDeleteSecret(secret)
+                    viewModel.onDeleteSecret(secret.id)
                 }
             )
         }
@@ -140,11 +133,11 @@ fun ListSecretsScreen(
                 viewState = sheetViewState,
                 sheetState = sheetState,
                 padding = padding,
-                hideSecretsFromAccessibility = hideSecretsFromAccessibility,
-                enableDeveloperFeatures = enableDeveloperFeatures,
-                onImportFile = onImportFile,
-                onAddSecret = onAddSecret,
-                onUpdateSecret = onUpdateSecret,
+                hideSecretsFromAccessibility = config.hideSecretsFromAccessibility,
+                enableDeveloperFeatures = config.enableDeveloperFeatures,
+                onImportFile = viewModel::onImportFile,
+                onAddSecret = viewModel::onAddSecret,
+                onUpdateSecret = viewModel::onUpdateSecret,
                 onDeleteSecret = { confirmDeleteSecret = it },
                 onChangeSheetViewState = { sheetViewState = it },
                 onInitiateQRCodeScan = { qrScannerState = QRScannerState.ScanTOTPSecret }

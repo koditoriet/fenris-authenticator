@@ -20,12 +20,12 @@ import se.koditoriet.fenris.ui.components.PasskeyIcon
 import se.koditoriet.fenris.ui.components.ThemedEmptySpace
 import se.koditoriet.fenris.ui.theme.BACKGROUND_ICON_SIZE
 import se.koditoriet.fenris.ui.theme.FenrisTheme
-import se.koditoriet.fenris.viewmodel.FenrisViewModel
+import se.koditoriet.fenris.viewmodel.CredentialProviderViewModel
 
 private const val TAG = "UnlockVaultActivity"
 
 class ListPasskeysActivity : FragmentActivity() {
-    private val viewModel: FenrisViewModel by viewModels()
+    private val viewModel by viewModels<CredentialProviderViewModel>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
