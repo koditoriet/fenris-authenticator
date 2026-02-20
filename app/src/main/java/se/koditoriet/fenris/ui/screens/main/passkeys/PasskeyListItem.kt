@@ -33,6 +33,13 @@ class PasskeyListItem(
     override val onLongClickLabel: String
         get() = appStrings.generic.selectItem
 
+    override val visibleDataHash: Int by lazy {
+        listOf(
+            passkey.credentialId.hashCode(),
+            passkey.displayName.hashCode(),
+        ).hashCode()
+    }
+
     override fun filterPredicate(filter: String): Boolean = (
             filter in passkey.displayName.lowercase() ||
                     filter in passkey.userName.lowercase() ||
