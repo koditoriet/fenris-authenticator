@@ -45,10 +45,13 @@ interface ReorderableListItem {
     val sortOrder: Long
     val onClickLabel: String
     val onLongClickLabel: String
+    val visibleDataHash: Int
+
     fun filterPredicate(filter: String): Boolean
     fun onUpdateSortOrder(sortOrder: Long)
     fun onClick()
     fun onLongClick()
+
     @Composable fun RowScope.Render()
 }
 
@@ -65,14 +68,12 @@ fun <T : ReorderableListItem> ReorderableList(
     onReindexItems: () -> Unit,
 ) {
     val isManuallySortable = filter.isNullOrEmpty() && sortMode == SortMode.Manual
-    val reorderableItems = remember {
-        mutableStateListOf<T>().apply { addAll(items) }
-    }
+    val reorderableItems = remember { mutableStateListOf<T>() }
 
     // The parent holds the secret list with SnapshotFlow, and feeds it to this component.
     // We need to update our reorderableSecrets list when the parent updates, otherwise
     // we only get an empty secrets list to render.
-    LaunchedEffect(items) {
+    LaunchedEffect(items.map { it.visibleDataHash }) {
         reorderableItems.clear()
         reorderableItems.addAll(items)
     }

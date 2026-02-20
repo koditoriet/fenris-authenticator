@@ -4,7 +4,6 @@ import android.app.Application
 import android.net.Uri
 import android.util.Log
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
@@ -22,9 +21,7 @@ private const val TAG = "ListSecretsViewModel"
 
 class ListSecretsViewModel(private val app: Application) : ViewModelBase(app) {
     val secrets: Flow<List<TotpSecret>>
-        get() = vault.totpSecrets.distinctUntilChanged { oldList, newList ->
-            oldList.map { it.copy(timeOfLastUse = null) } == newList.map { it.copy(timeOfLastUse = null) }
-        }
+        get() = vault.totpSecrets
 
     fun onLockVault() = onIOThread { vault.lockVault() }
     fun onAddSecret(newSecret: NewTotpSecret) = withVault { addTotpSecret(newSecret) }
