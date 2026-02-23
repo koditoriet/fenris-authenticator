@@ -71,6 +71,14 @@ class TotpSecretListItem(
     override val onLongClickLabel: String
         get() = environment.appStrings.generic.selectItem
 
+    override val visibleDataHash: Int by lazy {
+        listOf(
+            totpSecret.id.hashCode(),
+            totpSecret.issuer.hashCode(),
+            totpSecret.account.hashCode(),
+        ).hashCode()
+    }
+
     override fun filterPredicate(filter: String): Boolean =
         filter in totpSecret.issuer.lowercase() || filter in (totpSecret.account?.lowercase() ?: "")
 
