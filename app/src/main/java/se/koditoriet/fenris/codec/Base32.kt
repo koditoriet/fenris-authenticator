@@ -5,7 +5,7 @@ import se.koditoriet.fenris.crypto.BitWriter
 fun base32Decode(base32: CharArray): ByteArray {
     val buffer = BitWriter()
     for (c in base32) {
-        val bits = when (c) {
+        val bits = when (c.lowercaseChar()) {
             in 'A' .. 'Z' -> c - 'A'
             in '2' .. '7' -> c - ('2' - 26)
             '=' -> break
