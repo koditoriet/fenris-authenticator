@@ -17,7 +17,7 @@ interface TotpSecrets {
 
     // Spacing sort order by 10B means we can have a little less than 1B secrets.
     // That should be enough.
-    @Query("SELECT MAX(sortOrder) + 10000000000 FROM totp_secrets")
+    @Query("SELECT IFNULL(MAX(sortOrder), 0) + 10000000000 FROM totp_secrets")
     suspend fun getNextSortOrder(): Long
 
     @Query("UPDATE totp_secrets SET encryptedBackupSecret = NULL")

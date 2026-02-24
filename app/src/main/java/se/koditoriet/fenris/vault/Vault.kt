@@ -386,6 +386,9 @@ class Vault(
             }
         }
         oldBackupSecretKey.fill(0)
+        _state.value = InternalState.Unlocked(
+            unlockState.copy(backupKeys = newBackupKeys)
+        )
     }
 
     suspend fun export(): EncryptedData = requireUnlocked { unlockState ->

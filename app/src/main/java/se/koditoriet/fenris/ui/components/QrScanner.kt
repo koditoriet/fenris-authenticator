@@ -34,6 +34,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -118,7 +119,7 @@ private fun QrScannerView(
     onQrScanned: (String) -> Unit
 ) {
     Log.i(TAG, "Initializing camera for QR scanning")
-    val handlerThread = HandlerThread("camera-bg").apply { start() }
+    val handlerThread = remember { HandlerThread("camera-bg").apply { start() } }
     val handler = Handler(handlerThread.looper)
     val cameraManager = LocalContext.current.getSystemService(Context.CAMERA_SERVICE) as CameraManager
     val cameraId = cameraManager.getBackCameraId()

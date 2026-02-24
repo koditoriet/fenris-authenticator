@@ -65,7 +65,12 @@ data class NewTotpSecret(
         val digits: Int,
         val period: Int,
         val algorithm: TotpAlgorithm,
-    )
+    ) {
+        init {
+            require(digits in 4..10)
+            require(period > 0)
+        }
+    }
 
     companion object {
         fun fromUri(uri: String): NewTotpSecret {

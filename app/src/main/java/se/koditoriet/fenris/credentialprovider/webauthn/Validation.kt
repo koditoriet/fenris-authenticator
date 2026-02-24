@@ -1,5 +1,6 @@
 package se.koditoriet.fenris.credentialprovider
 
+import android.net.Uri
 import android.util.Log
 import androidx.core.net.toUri
 import androidx.credentials.provider.CallingAppInfo
@@ -23,7 +24,7 @@ fun originIsValid(callingAppInfo: CallingAppInfo, rpId: String): Boolean {
 
     val originUri = origin.toUri()
 
-    if (originUri.scheme != "https" && originUri.host != "localhost") {
+    if (originUri.scheme != "https" && !originUri.isHttpLocalhost) {
         Log.e(TAG, "Bad origin URI scheme (must be https): ${originUri.scheme}")
         return false
     }
@@ -37,7 +38,19 @@ fun originIsValid(callingAppInfo: CallingAppInfo, rpId: String): Boolean {
 }
 
 fun rpIsValid(rpId: String): Boolean {
-    return !rpId.startsWith(".")
+    val labels = rpId.split('.')
+    if (labels.isEmpty()) {
+        return false
+    }
+    if (labels.size == 1 && labels[0] != "localhost") {
+        // what we really want here is labels[0].isTLD(), but since there's no static way to detect whether a label
+        // is a TLD or not, any local RPs will just have to use myhostname.lan instead of myhostname
+        return false
+    }
+    if (labels.any { !it.isValidLabel }) {
+        return false
+    }
+    return true
 }
 
 fun appInfoToOrigin(callingAppInfo: CallingAppInfo): String {
@@ -67,3 +80,11 @@ fun appInfoToRpId(callingAppInfo: CallingAppInfo): String {
 
     return host
 }
+
+private val Uri.isHttpLocalhost: Boolean
+    get() = scheme == "http" && host == "localhost"
+
+private val String.isValidLabel: Boolean
+    get() = !isEmpty() && this[0] != '-' && all { it in LABEL_CHARS }
+
+private val LABEL_CHARS = "abcdefghijklmnopqrstuvwxyz0123456789-".toSet()

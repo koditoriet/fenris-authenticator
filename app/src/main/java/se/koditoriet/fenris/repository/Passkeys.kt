@@ -19,7 +19,7 @@ interface Passkeys {
     @Query("SELECT * FROM passkeys WHERE rpId = :rpId ORDER BY sortOrder ASC")
     suspend fun getAll(rpId: String): List<Passkey>
 
-    @Query("SELECT MAX(sortOrder) + 10000000000 FROM passkeys")
+    @Query("SELECT IFNULL(MAX(sortOrder), 0) + 10000000000 FROM passkeys")
     suspend fun getNextSortOrder(): Long
 
     @Query("UPDATE passkeys SET encryptedBackupPrivateKey = NULL")
@@ -33,7 +33,7 @@ interface Passkeys {
                 SELECT
                     credentialId,
                     ROW_NUMBER() OVER (ORDER BY sortOrder) AS rn
-                FROM totp_secrets
+                FROM passkeys
             ) AS ordered
             WHERE ordered.credentialId = passkeys.credentialId
         );

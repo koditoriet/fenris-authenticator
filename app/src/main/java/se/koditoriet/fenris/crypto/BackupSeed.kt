@@ -55,14 +55,16 @@ class BackupSeed(private val secret: ByteArray) {
             require(uri.host == URI_PREFIX)
             require(uri.pathSegments.size == 1)
             val base64url = Base64Url.fromBase64UrlString(uri.pathSegments.first())
-            return BackupSeed(base64url.toByteArray())
+            val bytes = base64url.toByteArray()
+            require(bytes.size == BACKUP_KEY_SIZE)
+            return BackupSeed(bytes)
         }
 
         fun fromMnemonic(words: List<String>): BackupSeed {
             require(words.size == MNEMONIC_LENGTH_WORDS)
             val bitWriter = BitWriter()
             for (word in words) {
-                val index = wordMap[word.lowercase().trim()] ?: throw AssertionError(
+                val index = wordMap[word.lowercase().trim()] ?: throw IllegalArgumentException(
                     "'${word.lowercase().trim()}' is not a valid seed word"
                 )
                 bitWriter.write(index.shr(8).toByte(), 3)
