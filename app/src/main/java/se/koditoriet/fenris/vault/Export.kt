@@ -19,8 +19,8 @@ data class VaultExport(
             val export = json.decodeFromString<VaultExport>(data.toString(Charsets.UTF_8))
             if (export.format > LATEST_BACKUP_FORMAT) {
                 throw UnknownExportFormatException(
-                    latestSupportedFormat = export.format,
-                    actualFormat = LATEST_BACKUP_FORMAT
+                    latestSupportedFormat = LATEST_BACKUP_FORMAT,
+                    actualFormat = export.format,
                 )
             }
             return export
