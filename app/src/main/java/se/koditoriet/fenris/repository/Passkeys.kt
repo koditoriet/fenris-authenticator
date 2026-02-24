@@ -33,7 +33,7 @@ interface Passkeys {
                 SELECT
                     credentialId,
                     ROW_NUMBER() OVER (ORDER BY sortOrder) AS rn
-                FROM totp_secrets
+                FROM passkeys
             ) AS ordered
             WHERE ordered.credentialId = passkeys.credentialId
         );
