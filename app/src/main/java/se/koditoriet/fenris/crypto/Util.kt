@@ -77,9 +77,12 @@ class BitWriter {
         }
     }
 
-    fun getBytes(): ByteArray {
-        return this.bytes.toByteArray()
-    }
+    fun getBytes(fullBytes: Boolean = true): ByteArray =
+        if (fullBytes && bitOffset != 0) {
+            bytes.take(bytes.size - 1).toByteArray()
+        } else {
+            bytes.toByteArray()
+        }
 
     fun wipe() {
         for (i in bytes.indices) {

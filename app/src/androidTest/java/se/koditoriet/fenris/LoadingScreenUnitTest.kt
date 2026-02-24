@@ -15,7 +15,7 @@ class LoadingScreenUnitTest {
         val showLoadingScreen = mutableStateOf(false)
 
         composeTestRule.setContent {
-            LoadingOverlay(showLoadingScreen)
+            LoadingOverlay(showLoadingScreen.value)
         }
         // Invisible per default
         composeTestRule.onNodeWithTag("LoadingScreen").assertDoesNotExist()
