@@ -67,7 +67,7 @@ data class NewTotpSecret(
         val algorithm: TotpAlgorithm,
     ) {
         init {
-            require(digits > 0)
+            require(digits in 4..10)
             require(period > 0)
         }
     }

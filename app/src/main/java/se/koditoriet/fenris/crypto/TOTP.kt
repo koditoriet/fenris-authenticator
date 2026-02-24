@@ -14,7 +14,7 @@ private val POW10_INT = intArrayOf(
     1_000_000,
     10_000_000,
     100_000_000,
-    1_000_000_000
+    1_000_000_000,
 )
 
 fun HmacContext.generateTotpCode(
@@ -37,11 +37,14 @@ private fun encodeTime(time: Instant, timeStep: Int): ByteArray {
 }
 
 private fun codeToString(hmac: ByteArray, digits: Int): String {
+    require(digits in 4..10)
     val offset = (hmac.last() and 0xf).toInt()
     var code = (hmac[offset].toInt() and 0x7f).shl(24)
     code = code or (hmac[offset + 1].toInt() and 0xff).shl(16)
     code = code or (hmac[offset + 2].toInt() and 0xff).shl(8)
     code = code or (hmac[offset + 3].toInt() and 0xff)
-    code %= POW10_INT[digits]
+    if (digits < 10) {
+        code %= POW10_INT[digits]
+    }
     return "$code".padStart(digits, '0')
 }

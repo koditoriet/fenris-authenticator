@@ -268,7 +268,7 @@ data class SecretDataFormState(
         get() = secret.isNotBlank() && isValidBase32(secret)
 
     val digitsIsValid: Boolean
-        get() = digits.toIntOrNull()?.let { it > 0 } ?: false
+        get() = digits.toIntOrNull()?.let { it in 4..10 } ?: false
 
     val periodIsValid: Boolean
         get() = period.toIntOrNull()?.let { it > 0 } ?: false
