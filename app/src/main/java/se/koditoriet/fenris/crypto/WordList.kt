@@ -758,7 +758,7 @@ val wordList = listOf(
     "fruit",
     "fuel",
     "fun",
-    "funny,",
+    "funny",
     "furnace",
     "fury",
     "future",
