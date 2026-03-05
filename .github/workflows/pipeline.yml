@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-
+    runs-on: [github-runner, Linux, X64]
     steps:
     - uses: actions/checkout@v4
 
@@ -26,7 +26,7 @@ jobs:
 
     - name: Wait for emulator
       run: adb wait-for-device
-        
+
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
