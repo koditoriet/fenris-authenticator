@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: [github-runner, Linux, X64]
+    runs-on: [self-hosted, Linux, X64]
     steps:
     - uses: actions/checkout@v4
 
