@@ -21,8 +21,11 @@ jobs:
     - name: Set up ADB
       uses: android-actions/setup-android@v3.2.1
 
-    - name: Connect to emulator
-      run: adb connect localhost:5555
+    - name: List available devices
+      run: adb devices -l
+
+    # - name: Connect to emulator
+    #   run: adb connect localhost:5555
 
     - name: Wait for emulator
       run: adb wait-for-device
