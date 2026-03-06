@@ -24,17 +24,14 @@ jobs:
     - name: List available devices
       run: adb devices -l
 
-    # - name: Connect to emulator
-    #   run: adb connect localhost:5555
-
     - name: Wait for emulator
       run: adb wait-for-device
 
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
-    # - name: Build with Gradle
-    #   run: ./gradlew build
+    - name: Build with Gradle
+      run: ./gradlew build
 
     - name: Run UI tests
       run: ./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.serial=emulator-5556
