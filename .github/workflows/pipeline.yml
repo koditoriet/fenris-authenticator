@@ -2,8 +2,7 @@ name: Android CI
 
 on:
   push:
-    branches: [ "main", "33-set-up-ci" ]
-    # TODO: Remove the second branch after testing
+    branches: [ "main" ]
 
 jobs:
   build:
