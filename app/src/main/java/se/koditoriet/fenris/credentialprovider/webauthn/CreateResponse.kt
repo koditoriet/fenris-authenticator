@@ -11,6 +11,9 @@ import java.math.BigInteger
 import java.security.MessageDigest
 import java.security.interfaces.ECPublicKey
 
+private val AAGUID: ByteArray = "071320aec08443fd94e6987933b23e1f".hexToByteArray()
+private val ZERO_SIGN_COUNT = "00000000".hexToByteArray()
+
 /**
  * Represents a response to a WebAuthn credential creation request.
  * publicKey is assumed to be an ES256 public key.
@@ -43,10 +46,8 @@ class CreateResponse(
         val md = MessageDigest.getInstance("SHA-256")
         val rpHash = md.digest(rpId.toByteArray(Charsets.UTF_8))
         val flags = byteArrayOf((flags + setOf(AuthDataFlag.AT)).toByte())
-        val signCount = ByteArray(4)
-        val aaguid = ByteArray(16)
         val credIdLen = byteArrayOf((credentialId.size shr 8).toByte(), credentialId.size.toByte())
-        rpHash + flags + signCount + aaguid + credIdLen + credentialId + cosePublicKey
+        rpHash + flags + ZERO_SIGN_COUNT + AAGUID + credIdLen + credentialId + cosePublicKey
     }
 
     val attestationObject: ByteArray by lazy {
