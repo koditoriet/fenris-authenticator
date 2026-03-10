@@ -73,7 +73,7 @@ fun <T : ReorderableListItem> ReorderableList(
     // The parent holds the secret list with SnapshotFlow, and feeds it to this component.
     // We need to update our reorderableSecrets list when the parent updates, otherwise
     // we only get an empty secrets list to render.
-    LaunchedEffect(items.map { it.visibleDataHash }) {
+    LaunchedEffect(items.map { it.visibleDataHash }.hashCode()) {
         reorderableItems.clear()
         reorderableItems.addAll(items)
     }
