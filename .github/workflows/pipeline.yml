@@ -1,0 +1,43 @@
+name: Android CI
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: [self-hosted, Linux, X64]
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        cache: gradle
+
+    - name: Set up ADB
+      uses: android-actions/setup-android@v3.2.1
+
+    - name: List available devices
+      run: adb devices -l
+
+    - name: Wait for emulator
+      run: adb wait-for-device
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+
+    - name: Build with Gradle
+      run: ./gradlew build
+
+    - name: Run UI tests
+      run: ./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.serial=emulator-5556
+
+    # In the future, we can add steps to push the built apk to GitHub here
