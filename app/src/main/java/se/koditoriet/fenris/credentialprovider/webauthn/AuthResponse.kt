@@ -41,7 +41,11 @@ class SignedAuthResponse(
 ) {
     val response by lazy {
         Response(
-            clientDataJSON = "dummy value; Android replaces it anyway",
+            // NOTE: clientDataJSON MUST be either the empty string, valid JSON, or some variant on the string
+            // "<placeholder>", or remote/hybrid transport passkey authentication will fail.
+            // Local passkey authentication will not, however. I don't know why, and I'm not sure my mind could
+            // contain the reason without breaking if someone were to tell me.
+            clientDataJSON = "",
             authenticatorData = authenticatorData.string,
             signature = signature.string,
             userHandle = userId?.string,
