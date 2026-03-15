@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.LockOpen
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -24,8 +25,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
+import se.koditoriet.fenris.AppStrings
 import se.koditoriet.fenris.Config
+import se.koditoriet.fenris.codec.QRCodeData
 import se.koditoriet.fenris.crypto.AuthenticatorFactory
 import se.koditoriet.fenris.ui.components.BadInputInformationDialog
 import se.koditoriet.fenris.ui.components.IrrevocableActionConfirmationDialog
@@ -33,6 +37,8 @@ import se.koditoriet.fenris.ui.components.QrScanner
 import se.koditoriet.fenris.ui.components.listview.ListViewTopBar
 import se.koditoriet.fenris.ui.components.listview.ReorderableList
 import se.koditoriet.fenris.ui.components.sheet.BottomSheet
+import se.koditoriet.fenris.ui.openUri
+import se.koditoriet.fenris.ui.screens.main.secrets.SheetViewState.AddingNewSecret
 import se.koditoriet.fenris.ui.screens.main.secrets.sheets.AddSecretsSheet
 import se.koditoriet.fenris.ui.screens.main.secrets.sheets.EditNewSecretSheet
 import se.koditoriet.fenris.ui.screens.main.secrets.sheets.EditSecretMetadataSheet
@@ -52,6 +58,7 @@ fun ListSecretsScreen(
     onSettings: () -> Unit,
     clock: Clock = Clock.System,
 ) {
+    val ctx = LocalContext.current
     val viewModel = viewModel<ListSecretsViewModel>()
     val config by viewModel.config.collectAsState(Config.default)
     val secrets by viewModel.secrets.collectAsState(emptyList())
@@ -94,6 +101,9 @@ fun ListSecretsScreen(
         },
         floatingActionButton = {
             Column(verticalArrangement = Arrangement.spacedBy(SPACING_L)) {
+                FloatingActionButton(onClick = { qrScannerState = QRScannerState.ScanAnySupported }) {
+                    Icon(Icons.Filled.QrCodeScanner, screenStrings.addSecret)
+                }
                 FloatingActionButton(onClick = { sheetViewState = SheetViewState.AddSecretActions }) {
                     Icon(Icons.Filled.Add, screenStrings.addSecret)
                 }
@@ -144,33 +154,28 @@ fun ListSecretsScreen(
             )
         }
     }
+
     when (qrScannerState) {
         QRScannerState.Inactive -> { /* NOP! */ }
-        QRScannerState.ScanTOTPSecret -> {
-            var invalidTotpQRCode by remember { mutableStateOf(false) }
-            if (invalidTotpQRCode) {
-                BadInputInformationDialog(
-                    title = screenStrings.invalidTotpQRCode,
-                    text = screenStrings.invalidTotpQRCodeDescription,
-                    onDismiss = { invalidTotpQRCode = false }
-                )
-            }
 
-            BackHandler {
-                qrScannerState = QRScannerState.Inactive
-            }
-            QrScanner(
-                onQrScanned = {
-                    try {
-                        val secret = NewTotpSecret.fromUri(it)
-                        qrScannerState = QRScannerState.Inactive
-                        sheetViewState = SheetViewState.AddingNewSecret(secret)
-                    } catch (e: Exception) {
-                        invalidTotpQRCode = true
-                        Log.w(TAG, "Scanned non-TOTP secret QR code", e)
+        QRScannerState.ScanTOTPSecret -> {
+            TOTPCodeQRScanner(
+                screenStrings = screenStrings,
+                closeScanner = { qrScannerState = QRScannerState.Inactive },
+                onSuccess = { sheetViewState = AddingNewSecret(it) }
+            )
+        }
+
+        QRScannerState.ScanAnySupported -> {
+            AnySupportedQRScanner(
+                screenStrings = screenStrings,
+                closeScanner = { qrScannerState = QRScannerState.Inactive },
+                onSuccess = {
+                    when (it) {
+                        is QRCodeData.TotpSecret -> { sheetViewState = AddingNewSecret(it.newTotpSecret) }
+                        is QRCodeData.FidoRequest -> { ctx.openUri(it.request) }
                     }
-                },
-                onAbort = { qrScannerState = QRScannerState.Inactive }
+                }
             )
         }
     }
@@ -264,6 +269,69 @@ private fun ListSecretsBottomSheet(
     }
 }
 
+@Composable
+private fun TOTPCodeQRScanner(
+    screenStrings: AppStrings.SecretsScreen,
+    closeScanner: () -> Unit,
+    onSuccess: (NewTotpSecret) -> Unit,
+) {
+    var invalidTotpQRCode by remember { mutableStateOf(false) }
+    if (invalidTotpQRCode) {
+        BadInputInformationDialog(
+            title = screenStrings.invalidTotpQRCode,
+            text = screenStrings.invalidTotpQRCodeDescription,
+            onDismiss = { invalidTotpQRCode = false }
+        )
+    }
+
+    BackHandler { closeScanner() }
+    QrScanner(
+        onQrScanned = {
+            try {
+                val secret = NewTotpSecret.fromUri(it)
+                closeScanner()
+                onSuccess(secret)
+            } catch (e: Exception) {
+                invalidTotpQRCode = true
+                Log.w(TAG, "Scanned non-TOTP secret QR code", e)
+            }
+        },
+        onAbort = closeScanner
+    )
+}
+
+@Composable
+private fun AnySupportedQRScanner(
+    screenStrings: AppStrings.SecretsScreen,
+    closeScanner: () -> Unit,
+    onSuccess: (QRCodeData) -> Unit,
+) {
+    var unsupportedQRCode by remember { mutableStateOf(false) }
+    if (unsupportedQRCode) {
+        BadInputInformationDialog(
+            title = screenStrings.unsupportedQRCode,
+            text = screenStrings.unsupportedQRCodeDescription,
+            onDismiss = { unsupportedQRCode = false }
+        )
+    }
+
+    BackHandler { closeScanner() }
+    QrScanner(
+        onQrScanned = {
+            try {
+                println(it)
+                val data = QRCodeData.parse(it)
+                closeScanner()
+                onSuccess(data)
+            } catch (e: Exception) {
+                unsupportedQRCode = true
+                Log.w(TAG, "Scanned unsupported QR code", e)
+            }
+        },
+        onAbort = closeScanner
+    )
+}
+
 private sealed interface SheetViewState {
     object Inactive : SheetViewState
     object AddSecretActions : SheetViewState
@@ -275,4 +343,5 @@ private sealed interface SheetViewState {
 private sealed interface QRScannerState {
     object Inactive : QRScannerState
     object ScanTOTPSecret : QRScannerState
+    object ScanAnySupported : QRScannerState
 }

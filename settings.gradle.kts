@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Fenris"
+rootProject.name = "Fenris Authenticator"
 include(":app")
  

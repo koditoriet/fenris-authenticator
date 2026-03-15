@@ -1,6 +1,7 @@
 <resources>
     <!-- Generic strings -->
     <string name="app_name">Fenris</string>
+    <string name="app_name_full">Fenris Authenticator</string>
     <string name="generic_ok">OK</string>
     <string name="generic_back">Back</string>
     <string name="generic_cancel">Cancel</string>
@@ -94,6 +95,7 @@
 
     <!-- List secrets screen -->
     <string name="secrets_add_secret">Add secret</string>
+    <string name="secrets_scan_qr_code">Scan QR code</string>
     <string name="secrets_filter_placeholder">Filter accounts</string>
     <string name="secrets_lock_screen">Lock screen</string>
     <string name="secrets_settings">Settings</string>
@@ -119,6 +121,9 @@
 
     <string name="secrets_scan_totp_qr_code_invalid">Invalid OTP QR code</string>
     <string name="secrets_scan_totp_qr_code_invalid_description">This QR code does not contain an OTP secret.</string>
+
+    <string name="secrets_scan_any_supported_qr_unsupported">Unsupported QR code type</string>
+    <string name="secrets_scan_any_supported_qr_unsupported_description">Fenris Authenticator doesn\'t understand this QR code.</string>
 
 
     <!-- Manage passkeys screen -->
@@ -197,8 +202,8 @@
 
 
     <!-- View model -->
-    <string name="view_model_auth_use_passkey">Sign In</string>
-    <string name="view_model_auth_use_passkey_subtitle">Confirm your identity to sign in.</string>
+    <string name="view_model_auth_use_passkey">Sign in to %1$s</string>
+    <string name="view_model_auth_use_passkey_subtitle">Confirm your identity to sign in as \'%1$s\'.</string>
     <string name="view_model_auth_unlock_vault">Unlock Vault</string>
     <string name="view_model_auth_unlock_vault_subtitle">Confirm your identity to unlock vault.</string>
     <string name="view_model_auth_reveal_code">Reveal Code</string>
