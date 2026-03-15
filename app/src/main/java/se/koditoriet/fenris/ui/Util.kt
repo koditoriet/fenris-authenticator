@@ -1,6 +1,9 @@
 package se.koditoriet.fenris.ui
 
 import android.app.Activity
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.material3.ColorScheme
 import androidx.compose.ui.graphics.Color
 import androidx.fragment.app.FragmentActivity
@@ -24,6 +27,14 @@ fun <T> FragmentActivity.onIOThread(f: suspend (T) -> Any): (T) -> Unit =
 
 fun <T, U> FragmentActivity.onIOThread(f: suspend (T, U) -> Any): (T, U) -> Unit =
     { a, b -> lifecycleScope.launch(Dispatchers.IO) { f(a, b) } }
+
+fun Context.openUri(uri: Uri) {
+    Intent(Intent.ACTION_VIEW, uri).apply {
+        if (resolveActivity(packageManager) != null) {
+            startActivity(this)
+        }
+    }
+}
 
 val supportedImageMimeTypes: Array<String> = arrayOf(
     "image/png",

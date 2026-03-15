@@ -1,5 +1,6 @@
 package se.koditoriet.fenris.vault
 
+import android.net.Uri
 import androidx.core.net.toUri
 import androidx.room.Entity
 import androidx.room.PrimaryKey
@@ -73,20 +74,22 @@ data class NewTotpSecret(
     }
 
     companion object {
-        fun fromUri(uri: String): NewTotpSecret {
-            val parsedUri = uri.toUri()
-            require(parsedUri.scheme == "otpauth")
-            require(parsedUri.host == "totp")
+        fun fromUri(uri: String): NewTotpSecret =
+            fromUri(uri.toUri())
+
+        fun fromUri(uri: Uri): NewTotpSecret {
+            require(uri.scheme == "otpauth")
+            require(uri.host == "totp")
             return NewTotpSecret(
                 metadata = Metadata(
-                    issuer = parsedUri.totpIssuer,
-                    account = parsedUri.totpAccount,
+                    issuer = uri.totpIssuer,
+                    account = uri.totpAccount,
                 ),
                 secretData = SecretData(
-                    secret = parsedUri.totpSecret.toCharArray(),
-                    digits = parsedUri.totpDigits,
-                    period = parsedUri.totpPeriod,
-                    algorithm = TotpAlgorithm.valueOf(parsedUri.totpAlgorithm)
+                    secret = uri.totpSecret.toCharArray(),
+                    digits = uri.totpDigits,
+                    period = uri.totpPeriod,
+                    algorithm = TotpAlgorithm.valueOf(uri.totpAlgorithm)
                 )
             )
         }

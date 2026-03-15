@@ -18,8 +18,9 @@ class CredentialProviderViewModel(app: Application) : ActivityViewModel(app) {
     }
 
     suspend fun signWithPasskey(authFactory: AuthenticatorFactory, passkey: Passkey, data: ByteArray) = vault.withLock {
-        // TODO: explain where and as who the user is signing in?
-        authFactory.withReason(appStrings.viewModel.authUsePasskey, appStrings.viewModel.authUsePasskeySubtitle) {
+        val reason = appStrings.viewModel.authUsePasskey(passkey.displayName)
+        val subtitle = appStrings.viewModel.authUsePasskeySubtitle(passkey.userName)
+        authFactory.withReason(reason, subtitle) {
             signWithPasskey(it, passkey, data)
         }
     }

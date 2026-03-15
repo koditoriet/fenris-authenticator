@@ -120,6 +120,7 @@ class AppStrings(private val ctx: Context) {
 
     class SecretsScreen(ctx: Context) {
         val addSecret by ctx.s(R.string.secrets_add_secret)
+        val scanQRCode by ctx.s(R.string.secrets_scan_qr_code)
         val filterPlaceholder by ctx.s(R.string.secrets_filter_placeholder)
         val lockScreen by ctx.s(R.string.secrets_lock_screen)
         val settings by ctx.s(R.string.secrets_settings)
@@ -145,6 +146,9 @@ class AppStrings(private val ctx: Context) {
 
         val invalidTotpQRCode by ctx.s(R.string.secrets_scan_totp_qr_code_invalid)
         val invalidTotpQRCodeDescription by ctx.s(R.string.secrets_scan_totp_qr_code_invalid_description)
+
+        val unsupportedQRCode by ctx.s(R.string.secrets_scan_any_supported_qr_unsupported)
+        val unsupportedQRCodeDescription by ctx.s(R.string.secrets_scan_any_supported_qr_unsupported_description)
     }
 
     class LockScreen(ctx: Context) {
@@ -259,8 +263,8 @@ class AppStrings(private val ctx: Context) {
     }
 
     class ViewModel(private val ctx: Context) {
-        val authUsePasskey by ctx.s(R.string.view_model_auth_use_passkey)
-        val authUsePasskeySubtitle by ctx.s(R.string.view_model_auth_use_passkey_subtitle)
+        fun authUsePasskey(account: String) = ctx.s(R.string.view_model_auth_use_passkey, account)
+        fun authUsePasskeySubtitle(user: String) = ctx.s(R.string.view_model_auth_use_passkey_subtitle, user)
 
         val authUnlockVault by ctx.s(R.string.view_model_auth_unlock_vault)
         val authUnlockVaultSubtitle by ctx.s(R.string.view_model_auth_unlock_vault_subtitle)

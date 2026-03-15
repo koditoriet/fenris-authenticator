@@ -2,6 +2,8 @@ package se.koditoriet.fenris.codec
 
 import android.graphics.Bitmap
 import android.media.Image
+import android.net.Uri
+import androidx.core.net.toUri
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.BinaryBitmap
 import com.google.zxing.DecodeHintType
@@ -9,6 +11,7 @@ import com.google.zxing.MultiFormatReader
 import com.google.zxing.PlanarYUVLuminanceSource
 import com.google.zxing.RGBLuminanceSource
 import com.google.zxing.common.HybridBinarizer
+import se.koditoriet.fenris.vault.NewTotpSecret
 import kotlin.math.min
 
 class QrCodeReader {
@@ -63,5 +66,21 @@ class QrCodeReader {
             left, top, size, size, false
         )
         return BinaryBitmap(HybridBinarizer(source))
+    }
+}
+
+sealed interface QRCodeData {
+    class TotpSecret(val newTotpSecret: NewTotpSecret) : QRCodeData
+    class FidoRequest(val request: Uri) : QRCodeData
+
+    companion object {
+        fun parse(s: String): QRCodeData {
+            val uri = s.toUri()
+            return when (uri.scheme?.lowercase()) {
+                "otpauth" -> { TotpSecret(NewTotpSecret.fromUri(uri)) }
+                "fido" -> { FidoRequest(uri) }
+                else -> { throw IllegalArgumentException("unsupported qr code") }
+            }
+        }
     }
 }
