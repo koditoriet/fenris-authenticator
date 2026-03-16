@@ -1,6 +1,10 @@
 package se.koditoriet.fenris.ui.components.listview
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -34,7 +38,11 @@ fun FilterTextField(
             keyboard?.show()
         }
     }
-    AnimatedVisibility(filterEnabled) {
+    AnimatedVisibility(
+        visible = filterEnabled,
+        enter = expandVertically() + fadeIn(),
+        exit = shrinkVertically() + fadeOut(),
+    ) {
         OutlinedTextField(
             modifier = Modifier
                 .fillMaxWidth()
