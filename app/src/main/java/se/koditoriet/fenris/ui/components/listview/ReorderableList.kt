@@ -23,10 +23,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -67,15 +67,18 @@ fun <T : ReorderableListItem> ReorderableList(
     onFilterChange: (String) -> Unit,
     onReindexItems: () -> Unit,
 ) {
-    val isManuallySortable = filter.isNullOrEmpty() && sortMode == SortMode.Manual
-    val reorderableItems = remember { mutableStateListOf<T>() }
-
     // The parent holds the secret list with SnapshotFlow, and feeds it to this component.
     // We need to update our reorderableSecrets list when the parent updates, otherwise
     // we only get an empty secrets list to render.
-    LaunchedEffect(items.map { it.visibleDataHash }.hashCode()) {
-        reorderableItems.clear()
-        reorderableItems.addAll(items)
+    val itemsVisibleDataHash = items.map { it.visibleDataHash }.hashCode()
+
+    @Suppress("UNCHECKED_CAST")
+    val reorderableItems = remember(itemsVisibleDataHash) {
+        mutableStateListOf(*(items as List<ReorderableListItem>).toTypedArray())
+    } as SnapshotStateList<T>
+
+    val sortedItems = remember(itemsVisibleDataHash, sortMode, filter) {
+        sortAndFilterItems(filter, reorderableItems, sortMode, alphabeticItemComparator)
     }
 
     val lazyListState = rememberLazyListState()
@@ -84,6 +87,7 @@ fun <T : ReorderableListItem> ReorderableList(
             add(to.index, removeAt(from.index))
         }
     }
+
     Column(modifier = Modifier.padding(padding)) {
         FilterTextField(
             filterEnabled = filter != null,
@@ -96,28 +100,10 @@ fun <T : ReorderableListItem> ReorderableList(
             state = lazyListState,
             modifier = Modifier.fillMaxSize(),
         ) {
-            val filterQuery = filter ?: ""
-            val filteredSecrets = when (filterQuery.isNotBlank()) {
-                true -> {
-                    val filterParts = filterQuery
-                        .split(' ')
-                        .filter { it.isNotBlank() }
-                        .map { it.lowercase() }
-                    reorderableItems.filter {
-                        filterParts.all { f -> it.filterPredicate(f) }
-                    }
-                }
-
-                false -> items
-            }
-            val sortedSecrets = when (sortMode) {
-                SortMode.Manual -> filteredSecrets
-                SortMode.Alphabetic -> filteredSecrets.sortedWith(alphabeticItemComparator)
-            }
             items(
-                items = if (isManuallySortable) reorderableItems else sortedSecrets,
-                key = { it.key })
-            { item ->
+                items = sortedItems,
+                key = { it.key }
+            ) { item ->
                 ReorderableItem(reorderableLazyListState, key = item.key) { isDragging ->
                     val reorderableScope = this
                     val elevation by animateDpAsState(if (isDragging) 4.dp else 0.dp)
@@ -128,13 +114,13 @@ fun <T : ReorderableListItem> ReorderableList(
                             dragHandle = {
                                 DragHandle(
                                     scope = reorderableScope,
-                                    showDragHandle = isManuallySortable,
+                                    showDragHandle = filter.isNullOrEmpty() && sortMode == SortMode.Manual,
                                     onDragStopped = {
                                         val itemSortOrder = computeSortOrder(item, reorderableItems)
-                                        val shouldReindexAfterUpdate = shouldReindexSecrets(
+                                        val shouldReindexAfterUpdate = shouldReindexItems(
                                             movedItemKey = item.key,
                                             movedItemSortOrder = itemSortOrder,
-                                            secretList = reorderableItems,
+                                            items = reorderableItems,
                                         )
 
                                         item.onUpdateSortOrder(itemSortOrder)
@@ -149,6 +135,31 @@ fun <T : ReorderableListItem> ReorderableList(
                 }
             }
         }
+    }
+}
+
+private fun <T : ReorderableListItem> sortAndFilterItems(
+    filter: String?,
+    reorderableItems: SnapshotStateList<T>,
+    sortMode: SortMode,
+    alphabeticItemComparator: Comparator<T>,
+): List<T> {
+    val filterQuery = filter ?: ""
+    val filteredSecrets = when (filterQuery.isNotBlank()) {
+        true -> {
+            val filterParts = filterQuery
+                .split(' ')
+                .filter { it.isNotBlank() }
+                .map { it.lowercase() }
+            reorderableItems.filter {
+                filterParts.all { f -> it.filterPredicate(f) }
+            }
+        }
+        false -> reorderableItems
+    }
+    return when (sortMode) {
+        SortMode.Manual -> filteredSecrets
+        SortMode.Alphabetic -> filteredSecrets.sortedWith(alphabeticItemComparator)
     }
 }
 
@@ -216,13 +227,13 @@ private fun <T : ReorderableListItem> computeSortOrder(item: T, items: List<T>):
     return  sortOrderOfPrev / 2 + sortOrderOfNext / 2
 }
 
-private fun <T : ReorderableListItem> shouldReindexSecrets(
+private fun <T : ReorderableListItem> shouldReindexItems(
     movedItemKey: String,
     movedItemSortOrder: Long,
-    secretList: List<T>,
+    items: List<T>,
 ): Boolean {
-    val indexOfLastMovedSecret = secretList.indexOfFirst { it.key == movedItemKey }
-    val sortOrderOfPrev = secretList.getOrNull(indexOfLastMovedSecret - 1)?.sortOrder ?: 0
-    val sortOrderOfNext = secretList.getOrNull(indexOfLastMovedSecret + 1)?.sortOrder ?: Long.MAX_VALUE
+    val indexOfLastMovedItem = items.indexOfFirst { it.key == movedItemKey }
+    val sortOrderOfPrev = items.getOrNull(indexOfLastMovedItem - 1)?.sortOrder ?: 0
+    val sortOrderOfNext = items.getOrNull(indexOfLastMovedItem + 1)?.sortOrder ?: Long.MAX_VALUE
     return movedItemSortOrder == sortOrderOfPrev + 1 || movedItemSortOrder == sortOrderOfNext - 1
 }

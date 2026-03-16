@@ -40,11 +40,10 @@ class PasskeyListItem(
         ).hashCode()
     }
 
-    override fun filterPredicate(filter: String): Boolean = (
-            filter in passkey.displayName.lowercase() ||
-                    filter in passkey.userName.lowercase() ||
-                    filter in passkey.rpId.lowercase()
-            )
+    override fun filterPredicate(filter: String): Boolean =
+        listOf(passkey.displayName, passkey.userName, passkey.rpId).any {
+            filter in it.lowercase()
+        }
 
     override fun onUpdateSortOrder(sortOrder: Long) {
         onUpdatePasskey(passkey.copy(sortOrder = sortOrder))
