@@ -23,7 +23,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
@@ -68,20 +67,18 @@ fun <T : ReorderableListItem> ReorderableList(
     onFilterChange: (String) -> Unit,
     onReindexItems: () -> Unit,
 ) {
-    val isManuallySortable = filter.isNullOrEmpty() && sortMode == SortMode.Manual
-    val reorderableItems = remember { mutableStateListOf<T>() }
-
     // The parent holds the secret list with SnapshotFlow, and feeds it to this component.
     // We need to update our reorderableSecrets list when the parent updates, otherwise
     // we only get an empty secrets list to render.
     val itemsVisibleDataHash = items.map { it.visibleDataHash }.hashCode()
-    LaunchedEffect(itemsVisibleDataHash) {
-        reorderableItems.clear()
-        reorderableItems.addAll(items)
-    }
 
-    val sortedSecrets = remember(itemsVisibleDataHash) {
-        sortAndFilterItems(filter, reorderableItems, items, sortMode, alphabeticItemComparator)
+    @Suppress("UNCHECKED_CAST")
+    val reorderableItems = remember(itemsVisibleDataHash) {
+        mutableStateListOf(*(items as List<ReorderableListItem>).toTypedArray())
+    } as SnapshotStateList<T>
+
+    val sortedItems = remember(itemsVisibleDataHash, sortMode, filter) {
+        sortAndFilterItems(filter, reorderableItems, sortMode, alphabeticItemComparator)
     }
 
     val lazyListState = rememberLazyListState()
@@ -90,6 +87,7 @@ fun <T : ReorderableListItem> ReorderableList(
             add(to.index, removeAt(from.index))
         }
     }
+
     Column(modifier = Modifier.padding(padding)) {
         FilterTextField(
             filterEnabled = filter != null,
@@ -103,9 +101,9 @@ fun <T : ReorderableListItem> ReorderableList(
             modifier = Modifier.fillMaxSize(),
         ) {
             items(
-                items = if (isManuallySortable) reorderableItems else sortedSecrets,
-                key = { it.key })
-            { item ->
+                items = sortedItems,
+                key = { it.key }
+            ) { item ->
                 ReorderableItem(reorderableLazyListState, key = item.key) { isDragging ->
                     val reorderableScope = this
                     val elevation by animateDpAsState(if (isDragging) 4.dp else 0.dp)
@@ -116,7 +114,7 @@ fun <T : ReorderableListItem> ReorderableList(
                             dragHandle = {
                                 DragHandle(
                                     scope = reorderableScope,
-                                    showDragHandle = isManuallySortable,
+                                    showDragHandle = filter.isNullOrEmpty() && sortMode == SortMode.Manual,
                                     onDragStopped = {
                                         val itemSortOrder = computeSortOrder(item, reorderableItems)
                                         val shouldReindexAfterUpdate = shouldReindexItems(
@@ -143,7 +141,6 @@ fun <T : ReorderableListItem> ReorderableList(
 private fun <T : ReorderableListItem> sortAndFilterItems(
     filter: String?,
     reorderableItems: SnapshotStateList<T>,
-    items: List<T>,
     sortMode: SortMode,
     alphabeticItemComparator: Comparator<T>,
 ): List<T> {
@@ -158,8 +155,7 @@ private fun <T : ReorderableListItem> sortAndFilterItems(
                 filterParts.all { f -> it.filterPredicate(f) }
             }
         }
-
-        false -> items
+        false -> reorderableItems
     }
     return when (sortMode) {
         SortMode.Manual -> filteredSecrets
