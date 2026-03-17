@@ -50,6 +50,7 @@ class CreatePasskeyActivity : FragmentActivity() {
         val screenStrings = appStrings.credentialProvider
         val authFactory = BiometricPromptAuthenticator.Factory(this@CreatePasskeyActivity)
         val requestInfo = CreateRequestInfo.fromIntent(intent!!)
+        val requestInfoIsValid = requestInfo.isValid(webAuthnValidator)
 
         enableEdgeToEdge()
         setContent {
@@ -59,7 +60,9 @@ class CreatePasskeyActivity : FragmentActivity() {
 
             LaunchedEffect(Unit) {
                 try {
-                    viewModel.unlockVault(authFactory)
+                    if (requestInfoIsValid) {
+                        viewModel.unlockVault(authFactory)
+                    }
                 } catch (_: AuthenticationFailedException) {
                     finishWithResponse(null)
                     return@LaunchedEffect
@@ -77,29 +80,30 @@ class CreatePasskeyActivity : FragmentActivity() {
                             onDismiss = { finishWithResponse(null) }
                         )
                     }
-                    if (!requestInfo.isValid(webAuthnValidator)) {
+                    if (!requestInfoIsValid) {
                         WarningInformationDialog(
                             title = screenStrings.unableToEstablishTrust,
                             text = screenStrings.unableToEstablishTrustExplanation,
                             onDismiss = { finishWithResponse(null) }
                         )
-                    }
-                    BottomSheet(
-                        hideSheet = { finishWithResponse(null) },
-                        sheetState = sheetState,
-                        sheetViewState = Unit,
-                    ) { _ ->
-                        EditPasskeyNameSheet(
-                            prefilledDisplayName = requestInfo.requestJson.rp.id,
-                            onSave = onIOThread { displayName ->
-                                val response = createPasskey(webAuthnValidator, displayName, requestInfo)
-                                Log.i(
-                                    TAG,
-                                    "Created passkey with credential id ${response.credentialId}"
-                                )
-                                finishWithResponse(response)
-                            }
-                        )
+                    } else {
+                        BottomSheet(
+                            hideSheet = { finishWithResponse(null) },
+                            sheetState = sheetState,
+                            sheetViewState = Unit,
+                        ) { _ ->
+                            EditPasskeyNameSheet(
+                                prefilledDisplayName = requestInfo.requestJson.rp.id,
+                                onSave = onIOThread { displayName ->
+                                    val response = createPasskey(webAuthnValidator, displayName, requestInfo)
+                                    Log.i(
+                                        TAG,
+                                        "Created passkey with credential id ${response.credentialId}"
+                                    )
+                                    finishWithResponse(response)
+                                }
+                            )
+                        }
                     }
                 }
             }
