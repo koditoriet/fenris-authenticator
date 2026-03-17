@@ -1,4 +1,4 @@
-package se.koditoriet.fenris.ui.activities.credentialprovider
+package se.koditoriet.fenris.credentialprovider.activities
 
 import android.content.Intent
 import android.os.Bundle

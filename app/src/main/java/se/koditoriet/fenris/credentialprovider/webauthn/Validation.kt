@@ -24,12 +24,11 @@ class WebAuthnValidator(
         }
 
         if (origin.startsWith("android:apk-key-hash:")) {
-            Log.e(TAG, "Android app origins are not supported yet")
-            return false
+            // If we're dealing with an Android origin, there's nothing more for us to verify
+            return true
         }
 
         val originUri = origin.toUri()
-
         if (originUri.scheme != "https" && !originUri.isHttpLocalhost) {
             Log.e(TAG, "Bad origin URI scheme (must be https): ${originUri.scheme}")
             return false

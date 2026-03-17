@@ -1,4 +1,4 @@
-package se.koditoriet.fenris.ui.activities.credentialprovider
+package se.koditoriet.fenris.credentialprovider.activities
 
 import android.content.Intent
 import android.os.Bundle
@@ -20,6 +20,8 @@ import androidx.credentials.provider.PendingIntentHandler
 import androidx.fragment.app.FragmentActivity
 import se.koditoriet.fenris.BiometricPromptAuthenticator
 import se.koditoriet.fenris.appStrings
+import se.koditoriet.fenris.codec.Base64Url
+import se.koditoriet.fenris.codec.Base64Url.Companion.toBase64Url
 import se.koditoriet.fenris.credentialprovider.webAuthnValidator
 import se.koditoriet.fenris.credentialprovider.webauthn.AuthDataFlag
 import se.koditoriet.fenris.credentialprovider.webauthn.CreateResponse
@@ -79,31 +81,34 @@ class CreatePasskeyActivity : FragmentActivity() {
                             text = screenStrings.passkeyAlreadyExistsExplanation,
                             onDismiss = { finishWithResponse(null) }
                         )
+                        return@ThemedEmptySpace
                     }
+
                     if (!requestInfoIsValid) {
                         WarningInformationDialog(
                             title = screenStrings.unableToEstablishTrust,
                             text = screenStrings.unableToEstablishTrustExplanation,
                             onDismiss = { finishWithResponse(null) }
                         )
-                    } else {
-                        BottomSheet(
-                            hideSheet = { finishWithResponse(null) },
-                            sheetState = sheetState,
-                            sheetViewState = Unit,
-                        ) { _ ->
-                            EditPasskeyNameSheet(
-                                prefilledDisplayName = requestInfo.requestJson.rp.id,
-                                onSave = onIOThread { displayName ->
-                                    val response = createPasskey(webAuthnValidator, displayName, requestInfo)
-                                    Log.i(
-                                        TAG,
-                                        "Created passkey with credential id ${response.credentialId}"
-                                    )
-                                    finishWithResponse(response)
-                                }
-                            )
-                        }
+                        return@ThemedEmptySpace
+                    }
+
+                    BottomSheet(
+                        hideSheet = { finishWithResponse(null) },
+                        sheetState = sheetState,
+                        sheetViewState = Unit,
+                    ) { _ ->
+                        EditPasskeyNameSheet(
+                            prefilledDisplayName = requestInfo.requestJson.rp.id,
+                            onSave = onIOThread { displayName ->
+                                val response = createPasskey(webAuthnValidator, displayName, requestInfo)
+                                Log.i(
+                                    TAG,
+                                    "Created passkey with credential id ${response.credentialId.toBase64Url()}"
+                                )
+                                finishWithResponse(response)
+                            }
+                        )
                     }
                 }
             }
@@ -140,6 +145,7 @@ class CreatePasskeyActivity : FragmentActivity() {
             flags = AuthDataFlag.defaultCreateFlags,
             origin = validator.appInfoToOrigin(requestInfo.callingAppInfo),
             packageName = requestInfo.callingAppInfo.packageName,
+            challenge = Base64Url.fromBase64UrlString(requestInfo.requestJson.challenge),
         )
     }
 

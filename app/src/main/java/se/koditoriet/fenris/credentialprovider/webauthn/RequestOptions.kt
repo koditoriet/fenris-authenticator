@@ -13,6 +13,7 @@ class PublicKeyCredentialCreationOptions(
     val user: User,
     val timeout: Int? = null,
     val excludeCredentials: List<PublicKeyCredentialDescriptor> = emptyList(),
+    val challenge: String,
 ) {
     @Serializable
     class RP(val id: String)
@@ -46,8 +47,9 @@ class PublicKeyCredentialRequestOptions(
     companion object {
         private val json = Json { ignoreUnknownKeys = true }
 
-        fun fromJSON(s: String): PublicKeyCredentialRequestOptions =
-            json.decodeFromString(s)
+        fun fromJSON(s: String): PublicKeyCredentialRequestOptions {
+            return json.decodeFromString(s)
+        }
     }
 }
 

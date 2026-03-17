@@ -26,15 +26,15 @@
         </activity>
 
         <activity
-            android:name=".ui.activities.credentialprovider.CreatePasskeyActivity"
+            android:name=".credentialprovider.activities.CreatePasskeyActivity"
             android:theme="@style/Theme.Fenris.Splash" />
 
         <activity
-            android:name=".ui.activities.credentialprovider.AuthenticateActivity"
+            android:name=".credentialprovider.activities.AuthenticateActivity"
             android:theme="@style/Theme.Fenris.Splash" />
 
         <activity
-            android:name=".ui.activities.credentialprovider.ListPasskeysActivity"
+            android:name=".credentialprovider.activities.ListPasskeysActivity"
             android:theme="@style/Theme.Fenris.Splash" />
 
         <service android:name=".credentialprovider.FenrisCredentialProviderService"

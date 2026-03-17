@@ -25,8 +25,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import se.koditoriet.fenris.FenrisApp
 import se.koditoriet.fenris.appStrings
-import se.koditoriet.fenris.ui.activities.credentialprovider.CreatePasskeyActivity
-import se.koditoriet.fenris.ui.activities.credentialprovider.ListPasskeysActivity
+import se.koditoriet.fenris.credentialprovider.activities.CreatePasskeyActivity
+import se.koditoriet.fenris.credentialprovider.activities.ListPasskeysActivity
 import se.koditoriet.fenris.crypto.DummyAuthenticator
 import se.koditoriet.fenris.vault.Vault
 

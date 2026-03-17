@@ -11,7 +11,7 @@ import androidx.credentials.provider.BeginGetPublicKeyCredentialOption
 import androidx.credentials.provider.CallingAppInfo
 import androidx.credentials.provider.CredentialEntry
 import androidx.credentials.provider.PublicKeyCredentialEntry
-import se.koditoriet.fenris.ui.activities.credentialprovider.AuthenticateActivity
+import se.koditoriet.fenris.credentialprovider.activities.AuthenticateActivity
 import se.koditoriet.fenris.credentialprovider.webauthn.PublicKeyCredentialRequestOptions
 import se.koditoriet.fenris.credentialprovider.webauthn.WebAuthnValidator
 import se.koditoriet.fenris.vault.CredentialId
