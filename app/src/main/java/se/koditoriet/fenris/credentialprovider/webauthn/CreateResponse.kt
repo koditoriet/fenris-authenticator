@@ -1,12 +1,10 @@
 package se.koditoriet.fenris.credentialprovider.webauthn
 
-import androidx.credentials.provider.CallingAppInfo
 import com.upokecenter.cbor.CBOREncodeOptions
 import com.upokecenter.cbor.CBORObject
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import se.koditoriet.fenris.codec.Base64Url.Companion.toBase64Url
-import se.koditoriet.fenris.credentialprovider.appInfoToOrigin
 import java.math.BigInteger
 import java.security.MessageDigest
 import java.security.interfaces.ECPublicKey
@@ -28,8 +26,9 @@ class CreateResponse(
     val rpId: String,
     val credentialId: ByteArray,
     val publicKey: ECPublicKey,
-    val callingAppInfo: CallingAppInfo,
     val flags: Set<AuthDataFlag>,
+    val origin: String,
+    val packageName: String,
 ) {
     val cosePublicKey: ByteArray by lazy {
         val xBytes = toUnsignedFixedLength(publicKey.w.affineX, 32)
@@ -42,10 +41,6 @@ class CreateResponse(
             set(-2, CBORObject.FromObject(xBytes))
             set(-3, CBORObject.FromObject(yBytes))
         }.EncodeToBytes(CBOREncodeOptions.DefaultCtap2Canonical)
-    }
-
-    val origin: String by lazy {
-        appInfoToOrigin(callingAppInfo)
     }
 
     val authenticatorData: ByteArray by lazy {
@@ -68,7 +63,7 @@ class CreateResponse(
         Response(
             transports = listOf("internal"),
             origin = origin,
-            androidPackageName = callingAppInfo.packageName,
+            androidPackageName = packageName,
             publicKeyAlgorithm = -7,
             publicKey = publicKey.encoded.toBase64Url().string,
             authenticatorData = authenticatorData.toBase64Url().string,
