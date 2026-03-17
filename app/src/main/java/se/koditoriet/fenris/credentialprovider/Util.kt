@@ -13,6 +13,7 @@ import androidx.credentials.provider.CredentialEntry
 import androidx.credentials.provider.PublicKeyCredentialEntry
 import se.koditoriet.fenris.ui.activities.credentialprovider.AuthenticateActivity
 import se.koditoriet.fenris.credentialprovider.webauthn.PublicKeyCredentialRequestOptions
+import se.koditoriet.fenris.credentialprovider.webauthn.PrivilegedBrowserList
 import se.koditoriet.fenris.vault.CredentialId
 import se.koditoriet.fenris.vault.Vault
 import kotlin.random.Random
@@ -27,9 +28,18 @@ suspend fun createBeginGetCredentialResponse(
     request: BeginGetCredentialRequest,
 ): BeginGetCredentialResponse {
     Log.i(TAG, "Fetching passkeys from vault")
+    val validator = context.assets.open(PRIVILEGED_BROWSERS_FILE).use { stream ->
+        PrivilegedBrowserList(stream.bufferedReader().use { it.readText() })
+    }
     val credentialEntries = request.beginGetCredentialOptions.flatMap {
         when (it) {
-            is BeginGetPublicKeyCredentialOption -> getPasskeys(vault, context, request.callingAppInfo!!, it)
+            is BeginGetPublicKeyCredentialOption -> getPasskeys(
+                vault = vault,
+                context = context,
+                callingAppInfo = request.callingAppInfo!!,
+                option = it,
+                validator = validator,
+            )
             else -> emptyList()
         }
     }
@@ -42,6 +52,7 @@ private suspend fun getPasskeys(
     context: Context,
     callingAppInfo: CallingAppInfo,
     option: BeginGetPublicKeyCredentialOption,
+    validator: PrivilegedBrowserList,
 ): List<CredentialEntry> {
     Log.i(TAG, "Listing eligible passkeys")
     val request = PublicKeyCredentialRequestOptions.fromJSON(option.requestJson)
@@ -54,7 +65,7 @@ private suspend fun getPasskeys(
         Log.i(TAG, "RP did not specify allowedCredentials")
     }
 
-    return vault.getPasskeys(request.rpId ?: appInfoToRpId(callingAppInfo)).flatMap { passkey ->
+    return vault.getPasskeys(request.rpId ?: validator.appInfoToRpId(callingAppInfo)).flatMap { passkey ->
         if (allowedCredentials.isEmpty() || allowedCredentials.contains(passkey.credentialId)) {
             val data = Bundle().apply { putString(CREDENTIAL_ID, passkey.credentialId.string) }
             listOf(
@@ -86,4 +97,17 @@ fun createPendingIntent(context: Context, cls: Class<*>, extra: Bundle? = null):
             this,
             PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
+    }
+
+private const val PRIVILEGED_BROWSERS_FILE = "privileged_browsers_google.json"
+private var _privilegedBrowserList: PrivilegedBrowserList? = null
+
+val Context.privilegedBrowserList: PrivilegedBrowserList
+    get() {
+        if (_privilegedBrowserList == null) {
+            _privilegedBrowserList = assets.open(PRIVILEGED_BROWSERS_FILE).use { stream ->
+                PrivilegedBrowserList(stream.bufferedReader().use { it.readText() })
+            }
+        }
+        return _privilegedBrowserList!!
     }

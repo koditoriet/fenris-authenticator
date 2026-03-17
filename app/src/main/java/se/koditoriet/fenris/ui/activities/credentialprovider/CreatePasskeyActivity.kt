@@ -18,14 +18,13 @@ import androidx.credentials.CreatePublicKeyCredentialResponse
 import androidx.credentials.provider.CallingAppInfo
 import androidx.credentials.provider.PendingIntentHandler
 import androidx.fragment.app.FragmentActivity
-import androidx.lifecycle.viewmodel.compose.viewModel
 import se.koditoriet.fenris.BiometricPromptAuthenticator
 import se.koditoriet.fenris.appStrings
-import se.koditoriet.fenris.credentialprovider.originIsValid
-import se.koditoriet.fenris.credentialprovider.rpIsValid
+import se.koditoriet.fenris.credentialprovider.privilegedBrowserList
 import se.koditoriet.fenris.credentialprovider.webauthn.AuthDataFlag
 import se.koditoriet.fenris.credentialprovider.webauthn.CreateResponse
 import se.koditoriet.fenris.credentialprovider.webauthn.PublicKeyCredentialCreationOptions
+import se.koditoriet.fenris.credentialprovider.webauthn.PrivilegedBrowserList
 import se.koditoriet.fenris.crypto.AuthenticationFailedException
 import se.koditoriet.fenris.ui.components.BadInputInformationDialog
 import se.koditoriet.fenris.ui.components.PasskeyIcon
@@ -39,7 +38,6 @@ import se.koditoriet.fenris.ui.theme.FenrisTheme
 import se.koditoriet.fenris.vault.CredentialId
 import se.koditoriet.fenris.vault.Passkey
 import se.koditoriet.fenris.viewmodel.CredentialProviderViewModel
-import se.koditoriet.fenris.viewmodel.FenrisViewModel
 
 private const val TAG = "CreatePasskeyActivity"
 
@@ -79,7 +77,7 @@ class CreatePasskeyActivity : FragmentActivity() {
                             onDismiss = { finishWithResponse(null) }
                         )
                     }
-                    if (!requestInfo.isValid) {
+                    if (!requestInfo.isValid(privilegedBrowserList)) {
                         WarningInformationDialog(
                             title = screenStrings.unableToEstablishTrust,
                             text = screenStrings.unableToEstablishTrustExplanation,
@@ -94,7 +92,7 @@ class CreatePasskeyActivity : FragmentActivity() {
                         EditPasskeyNameSheet(
                             prefilledDisplayName = requestInfo.requestJson.rp.id,
                             onSave = onIOThread { displayName ->
-                                val response = createPasskey(displayName, requestInfo)
+                                val response = createPasskey(privilegedBrowserList, displayName, requestInfo)
                                 Log.i(
                                     TAG,
                                     "Created passkey with credential id ${response.credentialId}"
@@ -120,6 +118,7 @@ class CreatePasskeyActivity : FragmentActivity() {
     }
 
     private suspend fun createPasskey(
+        validator: PrivilegedBrowserList,
         displayName: String,
         requestInfo: CreateRequestInfo,
     ): CreateResponse {
@@ -134,8 +133,9 @@ class CreatePasskeyActivity : FragmentActivity() {
             rpId = requestInfo.requestJson.rp.id,
             credentialId = credentialId.toByteArray(),
             publicKey = pubkey,
-            callingAppInfo = requestInfo.callingAppInfo,
             flags = AuthDataFlag.defaultCreateFlags,
+            origin = validator.appInfoToOrigin(requestInfo.callingAppInfo),
+            packageName = requestInfo.callingAppInfo.packageName,
         )
     }
 
@@ -161,18 +161,18 @@ private class CreateRequestInfo(
     val callingAppInfo: CallingAppInfo,
     val requestJson: PublicKeyCredentialCreationOptions,
 ) {
-    val isValid: Boolean by lazy {
-        if (!rpIsValid(requestJson.rp.id)) {
+    fun isValid(browserList: PrivilegedBrowserList): Boolean {
+        if (!browserList.rpIsValid(requestJson.rp.id)) {
             Log.e(TAG, "Request RP is invalid!")
-            return@lazy false
+            return false
         }
 
-        if (!originIsValid(callingAppInfo, requestJson.rp.id)) {
+        if (!browserList.originIsValid(callingAppInfo, requestJson.rp.id)) {
             Log.e(TAG, "Origin is invalid!")
-            return@lazy false
+            return false
         }
 
-        true
+        return true
     }
 
     companion object {
