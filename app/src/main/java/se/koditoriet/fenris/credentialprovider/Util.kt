@@ -13,7 +13,7 @@ import androidx.credentials.provider.CredentialEntry
 import androidx.credentials.provider.PublicKeyCredentialEntry
 import se.koditoriet.fenris.ui.activities.credentialprovider.AuthenticateActivity
 import se.koditoriet.fenris.credentialprovider.webauthn.PublicKeyCredentialRequestOptions
-import se.koditoriet.fenris.credentialprovider.webauthn.PrivilegedBrowserList
+import se.koditoriet.fenris.credentialprovider.webauthn.WebAuthnValidator
 import se.koditoriet.fenris.vault.CredentialId
 import se.koditoriet.fenris.vault.Vault
 import kotlin.random.Random
@@ -28,9 +28,6 @@ suspend fun createBeginGetCredentialResponse(
     request: BeginGetCredentialRequest,
 ): BeginGetCredentialResponse {
     Log.i(TAG, "Fetching passkeys from vault")
-    val validator = context.assets.open(PRIVILEGED_BROWSERS_FILE).use { stream ->
-        PrivilegedBrowserList(stream.bufferedReader().use { it.readText() })
-    }
     val credentialEntries = request.beginGetCredentialOptions.flatMap {
         when (it) {
             is BeginGetPublicKeyCredentialOption -> getPasskeys(
@@ -38,7 +35,7 @@ suspend fun createBeginGetCredentialResponse(
                 context = context,
                 callingAppInfo = request.callingAppInfo!!,
                 option = it,
-                validator = validator,
+                validator = context.webAuthnValidator,
             )
             else -> emptyList()
         }
@@ -52,7 +49,7 @@ private suspend fun getPasskeys(
     context: Context,
     callingAppInfo: CallingAppInfo,
     option: BeginGetPublicKeyCredentialOption,
-    validator: PrivilegedBrowserList,
+    validator: WebAuthnValidator,
 ): List<CredentialEntry> {
     Log.i(TAG, "Listing eligible passkeys")
     val request = PublicKeyCredentialRequestOptions.fromJSON(option.requestJson)
@@ -99,15 +96,26 @@ fun createPendingIntent(context: Context, cls: Class<*>, extra: Bundle? = null):
         )
     }
 
+// Privileged browser apps from https://www.gstatic.com/gpm-passkeys-privileged-apps/apps.json
 private const val PRIVILEGED_BROWSERS_FILE = "privileged_browsers_google.json"
-private var _privilegedBrowserList: PrivilegedBrowserList? = null
 
-val Context.privilegedBrowserList: PrivilegedBrowserList
+// TLDs from https://data.iana.org/TLD/tlds-alpha-by-domain.txt
+private const val TLDS_FILE = "tlds.txt"
+private var _webAuthnValidator: WebAuthnValidator? = null
+
+val Context.webAuthnValidator: WebAuthnValidator
     get() {
-        if (_privilegedBrowserList == null) {
-            _privilegedBrowserList = assets.open(PRIVILEGED_BROWSERS_FILE).use { stream ->
-                PrivilegedBrowserList(stream.bufferedReader().use { it.readText() })
+        if (_webAuthnValidator == null) {
+            val privilegedBrowserList = assets.open(PRIVILEGED_BROWSERS_FILE).use { stream ->
+                stream.bufferedReader().use { it.readText() }
             }
+            val tlds = assets.open(TLDS_FILE).use { stream ->
+                stream.bufferedReader().use { it.readLines() }.filter { it.isNotEmpty() && !it.startsWith('#') }
+            }
+            _webAuthnValidator = WebAuthnValidator(
+                tlds = tlds,
+                privilegedBrowserList = privilegedBrowserList,
+            )
         }
-        return _privilegedBrowserList!!
+        return _webAuthnValidator!!
     }

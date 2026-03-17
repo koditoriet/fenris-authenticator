@@ -21,12 +21,12 @@ import se.koditoriet.fenris.BiometricPromptAuthenticator
 import se.koditoriet.fenris.appStrings
 import se.koditoriet.fenris.credentialprovider.CREDENTIAL_DATA
 import se.koditoriet.fenris.credentialprovider.CREDENTIAL_ID
-import se.koditoriet.fenris.credentialprovider.privilegedBrowserList
+import se.koditoriet.fenris.credentialprovider.webAuthnValidator
 import se.koditoriet.fenris.credentialprovider.webauthn.AuthDataFlag
 import se.koditoriet.fenris.credentialprovider.webauthn.AuthResponse
 import se.koditoriet.fenris.credentialprovider.webauthn.PublicKeyCredentialRequestOptions
 import se.koditoriet.fenris.credentialprovider.webauthn.SignedAuthResponse
-import se.koditoriet.fenris.credentialprovider.webauthn.PrivilegedBrowserList
+import se.koditoriet.fenris.credentialprovider.webauthn.WebAuthnValidator
 import se.koditoriet.fenris.crypto.AuthenticationFailedException
 import se.koditoriet.fenris.ui.components.PasskeyIcon
 import se.koditoriet.fenris.ui.components.ThemedEmptySpace
@@ -65,7 +65,7 @@ class AuthenticateActivity : FragmentActivity() {
                 Log.d(TAG, "Fetching passkey with credential ID ${requestInfo.credentialId}")
                 val passkey = viewModel.getPasskey(requestInfo.credentialId)
 
-                if (!requestInfo.isValid(privilegedBrowserList, passkey)) {
+                if (!requestInfo.isValid(webAuthnValidator, passkey)) {
                     showUnableToEstablishTrustDialog.value = true
                     return@LaunchedEffect
                 }
@@ -132,14 +132,14 @@ private class GetRequestInfo(
     val clientDataHash: ByteArray,
     val requestJson: PublicKeyCredentialRequestOptions,
 ) {
-    fun isValid(browserList: PrivilegedBrowserList, storedPasskey: Passkey): Boolean {
+    fun isValid(browserList: WebAuthnValidator, storedPasskey: Passkey): Boolean {
         val rpId = requestJson.rpId ?: browserList.appInfoToRpId(callingAppInfo)
         if (!browserList.rpIsValid(rpId)) {
             Log.e(TAG, "Request RP is invalid!")
             return false
         }
 
-        if (!browserList.originIsValid(callingAppInfo, rpId)) {
+        if (!browserList.originIsValid(callingAppInfo)) {
             Log.e(TAG, "Origin is invalid!")
             return false
         }
