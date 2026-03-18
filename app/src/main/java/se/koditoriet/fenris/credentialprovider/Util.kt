@@ -11,6 +11,8 @@ import androidx.credentials.provider.BeginGetPublicKeyCredentialOption
 import androidx.credentials.provider.CallingAppInfo
 import androidx.credentials.provider.CredentialEntry
 import androidx.credentials.provider.PublicKeyCredentialEntry
+import se.koditoriet.fenris.PRIVILEGED_BROWSERS_ASSET_NAME
+import se.koditoriet.fenris.TLD_LIST_ASSET_NAME
 import se.koditoriet.fenris.credentialprovider.activities.AuthenticateActivity
 import se.koditoriet.fenris.credentialprovider.webauthn.PublicKeyCredentialRequestOptions
 import se.koditoriet.fenris.credentialprovider.webauthn.WebAuthnValidator
@@ -96,20 +98,15 @@ fun createPendingIntent(context: Context, cls: Class<*>, extra: Bundle? = null):
         )
     }
 
-// Privileged browser apps from https://www.gstatic.com/gpm-passkeys-privileged-apps/apps.json
-private const val PRIVILEGED_BROWSERS_FILE = "privileged_browsers_google.json"
-
-// TLDs from https://data.iana.org/TLD/tlds-alpha-by-domain.txt
-private const val TLDS_FILE = "tlds.txt"
 private var _webAuthnValidator: WebAuthnValidator? = null
 
 val Context.webAuthnValidator: WebAuthnValidator
     get() {
         if (_webAuthnValidator == null) {
-            val privilegedBrowserList = assets.open(PRIVILEGED_BROWSERS_FILE).use { stream ->
+            val privilegedBrowserList = assets.open(PRIVILEGED_BROWSERS_ASSET_NAME).use { stream ->
                 stream.bufferedReader().use { it.readText() }
             }
-            val tlds = assets.open(TLDS_FILE).use { stream ->
+            val tlds = assets.open(TLD_LIST_ASSET_NAME).use { stream ->
                 stream.bufferedReader().use { it.readLines() }.filter { it.isNotEmpty() && !it.startsWith('#') }
             }
             _webAuthnValidator = WebAuthnValidator(

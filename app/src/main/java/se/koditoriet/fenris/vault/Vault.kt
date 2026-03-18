@@ -9,6 +9,8 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import se.koditoriet.fenris.DbKey
+import se.koditoriet.fenris.SYMMETRIC_KEY_ALGORITHM
+import se.koditoriet.fenris.SYMMETRIC_KEY_SIZE
 import se.koditoriet.fenris.codec.Base64Url.Companion.toBase64Url
 import se.koditoriet.fenris.codec.base32Decode
 import se.koditoriet.fenris.codec.toBase64Url
@@ -37,8 +39,6 @@ import kotlin.time.Instant
 private val DB_KEK_IDENTIFIER = KeyIdentifier.Internal("db_kek")
 private val BACKUP_SECRET_DEK_IDENTIFIER = KeyIdentifier.Internal("backup_secret_dek")
 private val BACKUP_METADATA_DEK_IDENTIFIER = KeyIdentifier.Internal("backup_metadata_dek")
-private val INTERNAL_SYMMETRIC_KEY_ALGORITHM = EncryptionAlgorithm.AES_GCM
-private const val DB_DEK_SIZE = 32
 private const val TAG = "Vault"
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -413,7 +413,7 @@ class Vault(
     ) {
         Log.i(TAG, "Importing backup")
         val metadataKeyMaterial = backupSeed.deriveBackupMetadataKey()
-        val vaultExport = cryptographer.withDecryptionKey(metadataKeyMaterial, INTERNAL_SYMMETRIC_KEY_ALGORITHM) {
+        val vaultExport = cryptographer.withDecryptionKey(metadataKeyMaterial, SYMMETRIC_KEY_ALGORITHM) {
             VaultExport.decode(decrypt(data))
         }
         val totalItems = vaultExport.secrets.size + vaultExport.passkeys.size
@@ -423,7 +423,7 @@ class Vault(
         metadataKeyMaterial.fill(0)
 
         val secretKeyMaterial = backupSeed.deriveBackupSecretKey()
-        val secretDecryptionContext = DecryptionContext.create(secretKeyMaterial, INTERNAL_SYMMETRIC_KEY_ALGORITHM)
+        val secretDecryptionContext = DecryptionContext.create(secretKeyMaterial, SYMMETRIC_KEY_ALGORITHM)
         importTotpSecrets(vaultExport.secrets, secretDecryptionContext, unlockState) {
             onSecretImported(it, totalItems)
         }
@@ -574,20 +574,20 @@ class Vault(
         )
 
     private suspend fun createDbKey(requiresAuthenticaton: Boolean): Pair<DbKey, ByteArray> {
-        Log.d(TAG, "Generating new $INTERNAL_SYMMETRIC_KEY_ALGORITHM DB key")
-        val kekSizeBytes = INTERNAL_SYMMETRIC_KEY_ALGORITHM.keySize / 8
+        Log.d(TAG, "Generating new $SYMMETRIC_KEY_ALGORITHM DB key")
+        val kekSizeBytes = SYMMETRIC_KEY_ALGORITHM.keySize / 8
         val dbKekKeyMaterial = ByteArray(kekSizeBytes).apply(secureRandom::nextBytes)
-        val dbDekPlaintext = ByteArray(DB_DEK_SIZE).apply(secureRandom::nextBytes)
+        val dbDekPlaintext = ByteArray(SYMMETRIC_KEY_SIZE).apply(secureRandom::nextBytes)
         val dbKekHandle = cryptographer.storeSymmetricKey(
             keyIdentifier = DB_KEK_IDENTIFIER,
             allowDecrypt = true,
             allowDeviceCredential = true,
             requiresAuthentication = requiresAuthenticaton,
             keyMaterial = dbKekKeyMaterial,
-            algorithm = INTERNAL_SYMMETRIC_KEY_ALGORITHM,
+            algorithm = SYMMETRIC_KEY_ALGORITHM,
         )
 
-        val dbDekCiphertext = cryptographer.withEncryptionKey(dbKekKeyMaterial, INTERNAL_SYMMETRIC_KEY_ALGORITHM) {
+        val dbDekCiphertext = cryptographer.withEncryptionKey(dbKekKeyMaterial, SYMMETRIC_KEY_ALGORITHM) {
             encrypt(dbDekPlaintext)
         }
         val dbKey = DbKey(

@@ -21,7 +21,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import se.koditoriet.fenris.BiometricPromptAuthenticator
+import se.koditoriet.fenris.crypto.BiometricPromptAuthenticator
 import se.koditoriet.fenris.Config
 import se.koditoriet.fenris.credentialprovider.FenrisCredentialProviderService
 import se.koditoriet.fenris.ui.ignoreAuthFailure

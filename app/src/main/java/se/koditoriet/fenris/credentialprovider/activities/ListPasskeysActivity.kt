@@ -12,7 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.credentials.provider.BeginGetCredentialResponse
 import androidx.credentials.provider.PendingIntentHandler
 import androidx.fragment.app.FragmentActivity
-import se.koditoriet.fenris.BiometricPromptAuthenticator
+import se.koditoriet.fenris.crypto.BiometricPromptAuthenticator
 import se.koditoriet.fenris.FenrisApp
 import se.koditoriet.fenris.credentialprovider.createBeginGetCredentialResponse
 import se.koditoriet.fenris.crypto.AuthenticationFailedException
