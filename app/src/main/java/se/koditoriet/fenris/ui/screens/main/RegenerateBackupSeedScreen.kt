@@ -22,6 +22,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import se.koditoriet.fenris.BACKUP_SEED_MNEMONIC_LENGTH_WORDS
 import se.koditoriet.fenris.appStrings
 import se.koditoriet.fenris.crypto.BackupSeed
 import se.koditoriet.fenris.crypto.wordMap
@@ -79,7 +80,7 @@ fun RegenerateBackupSeedScreen() {
                 RegenerateBackupSeedViewState.InputSeedPhrase -> {
                     SeedPhraseInput(
                         confirmButtonText = appStrings.generic.next,
-                        wordCount = BackupSeed.MNEMONIC_LENGTH_WORDS,
+                        wordCount = BACKUP_SEED_MNEMONIC_LENGTH_WORDS,
                         seedWords = wordMap.keys,
                         modifier = Modifier.padding(padding),
                         onScanQRClick = { viewState = RegenerateBackupSeedViewState.InputSeedQR },

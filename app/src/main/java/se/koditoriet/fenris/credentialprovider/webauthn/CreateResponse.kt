@@ -4,19 +4,13 @@ import com.upokecenter.cbor.CBOREncodeOptions
 import com.upokecenter.cbor.CBORObject
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import se.koditoriet.fenris.AAGUID
 import se.koditoriet.fenris.codec.Base64Url
 import se.koditoriet.fenris.codec.Base64Url.Companion.toBase64Url
 import java.math.BigInteger
 import java.security.MessageDigest
 import java.security.interfaces.ECPublicKey
 
-/**
- * The AAGUID is a UUID uniquely identifying a WebAuthn authenticator.
- * Specifying an all-zero AAGUID, which indicates "unknown authenticator" is allowed by the spec,
- * but having our own means that apps and websites can suggest proper names for credentials and
- * generally improve the UX around credential management.
- */
-private val AAGUID: ByteArray = "071320aec08443fd94e6987933b23e1f".hexToByteArray()
 private val ZERO_SIGN_COUNT = "00000000".hexToByteArray()
 
 /**

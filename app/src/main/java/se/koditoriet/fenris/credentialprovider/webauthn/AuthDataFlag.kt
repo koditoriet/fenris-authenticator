@@ -27,9 +27,6 @@ value class AuthDataFlag(val flag: Int) {
          * Attestation data attached (this is always set automatically for credential creation)
          */
         val AT: AuthDataFlag = AuthDataFlag(0x40)
-
-        val defaultCreateFlags: Set<AuthDataFlag> = setOf(UP, UV, BE)
-        val defaultAuthFlags: Set<AuthDataFlag> = setOf(UP, UV, BE)
     }
 }
 

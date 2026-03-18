@@ -17,13 +17,13 @@ import androidx.credentials.PublicKeyCredential
 import androidx.credentials.provider.CallingAppInfo
 import androidx.credentials.provider.PendingIntentHandler
 import androidx.fragment.app.FragmentActivity
-import se.koditoriet.fenris.BiometricPromptAuthenticator
+import se.koditoriet.fenris.PASSKEY_AUTH_FLAGS
+import se.koditoriet.fenris.crypto.BiometricPromptAuthenticator
 import se.koditoriet.fenris.appStrings
 import se.koditoriet.fenris.codec.Base64Url
 import se.koditoriet.fenris.credentialprovider.CREDENTIAL_DATA
 import se.koditoriet.fenris.credentialprovider.CREDENTIAL_ID
 import se.koditoriet.fenris.credentialprovider.webAuthnValidator
-import se.koditoriet.fenris.credentialprovider.webauthn.AuthDataFlag
 import se.koditoriet.fenris.credentialprovider.webauthn.AuthResponse
 import se.koditoriet.fenris.credentialprovider.webauthn.PublicKeyCredentialRequestOptions
 import se.koditoriet.fenris.credentialprovider.webauthn.SignedAuthResponse
@@ -75,7 +75,7 @@ class AuthenticateActivity : FragmentActivity() {
                     rpId = passkey.rpId,
                     credentialId = passkey.credentialId.id,
                     userId = passkey.userId.id,
-                    flags = AuthDataFlag.defaultAuthFlags,
+                    flags = PASSKEY_AUTH_FLAGS,
                     providedClientDataHash = requestInfo.clientDataHash,
                     challenge = requestInfo.challenge,
                     origin = requestInfo.origin,

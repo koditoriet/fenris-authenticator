@@ -18,12 +18,12 @@ import androidx.credentials.CreatePublicKeyCredentialResponse
 import androidx.credentials.provider.CallingAppInfo
 import androidx.credentials.provider.PendingIntentHandler
 import androidx.fragment.app.FragmentActivity
-import se.koditoriet.fenris.BiometricPromptAuthenticator
+import se.koditoriet.fenris.PASSKEY_CREATE_FLAGS
+import se.koditoriet.fenris.crypto.BiometricPromptAuthenticator
 import se.koditoriet.fenris.appStrings
 import se.koditoriet.fenris.codec.Base64Url
 import se.koditoriet.fenris.codec.Base64Url.Companion.toBase64Url
 import se.koditoriet.fenris.credentialprovider.webAuthnValidator
-import se.koditoriet.fenris.credentialprovider.webauthn.AuthDataFlag
 import se.koditoriet.fenris.credentialprovider.webauthn.CreateResponse
 import se.koditoriet.fenris.credentialprovider.webauthn.PublicKeyCredentialCreationOptions
 import se.koditoriet.fenris.credentialprovider.webauthn.WebAuthnValidator
@@ -142,7 +142,7 @@ class CreatePasskeyActivity : FragmentActivity() {
             rpId = requestInfo.requestJson.rp.id,
             credentialId = credentialId.toByteArray(),
             publicKey = pubkey,
-            flags = AuthDataFlag.defaultCreateFlags,
+            flags = PASSKEY_CREATE_FLAGS,
             origin = validator.appInfoToOrigin(requestInfo.callingAppInfo),
             packageName = requestInfo.callingAppInfo.packageName,
             challenge = Base64Url.fromBase64UrlString(requestInfo.requestJson.challenge),

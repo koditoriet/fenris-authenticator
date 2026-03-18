@@ -5,6 +5,7 @@ import android.security.keystore.KeyProperties
 import android.security.keystore.KeyProtection
 import android.util.Base64
 import android.util.Log
+import se.koditoriet.fenris.SYMMETRIC_KEY_AUTHENTICATION_LIFETIME
 import java.io.ByteArrayInputStream
 import java.security.Key
 import java.security.KeyFactory
@@ -27,7 +28,6 @@ import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.SecretKeySpec
 import javax.security.auth.DestroyFailedException
 
-private const val KEY_AUTHENTICATION_LIFETIME: Int = 5
 private const val TAG = "Cryptographer"
 
 class Cryptographer(
@@ -353,14 +353,15 @@ private fun <T : KeyAlgorithm> KeyStore.importKey(
                 allowedAuthTypes = allowedAuthTypes or KeyProperties.AUTH_DEVICE_CREDENTIAL
             }
 
-            // timeout needs to be >0 if key is symmetric, since symmetric every symmetric operation we do requires
+            // timeout needs to be >0 if key is symmetric, since every symmetric operation we do requires
             // more than one call to Android Key Store
             val timeout = if (keyEntry is KeyEntry.Symmetric) {
                 Log.i(
                     TAG,
-                    "Key ${keyHandle.alias} is symmetric; setting auth timeout to $KEY_AUTHENTICATION_LIFETIME",
+                    "Key ${keyHandle.alias} is symmetric; setting auth timeout to " +
+                            "$SYMMETRIC_KEY_AUTHENTICATION_LIFETIME",
                 )
-                KEY_AUTHENTICATION_LIFETIME
+                SYMMETRIC_KEY_AUTHENTICATION_LIFETIME
             } else {
                 Log.i(
                     TAG,

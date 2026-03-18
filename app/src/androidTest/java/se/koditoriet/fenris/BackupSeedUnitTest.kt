@@ -81,7 +81,7 @@ class BackupSeedUnitTest {
         for (n in 1..10_000) {
             val seed = BackupSeed.generate(rng)
             val mnemonic = seed.toMnemonic()
-            assertEquals(BackupSeed.MNEMONIC_LENGTH_WORDS, mnemonic.size)
+            assertEquals(BACKUP_SEED_MNEMONIC_LENGTH_WORDS, mnemonic.size)
         }
     }
 

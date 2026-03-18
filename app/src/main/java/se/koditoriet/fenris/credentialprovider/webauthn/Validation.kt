@@ -8,6 +8,7 @@ import se.koditoriet.fenris.codec.Base64Url.Companion.toBase64Url
 import java.security.MessageDigest
 
 private const val TAG = "WebAuthnValidation"
+private const val ANDROID_ORIGIN_SCHEME = "android:apk-key-hash"
 
 class WebAuthnValidator(
     tlds: Iterable<String>,
@@ -23,7 +24,7 @@ class WebAuthnValidator(
             return false
         }
 
-        if (origin.startsWith("android:apk-key-hash:")) {
+        if (origin.startsWith("$ANDROID_ORIGIN_SCHEME:")) {
             // If we're dealing with an Android origin, there's nothing more for us to verify
             return true
         }
@@ -67,7 +68,7 @@ class WebAuthnValidator(
         val cert = callingAppInfo.signingInfo.apkContentsSigners[0].toByteArray()
         val md = MessageDigest.getInstance("SHA-256")
         val certHash = md.digest(cert)
-        return "android:apk-key-hash:${certHash.toBase64Url().string}"
+        return "$ANDROID_ORIGIN_SCHEME:${certHash.toBase64Url().string}"
     }
 
     /**
@@ -88,9 +89,9 @@ class WebAuthnValidator(
 }
 
 private val Uri.isHttpLocalhost: Boolean
-    get() = scheme == "http" && host == "localhost"
+    get() = scheme?.lowercase() == "http" && host?.lowercase() == "localhost"
 
 private val String.isValidLabel: Boolean
-    get() = !isEmpty() && this[0] != '-' && all { it in LABEL_CHARS }
+    get() = !isEmpty() && this[0] != '-' && lowercase().all { it in LABEL_CHARS }
 
 private val LABEL_CHARS = "abcdefghijklmnopqrstuvwxyz0123456789-".toSet()

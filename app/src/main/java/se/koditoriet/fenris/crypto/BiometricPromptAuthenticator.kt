@@ -1,4 +1,4 @@
-package se.koditoriet.fenris
+package se.koditoriet.fenris.crypto
 
 import android.util.Log
 import androidx.biometric.BiometricManager
@@ -6,9 +6,6 @@ import androidx.biometric.BiometricPrompt
 import androidx.fragment.app.FragmentActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import se.koditoriet.fenris.crypto.AuthenticationFailedException
-import se.koditoriet.fenris.crypto.Authenticator
-import se.koditoriet.fenris.crypto.AuthenticatorFactory
 import java.security.Signature
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.resume
