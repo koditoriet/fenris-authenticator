@@ -1,4 +1,4 @@
-package se.koditoriet.fenris.ui.activities.credentialprovider
+package se.koditoriet.fenris.credentialprovider.activities
 
 import android.content.Intent
 import android.os.Bundle
@@ -19,14 +19,15 @@ import androidx.credentials.provider.PendingIntentHandler
 import androidx.fragment.app.FragmentActivity
 import se.koditoriet.fenris.BiometricPromptAuthenticator
 import se.koditoriet.fenris.appStrings
+import se.koditoriet.fenris.codec.Base64Url
 import se.koditoriet.fenris.credentialprovider.CREDENTIAL_DATA
 import se.koditoriet.fenris.credentialprovider.CREDENTIAL_ID
-import se.koditoriet.fenris.credentialprovider.privilegedBrowserList
+import se.koditoriet.fenris.credentialprovider.webAuthnValidator
 import se.koditoriet.fenris.credentialprovider.webauthn.AuthDataFlag
 import se.koditoriet.fenris.credentialprovider.webauthn.AuthResponse
 import se.koditoriet.fenris.credentialprovider.webauthn.PublicKeyCredentialRequestOptions
 import se.koditoriet.fenris.credentialprovider.webauthn.SignedAuthResponse
-import se.koditoriet.fenris.credentialprovider.webauthn.PrivilegedBrowserList
+import se.koditoriet.fenris.credentialprovider.webauthn.WebAuthnValidator
 import se.koditoriet.fenris.crypto.AuthenticationFailedException
 import se.koditoriet.fenris.ui.components.PasskeyIcon
 import se.koditoriet.fenris.ui.components.ThemedEmptySpace
@@ -60,12 +61,12 @@ class AuthenticateActivity : FragmentActivity() {
                     return@LaunchedEffect
                 }
 
-                val requestInfo = GetRequestInfo.fromIntent(intent)
+                val requestInfo = GetRequestInfo.fromIntent(webAuthnValidator, intent)
 
                 Log.d(TAG, "Fetching passkey with credential ID ${requestInfo.credentialId}")
                 val passkey = viewModel.getPasskey(requestInfo.credentialId)
 
-                if (!requestInfo.isValid(privilegedBrowserList, passkey)) {
+                if (!requestInfo.isValid(passkey)) {
                     showUnableToEstablishTrustDialog.value = true
                     return@LaunchedEffect
                 }
@@ -75,7 +76,10 @@ class AuthenticateActivity : FragmentActivity() {
                     credentialId = passkey.credentialId.id,
                     userId = passkey.userId.id,
                     flags = AuthDataFlag.defaultAuthFlags,
-                    clientDataHash = requestInfo.clientDataHash,
+                    providedClientDataHash = requestInfo.clientDataHash,
+                    challenge = requestInfo.challenge,
+                    origin = requestInfo.origin,
+                    packageName = requestInfo.packageName,
                 )
 
                 try {
@@ -129,17 +133,28 @@ class AuthenticateActivity : FragmentActivity() {
 private class GetRequestInfo(
     val credentialId: CredentialId,
     val callingAppInfo: CallingAppInfo,
-    val clientDataHash: ByteArray,
+    val clientDataHash: ByteArray?,
     val requestJson: PublicKeyCredentialRequestOptions,
+    private val validator: WebAuthnValidator,
 ) {
-    fun isValid(browserList: PrivilegedBrowserList, storedPasskey: Passkey): Boolean {
-        val rpId = requestJson.rpId ?: browserList.appInfoToRpId(callingAppInfo)
-        if (!browserList.rpIsValid(rpId)) {
+    val origin: String by lazy {
+        validator.appInfoToOrigin(callingAppInfo)
+    }
+
+    val challenge: Base64Url
+        get() = requestJson.challenge
+
+    val packageName: String
+        get() = callingAppInfo.packageName
+
+    fun isValid(storedPasskey: Passkey): Boolean {
+        val rpId = requestJson.rpId ?: validator.appInfoToRpId(callingAppInfo)
+        if (!validator.rpIsValid(rpId)) {
             Log.e(TAG, "Request RP is invalid!")
             return false
         }
 
-        if (!browserList.originIsValid(callingAppInfo, rpId)) {
+        if (!validator.originIsValid(callingAppInfo)) {
             Log.e(TAG, "Origin is invalid!")
             return false
         }
@@ -153,7 +168,7 @@ private class GetRequestInfo(
     }
 
     companion object {
-        fun fromIntent(intent: Intent): GetRequestInfo {
+        fun fromIntent(validator: WebAuthnValidator, intent: Intent): GetRequestInfo {
             Log.d(TAG, "Extracting selected credential ID")
             val credentialId = intent
                 .getBundleExtra(CREDENTIAL_DATA)!!
@@ -171,8 +186,9 @@ private class GetRequestInfo(
             return GetRequestInfo(
                 credentialId = CredentialId.fromString(credentialId),
                 callingAppInfo = request.callingAppInfo,
-                clientDataHash = credentialOption.clientDataHash!!,
+                clientDataHash = credentialOption.clientDataHash,
                 requestJson = PublicKeyCredentialRequestOptions.fromJSON(credentialOption.requestJson),
+                validator = validator,
             )
         }
     }

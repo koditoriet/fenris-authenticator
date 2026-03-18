@@ -4,6 +4,7 @@ import com.upokecenter.cbor.CBOREncodeOptions
 import com.upokecenter.cbor.CBORObject
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import se.koditoriet.fenris.codec.Base64Url
 import se.koditoriet.fenris.codec.Base64Url.Companion.toBase64Url
 import java.math.BigInteger
 import java.security.MessageDigest
@@ -29,6 +30,7 @@ class CreateResponse(
     val flags: Set<AuthDataFlag>,
     val origin: String,
     val packageName: String,
+    val challenge: Base64Url,
 ) {
     val cosePublicKey: ByteArray by lazy {
         val xBytes = toUnsignedFixedLength(publicKey.w.affineX, 32)
@@ -60,14 +62,20 @@ class CreateResponse(
     }
 
     val response by lazy {
-        Response(
-            transports = listOf("internal"),
+        val clientDataJSON = ClientData(
+            type = "webauthn.create",
+            challenge = challenge.string,
             origin = origin,
             androidPackageName = packageName,
+        ).json.toByteArray(Charsets.UTF_8)
+
+        Response(
+            transports = listOf("internal", "hybrid"),
             publicKeyAlgorithm = -7,
             publicKey = publicKey.encoded.toBase64Url().string,
             authenticatorData = authenticatorData.toBase64Url().string,
             attestationObject = attestationObject.toBase64Url().string,
+            clientDataJSON = clientDataJSON.toBase64Url().string,
         )
     }
 
@@ -86,12 +94,11 @@ class CreateResponse(
     @Serializable
     class Response(
         val transports: List<String>,
-        val origin: String,
-        val androidPackageName: String,
         val publicKeyAlgorithm: Int,
         val publicKey: String,
         val authenticatorData: String,
         val attestationObject: String,
+        val clientDataJSON: String?,
     )
 
     @Serializable

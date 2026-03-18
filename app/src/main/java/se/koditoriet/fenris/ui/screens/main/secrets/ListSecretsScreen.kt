@@ -319,7 +319,6 @@ private fun AnySupportedQRScanner(
     QrScanner(
         onQrScanned = {
             try {
-                println(it)
                 val data = QRCodeData.parse(it)
                 closeScanner()
                 onSuccess(data)

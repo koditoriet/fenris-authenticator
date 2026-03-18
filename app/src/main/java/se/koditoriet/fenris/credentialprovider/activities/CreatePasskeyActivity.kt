@@ -1,4 +1,4 @@
-package se.koditoriet.fenris.ui.activities.credentialprovider
+package se.koditoriet.fenris.credentialprovider.activities
 
 import android.content.Intent
 import android.os.Bundle
@@ -20,11 +20,13 @@ import androidx.credentials.provider.PendingIntentHandler
 import androidx.fragment.app.FragmentActivity
 import se.koditoriet.fenris.BiometricPromptAuthenticator
 import se.koditoriet.fenris.appStrings
-import se.koditoriet.fenris.credentialprovider.privilegedBrowserList
+import se.koditoriet.fenris.codec.Base64Url
+import se.koditoriet.fenris.codec.Base64Url.Companion.toBase64Url
+import se.koditoriet.fenris.credentialprovider.webAuthnValidator
 import se.koditoriet.fenris.credentialprovider.webauthn.AuthDataFlag
 import se.koditoriet.fenris.credentialprovider.webauthn.CreateResponse
 import se.koditoriet.fenris.credentialprovider.webauthn.PublicKeyCredentialCreationOptions
-import se.koditoriet.fenris.credentialprovider.webauthn.PrivilegedBrowserList
+import se.koditoriet.fenris.credentialprovider.webauthn.WebAuthnValidator
 import se.koditoriet.fenris.crypto.AuthenticationFailedException
 import se.koditoriet.fenris.ui.components.BadInputInformationDialog
 import se.koditoriet.fenris.ui.components.PasskeyIcon
@@ -50,6 +52,7 @@ class CreatePasskeyActivity : FragmentActivity() {
         val screenStrings = appStrings.credentialProvider
         val authFactory = BiometricPromptAuthenticator.Factory(this@CreatePasskeyActivity)
         val requestInfo = CreateRequestInfo.fromIntent(intent!!)
+        val requestInfoIsValid = requestInfo.isValid(webAuthnValidator)
 
         enableEdgeToEdge()
         setContent {
@@ -59,7 +62,9 @@ class CreatePasskeyActivity : FragmentActivity() {
 
             LaunchedEffect(Unit) {
                 try {
-                    viewModel.unlockVault(authFactory)
+                    if (requestInfoIsValid) {
+                        viewModel.unlockVault(authFactory)
+                    }
                 } catch (_: AuthenticationFailedException) {
                     finishWithResponse(null)
                     return@LaunchedEffect
@@ -76,14 +81,18 @@ class CreatePasskeyActivity : FragmentActivity() {
                             text = screenStrings.passkeyAlreadyExistsExplanation,
                             onDismiss = { finishWithResponse(null) }
                         )
+                        return@ThemedEmptySpace
                     }
-                    if (!requestInfo.isValid(privilegedBrowserList)) {
+
+                    if (!requestInfoIsValid) {
                         WarningInformationDialog(
                             title = screenStrings.unableToEstablishTrust,
                             text = screenStrings.unableToEstablishTrustExplanation,
                             onDismiss = { finishWithResponse(null) }
                         )
+                        return@ThemedEmptySpace
                     }
+
                     BottomSheet(
                         hideSheet = { finishWithResponse(null) },
                         sheetState = sheetState,
@@ -92,10 +101,10 @@ class CreatePasskeyActivity : FragmentActivity() {
                         EditPasskeyNameSheet(
                             prefilledDisplayName = requestInfo.requestJson.rp.id,
                             onSave = onIOThread { displayName ->
-                                val response = createPasskey(privilegedBrowserList, displayName, requestInfo)
+                                val response = createPasskey(webAuthnValidator, displayName, requestInfo)
                                 Log.i(
                                     TAG,
-                                    "Created passkey with credential id ${response.credentialId}"
+                                    "Created passkey with credential id ${response.credentialId.toBase64Url()}"
                                 )
                                 finishWithResponse(response)
                             }
@@ -118,7 +127,7 @@ class CreatePasskeyActivity : FragmentActivity() {
     }
 
     private suspend fun createPasskey(
-        validator: PrivilegedBrowserList,
+        validator: WebAuthnValidator,
         displayName: String,
         requestInfo: CreateRequestInfo,
     ): CreateResponse {
@@ -136,6 +145,7 @@ class CreatePasskeyActivity : FragmentActivity() {
             flags = AuthDataFlag.defaultCreateFlags,
             origin = validator.appInfoToOrigin(requestInfo.callingAppInfo),
             packageName = requestInfo.callingAppInfo.packageName,
+            challenge = Base64Url.fromBase64UrlString(requestInfo.requestJson.challenge),
         )
     }
 
@@ -161,13 +171,13 @@ private class CreateRequestInfo(
     val callingAppInfo: CallingAppInfo,
     val requestJson: PublicKeyCredentialCreationOptions,
 ) {
-    fun isValid(browserList: PrivilegedBrowserList): Boolean {
+    fun isValid(browserList: WebAuthnValidator): Boolean {
         if (!browserList.rpIsValid(requestJson.rp.id)) {
             Log.e(TAG, "Request RP is invalid!")
             return false
         }
 
-        if (!browserList.originIsValid(callingAppInfo, requestJson.rp.id)) {
+        if (!browserList.originIsValid(callingAppInfo)) {
             Log.e(TAG, "Origin is invalid!")
             return false
         }
