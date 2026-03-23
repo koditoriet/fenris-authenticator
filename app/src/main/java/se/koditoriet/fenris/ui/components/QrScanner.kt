@@ -34,7 +34,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -102,6 +105,7 @@ fun QrScanner(
                         QrScannerView(
                             modifier = Modifier.fillMaxSize(),
                             onQrScanned = onQrScanned,
+                            onCameraClosed = onAbort,
                         )
                         QrViewfinderOverlay(
                             modifier = Modifier.fillMaxSize(),
@@ -116,9 +120,11 @@ fun QrScanner(
 @Composable
 private fun QrScannerView(
     modifier: Modifier = Modifier,
-    onQrScanned: (String) -> Unit
+    onQrScanned: (String) -> Unit,
+    onCameraClosed: () -> Unit,
 ) {
     Log.i(TAG, "Initializing camera for QR scanning")
+    var captureSession: CameraCaptureSession? by remember { mutableStateOf(null) }
     val handlerThread = remember { HandlerThread("camera-bg").apply { start() } }
     val handler = Handler(handlerThread.looper)
     val cameraManager = LocalContext.current.getSystemService(Context.CAMERA_SERVICE) as CameraManager
@@ -143,7 +149,6 @@ private fun QrScannerView(
         modifier = modifier,
         factory = { ctx ->
             TextureView(ctx).apply {
-                var captureSession: CameraCaptureSession? = null
                 surfaceTextureListener = object : TextureView.SurfaceTextureListener {
                     override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int) {
                         Log.d(TAG, "Setting preview buffer size to $outputSize")
@@ -154,7 +159,11 @@ private fun QrScannerView(
                             handler = handler,
                             previewSurface = previewSurface,
                             onQrScanned = onQrScanned,
-                            onConfigured = { captureSession = it }
+                            onConfigured = { captureSession = it },
+                            onClosed = {
+                                captureSession = null
+                                onCameraClosed()
+                            },
                         )
 
                         // This entire component is wrapped in a RequiresPermission component which ensures that we
@@ -165,14 +174,20 @@ private fun QrScannerView(
                     }
 
                     override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean {
-                        Log.d(TAG, "Camera preview surface texture destroyed, stopping camera")
+                        Log.d(TAG, "Camera preview surface texture destroyed")
                         captureSession?.apply {
-                            stopRepeating()
-                            abortCaptures()
-                            close()
-                            device.close()
-                            Log.d(TAG, "Camera stopped")
-                        }
+                            captureSession = null
+                            try {
+                                Log.d(TAG, "Stopping camera")
+                                stopRepeating()
+                                abortCaptures()
+                                close()
+                                device.close()
+                                Log.d(TAG, "Camera stopped")
+                            } catch (e: IllegalStateException) {
+                                Log.w(TAG, "Unable to stop camera", e)
+                            }
+                        } ?: Log.d(TAG, "Capture session already gone; not stopping anything")
                         return true
                     }
 
@@ -223,6 +238,7 @@ private class QrScannerCameraDeviceStateCallback(
     private val previewSurface: Surface,
     private val onQrScanned: (String) -> Unit,
     private val onConfigured: (CameraCaptureSession) -> Unit,
+    private val onClosed: () -> Unit,
 ) : CameraDevice.StateCallback() {
     private val cameraImageReader: ImageReader = ImageReader.newInstance(
         outputSize.width,
@@ -264,9 +280,15 @@ private class QrScannerCameraDeviceStateCallback(
         )
     }
 
-    override fun onClosed(camera: CameraDevice) { }
-    override fun onDisconnected(device: CameraDevice) = device.close()
-    override fun onError(device: CameraDevice, error: Int) = device.close()
+    override fun onClosed(camera: CameraDevice) = onClosed()
+    override fun onDisconnected(device: CameraDevice) {
+        Log.w(TAG, "Camera disconnected")
+        device.close()
+    }
+    override fun onError(device: CameraDevice, error: Int) {
+        Log.w(TAG, "Camera errored ($error)")
+        device.close()
+    }
 }
 
 private fun createCameraSessionConfig(
