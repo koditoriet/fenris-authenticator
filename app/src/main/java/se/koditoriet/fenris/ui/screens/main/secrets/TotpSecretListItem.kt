@@ -44,6 +44,7 @@ import se.koditoriet.fenris.ui.ignoreAuthFailure
 import se.koditoriet.fenris.ui.primaryDisabled
 import se.koditoriet.fenris.ui.primaryHint
 import se.koditoriet.fenris.ui.theme.LIST_ITEM_FONT_SIZE
+import se.koditoriet.fenris.ui.theme.LocalAccentColors
 import se.koditoriet.fenris.ui.theme.PADDING_M
 import se.koditoriet.fenris.ui.theme.PADDING_S
 import se.koditoriet.fenris.ui.theme.SECRET_FONT_SIZE
@@ -152,6 +153,8 @@ class TotpSecretListItem(
                     .padding(PADDING_S)
                     .size(36.dp),
                 progress = { progress },
+                strokeWidth = 5.dp,
+                color = LocalAccentColors.current.on,
             )
         }
     }
