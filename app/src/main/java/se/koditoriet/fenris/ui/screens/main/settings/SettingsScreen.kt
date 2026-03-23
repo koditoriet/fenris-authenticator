@@ -34,6 +34,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -67,6 +68,7 @@ import se.koditoriet.fenris.ui.primaryHint
 import se.koditoriet.fenris.ui.screens.main.settings.sheets.SecurityReportSheet
 import se.koditoriet.fenris.ui.theme.GRACE_PERIOD_INPUT_FIELD_HEIGHT
 import se.koditoriet.fenris.ui.theme.GRACE_PERIOD_INPUT_FIELD_WIDTH
+import se.koditoriet.fenris.ui.theme.LocalAccentColors
 import se.koditoriet.fenris.ui.theme.PADDING_S
 import se.koditoriet.fenris.ui.theme.ROUNDED_CORNER_PADDING
 import se.koditoriet.fenris.ui.theme.ROUNDED_CORNER_SIZE
@@ -388,6 +390,10 @@ fun SettingSwitchRow(
                     checked = checked,
                     enabled = enabled,
                     onCheckedChange = onCheckedChange,
+                    colors = SwitchDefaults.colors().copy(
+                        checkedThumbColor = LocalAccentColors.current.onForeground,
+                        checkedTrackColor = LocalAccentColors.current.onBackground,
+                    ),
                 )
             }
 

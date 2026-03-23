@@ -7,12 +7,12 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import se.koditoriet.fenris.SortMode
 import se.koditoriet.fenris.appStrings
+import se.koditoriet.fenris.ui.theme.LocalAccentColors
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,20 +37,20 @@ fun ListViewTopBar(
                         SortMode.Alphabetic -> SortMode.Manual
                     }
                     onSortModeChange(newSortMode)
-                }
+                },
             ) {
                 val alphabeticSort = sortMode == SortMode.Alphabetic
                 Icon(
                     imageVector = Icons.Filled.SortByAlpha,
                     contentDescription = screenStrings.sortAlphabetically(alphabeticSort),
-                    tint = if (alphabeticSort) MaterialTheme.colorScheme.primary else LocalContentColor.current,
+                    tint = if (alphabeticSort) LocalAccentColors.current.on else LocalContentColor.current,
                 )
             }
             IconButton(onClick = onFilterToggle) {
                 Icon(
                     imageVector = Icons.Filled.Search,
                     contentDescription = screenStrings.filter(filterEnabled),
-                    tint = if (filterEnabled) MaterialTheme.colorScheme.primary else LocalContentColor.current,
+                    tint = if (filterEnabled) LocalAccentColors.current.on else LocalContentColor.current,
                 )
             }
             content()
