@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" type="text/css" href="style.css">
+        <title>Koditoriet</title>
+    </head>
+    <body>
+        <header>
+            <a href="/">
+                <img class="logo" src="img/logo.png">
+                <h1>Fenris Authenticator</h1>
+            </a>
+        </header>
+        <main>
+            <p>
+                <span class="fenris">Fenris Authenticator</span> is a hardware-backed authenticator and passkey provider app for security-conscious users.
+            </p>
+            <article class="sidebyside">
+                <section class="textbody">
+                    <h2>Why Fenris?</h2>
+                    <p>Other authenticators put a high premium on convenience, allowing credentials to be read and transferred to other devices at will, storing your credentials with cloud providers, etc.</p>
+                    <p>Unfortunately, this convenience comes at the expense of security.</p>
+                    <p>Fenris instead stores your credentials in the secure element of your device, from which they can not be extracted — ever. Even when backups are enabled, recovery is only possible using your offline backup seed. This ensures that even the device that creates your backups can't access them.</p>
+                </section>
+                <section>
+                    <h2>Features</h2>
+                    <div class="cards">
+                        <div class="card">
+                            <h3>Hardware-Backed Security</h3>
+                            Passkeys and 2FA secrets are stored in secure hardware, and are literally impossible to steal from your device.
+                        </div>
+                        <div class="card">
+                            <h3>Degoogled</h3>
+                            Fenris does not depend on Google Play Services, and is developed and tested on GrapheneOS for maximum privacy.
+                        </div>
+                        <div class="card">
+                            <h3>Free Software</h3>
+                            Fenris is released as free software under the GPLv3. Anyone is free to inspect, modify and redistribute the source code.
+                        </div>
+                        <div class="card">
+                            <h3>Offline</h3>
+                            Fenris does not collect any metrics or user data, or upload your credentials to cloud services. <em>You are in control!</em>
+                        </div>
+                        <div class="card">
+                            <h3>Unbreakable Backups</h3>
+                            Backups — if enabled — are protected by a random seed, stored offline as a QR code or a BIP-39 seed phrase.
+                        </div>
+                        <div class="card">
+                            <h3>Passkey Support</h3>
+                            Get rid of usernames and passwords entirely using passkeys!
+                            Of course, Fenris also acts as a standard 2FA authenticator.
+                        </div>
+                    </div>
+                </section>
+            </article>
+        </main>
+        <footer>
+            <p>Fenris Authenticator</p>
+            <p>Copyright &copy; 2026 by <a href="https://koditoriet.se">Koditoriet</a></p>
+            <p><a href="/privacy">Privacy Policy</a></p>
+            <p><a href="https://github.com/koditoriet/fenris-authenticator">Source Code</a></p>
+        </footer>
+    </body>
+</html>
