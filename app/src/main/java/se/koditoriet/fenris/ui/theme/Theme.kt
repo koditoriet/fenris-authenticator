@@ -55,7 +55,7 @@ fun FenrisTheme(
         AccentColors(
             on = Color(0xFFFDCA40),
             onForeground = Color(0xFFFDCA40),
-            onBackground = Color(0x1FFDCA40),
+            onBackground = Color(0x2FFDCA40),
         )
     } else {
         AccentColors(
