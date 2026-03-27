@@ -3,15 +3,13 @@ package se.koditoriet.fenris
 import androidx.datastore.core.Serializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import se.koditoriet.fenris.crypto.KeyHandle
-import se.koditoriet.fenris.vault.Vault
 import java.io.InputStream
 import java.io.OutputStream
 
 @Serializable
 data class Config(
     val encryptedDbKey: DbKey? = null,
-    val backupKeys: BackupKeys? = null,
+    val backupKeyAlias: String? = null,
     val protectAccountList: Boolean = true,
     val lockOnClose: Boolean = true,
     val lockOnCloseGracePeriod: Int = 30,
@@ -23,30 +21,11 @@ data class Config(
     val passkeyScreenDismissed: Boolean = false,
 ) {
     val backupsEnabled: Boolean
-        get() = backupKeys != null
+        get() = backupKeyAlias != null
 
 
     companion object {
         val default = Config()
-    }
-
-    @Serializable
-    data class BackupKeys(
-        val secretsBackupKeyAlias: String,
-        val metadataBackupKeyAlias: String,
-    ) {
-        fun toVaultBackupKeys(): Vault.BackupKeys =
-            Vault.BackupKeys(
-                secretsBackupKey = KeyHandle.fromAlias(secretsBackupKeyAlias),
-                metadataBackupKey = KeyHandle.fromAlias(metadataBackupKeyAlias),
-            )
-
-        companion object {
-            fun fromVaultBackupKeys(backupKeys: Vault.BackupKeys) = BackupKeys(
-                secretsBackupKeyAlias = backupKeys.secretsBackupKey.alias,
-                metadataBackupKeyAlias = backupKeys.metadataBackupKey.alias,
-            )
-        }
     }
 }
 

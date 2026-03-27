@@ -6,6 +6,15 @@ import android.security.keystore.KeyProtection
 import android.util.Base64
 import android.util.Log
 import se.koditoriet.fenris.SYMMETRIC_KEY_AUTHENTICATION_LIFETIME
+import se.koditoriet.fenris.crypto.types.ECAlgorithm
+import se.koditoriet.fenris.crypto.types.EncryptedData
+import se.koditoriet.fenris.crypto.types.EncryptionAlgorithm
+import se.koditoriet.fenris.crypto.types.HmacAlgorithm
+import se.koditoriet.fenris.crypto.types.KeyAlgorithm
+import se.koditoriet.fenris.crypto.types.KeyHandle
+import se.koditoriet.fenris.crypto.types.KeyIdentifier
+import se.koditoriet.fenris.crypto.types.KeyUsage
+import se.koditoriet.fenris.crypto.types.SymmetricAlgorithm
 import java.io.ByteArrayInputStream
 import java.security.Key
 import java.security.KeyFactory
@@ -161,7 +170,11 @@ class Cryptographer(
         require(keyMaterial.size == algorithm.keySize / 8)
 
         val keyHandle = KeyHandle(
-            usage = if (allowDecrypt) { KeyUsage.EncryptDecrypt } else { KeyUsage.Encrypt },
+            usage = if (allowDecrypt) {
+                KeyUsage.EncryptDecrypt
+            } else {
+                KeyUsage.Encrypt
+            },
             algorithm = algorithm,
             requiresAuthentication = requiresAuthentication,
             isStrongBoxBacked = true,

@@ -3,8 +3,8 @@ package se.koditoriet.fenris.viewmodel
 import android.app.Application
 import android.util.Log
 import kotlinx.coroutines.flow.first
-import se.koditoriet.fenris.FenrisApp
 import se.koditoriet.fenris.crypto.AuthenticatorFactory
+import se.koditoriet.fenris.crypto.types.KeyHandle
 
 private const val TAG = "ActivityViewModel"
 
@@ -22,7 +22,7 @@ abstract class ActivityViewModel(app: Application) : ViewModelBase(app) {
             reason = appStrings.viewModel.authUnlockVault,
             subtitle = appStrings.viewModel.authUnlockVaultSubtitle,
         )
-        vault.unlockVault(authenticator, config.encryptedDbKey, config.backupKeys?.toVaultBackupKeys())
+        vault.unlockVault(authenticator, config.encryptedDbKey, config.backupKeyAlias?.let { KeyHandle.fromAlias(it) })
         Log.i(TAG, "Vault unlocked")
     }
 }

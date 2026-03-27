@@ -28,6 +28,7 @@ import se.koditoriet.fenris.appStrings
 import se.koditoriet.fenris.credentialprovider.activities.CreatePasskeyActivity
 import se.koditoriet.fenris.credentialprovider.activities.ListPasskeysActivity
 import se.koditoriet.fenris.crypto.DummyAuthenticator
+import se.koditoriet.fenris.crypto.types.KeyHandle
 import se.koditoriet.fenris.vault.Vault
 
 private val TAG: String = "FenrisCredentialProviderService"
@@ -78,7 +79,7 @@ class FenrisCredentialProviderService : CredentialProviderService() {
                         unlock(
                             DummyAuthenticator,
                             config.encryptedDbKey!!,
-                            config.backupKeys?.toVaultBackupKeys(),
+                            config.backupKeyAlias?.let { KeyHandle.fromAlias(it) },
                         )
                         callback.onResult(
                             createBeginGetCredentialResponse(

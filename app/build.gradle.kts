@@ -108,6 +108,9 @@ dependencies {
     // Printing
     implementation(libs.androidx.print)
 
+    // Argon2 for backup 2FA
+    implementation(libs.com.lambdapioneer.argon2kt)
+
     // Room
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.room.ktx)

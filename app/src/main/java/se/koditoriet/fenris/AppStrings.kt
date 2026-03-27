@@ -47,6 +47,8 @@ class AppStrings(private val ctx: Context) {
         val maybeLater by ctx.s(R.string.generic_maybe_later)
         val openSystemSettings by ctx.s(R.string.generic_open_system_settings)
         val advanced by ctx.s(R.string.generic_advanced_options)
+        val password by ctx.s(R.string.generic_password)
+        val confirmPassword by ctx.s(R.string.generic_confirm_password)
     }
 
     class QRScanner(ctx: Context) {
@@ -80,8 +82,9 @@ class AppStrings(private val ctx: Context) {
     }
 
     class SeedInputScreen(ctx: Context) {
-        val enterRecoveryPhrase by ctx.s(R.string.seed_input_enter_recovery_phrase)
+        val heading by ctx.s(R.string.seed_input_heading)
         val restoreVault by ctx.s(R.string.seed_input_restore_vault)
+        val enterBackupPassword by ctx.s(R.string.seed_input_restore_vault)
         val scanQRCode by ctx.s(R.string.seed_input_scan_qr_code)
         val invalidSeedQRCode by ctx.s(R.string.seed_input_invalid_qr_code)
         val invalidSeedQRCodeDescription by ctx.s(R.string.seed_input_invalid_qr_code_description)
@@ -180,6 +183,9 @@ class AppStrings(private val ctx: Context) {
         )
         val enableBackupsDisableDialogConfirm by ctx.s(R.string.settings_enable_backups_disable_dialog_confirm)
         val enableBackupsDisableDialogText by ctx.s(R.string.settings_enable_backups_disable_dialog_text)
+        val creatingBackupHeading by ctx.s(R.string.settings_enable_backups_creating_backup_heading)
+        val creatingBackup by ctx.s(R.string.settings_enable_backups_creating_backup)
+        val createBackupPassword by ctx.s(R.string.settings_enable_backups_create_backup_password)
 
         val biometricLock by ctx.s(R.string.settings_biometric_lock)
         val biometricLockDescription by ctx.s(R.string.settings_biometric_lock_description)

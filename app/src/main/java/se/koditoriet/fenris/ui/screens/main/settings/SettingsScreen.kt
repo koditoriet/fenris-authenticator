@@ -54,6 +54,7 @@ import androidx.credentials.CredentialManager
 import androidx.lifecycle.compose.rememberLifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -65,6 +66,8 @@ import se.koditoriet.fenris.crypto.AuthenticatorFactory
 import se.koditoriet.fenris.ui.components.IrrevocableActionConfirmationDialog
 import se.koditoriet.fenris.ui.components.sheet.BottomSheet
 import se.koditoriet.fenris.ui.primaryHint
+import se.koditoriet.fenris.ui.screens.SpinnerScreen
+import se.koditoriet.fenris.ui.screens.main.settings.sheets.PasswordInputSheet
 import se.koditoriet.fenris.ui.screens.main.settings.sheets.SecurityReportSheet
 import se.koditoriet.fenris.ui.theme.GRACE_PERIOD_INPUT_FIELD_HEIGHT
 import se.koditoriet.fenris.ui.theme.GRACE_PERIOD_INPUT_FIELD_WIDTH
@@ -94,6 +97,7 @@ fun SettingsScreen(
     val screenStrings = appStrings.settingsScreen
     var sheetViewState by remember { mutableStateOf<SettingsScreenSheetViewState?>(null) }
     var showWipeDialog by remember { mutableStateOf(false) }
+    var showSpinnerScreen by remember { mutableStateOf(false) }
     var showDisableBackupsDialog by remember { mutableStateOf(false) }
     val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
     val lifecycleOwner = rememberLifecycleOwner()
@@ -135,7 +139,7 @@ fun SettingsScreen(
                     enableBackups = config.backupsEnabled,
                     clock = clock,
                     timeZone = timeZone,
-                    onExport = viewModel::onExportVault,
+                    onExport = { sheetViewState = SettingsScreenSheetViewState.CreateBackupPasswordSheet(it) },
                     onRegenerateBackupSeed = onRegenerateBackupSeed,
                     onDisableBackups = { showDisableBackupsDialog = true }
                 )
@@ -245,6 +249,16 @@ fun SettingsScreen(
             }
         }
 
+        if (showSpinnerScreen) {
+            SpinnerScreen(screenStrings.creatingBackupHeading) {
+                Text(
+                    text = screenStrings.creatingBackup,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+        }
+
         // Confirmation dialog - erase data
         if (showWipeDialog) {
             IrrevocableActionConfirmationDialog(
@@ -282,6 +296,23 @@ fun SettingsScreen(
                 when (viewState) {
                     is SettingsScreenSheetViewState.SecurityReportSheet -> {
                         SecurityReportSheet(viewState.report)
+                    }
+
+                    is SettingsScreenSheetViewState.CreateBackupPasswordSheet -> {
+                        PasswordInputSheet(
+                            heading = screenStrings.createBackupPassword,
+                            confirmButtonText = screenStrings.enableBackupsExport,
+                            confirmPassword = true,
+                            onSubmit = { password ->
+                                sheetViewState = null
+                                showSpinnerScreen = true
+                                lifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                                    viewModel.onExportVault(viewState.uri, password) {
+                                        showSpinnerScreen = false
+                                    }
+                                }
+                            }
+                        )
                     }
                 }
             }
@@ -482,5 +513,6 @@ private fun fileNameFromDate(prefix: String, suffix: String, clock: Clock, timeZ
 }
 
 private sealed interface SettingsScreenSheetViewState {
+    class CreateBackupPasswordSheet(val uri: Uri) : SettingsScreenSheetViewState
     class SecurityReportSheet(val report: SecurityReport) : SettingsScreenSheetViewState
 }

@@ -1,6 +1,9 @@
 package se.koditoriet.fenris.crypto
 
-import android.util.Base64
+import se.koditoriet.fenris.crypto.types.ECAlgorithm
+import se.koditoriet.fenris.crypto.types.EncryptedData
+import se.koditoriet.fenris.crypto.types.EncryptionAlgorithm
+import se.koditoriet.fenris.crypto.types.HmacAlgorithm
 import java.security.Key
 import java.security.PrivateKey
 import java.security.Signature
@@ -37,7 +40,7 @@ interface SignatureContext {
 }
 
 interface EncryptionContext {
-    fun encrypt(data: ByteArray): EncryptedData
+    fun encrypt(data: ByteArray, iv: ByteArray? = null): EncryptedData
 
     companion object {
         fun create(key: Key, algorithm: EncryptionAlgorithm): EncryptionContext =
@@ -76,11 +79,12 @@ private class SymmetricContextImpl(
     private val key: Key,
     private val algorithm: EncryptionAlgorithm,
 ) : EncryptionContext, DecryptionContext {
-    override fun encrypt(data: ByteArray): EncryptedData = Cipher.getInstance(algorithm.algorithmName).run {
-        init(Cipher.ENCRYPT_MODE, key)
-        val ciphertext = doFinal(data)
-        EncryptedData.from(iv, ciphertext)
-    }
+    override fun encrypt(data: ByteArray, iv: ByteArray?): EncryptedData =
+        Cipher.getInstance(algorithm.algorithmName).run {
+            init(Cipher.ENCRYPT_MODE, key)
+            val ciphertext = doFinal(data)
+            EncryptedData.from(iv ?: this.iv, ciphertext)
+        }
 
     override fun decrypt(data: EncryptedData): ByteArray = Cipher.getInstance(algorithm.algorithmName).run {
         val gcmSpec = GCMParameterSpec(128, data.iv.asBytes)
@@ -95,48 +99,5 @@ class SignatureContextImpl(
     override fun sign(data: ByteArray): ByteArray {
         sig.update(data)
         return sig.sign()
-    }
-}
-
-@JvmInline
-value class IV(val asBytes: ByteArray) {
-    companion object {
-        fun decode(data: String): IV =
-            IV(Base64.decode(data, Base64.NO_WRAP))
-    }
-}
-
-@JvmInline
-value class Ciphertext(val asBytes: ByteArray) {
-    companion object {
-        fun decode(data: String): Ciphertext =
-            Ciphertext(Base64.decode(data, Base64.NO_WRAP))
-    }
-}
-
-data class EncryptedData(
-    internal val iv: IV,
-    internal val ciphertext: Ciphertext,
-) {
-    fun encode(): String {
-        val iv = Base64.encodeToString(iv.asBytes, Base64.NO_WRAP)
-        val ciphertext = Base64.encodeToString(ciphertext.asBytes, Base64.NO_WRAP)
-        return "${iv}:${ciphertext}"
-    }
-
-    companion object {
-        fun from(iv: ByteArray, ciphertext: ByteArray): EncryptedData =
-            EncryptedData(IV(iv), Ciphertext(ciphertext))
-
-        fun decode(data: String): EncryptedData {
-            val parts = data.split(":", limit = 2)
-            if (parts.size != 2) {
-                throw IllegalArgumentException("argument is not valid encrypted data")
-            }
-            return EncryptedData(
-                iv = IV.decode(parts[0]),
-                ciphertext = Ciphertext.decode(parts[1]),
-            )
-        }
     }
 }

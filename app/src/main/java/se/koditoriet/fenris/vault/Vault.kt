@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import se.koditoriet.fenris.BACKUP_DEK_IDENTIFIER
+import se.koditoriet.fenris.DB_KEK_IDENTIFIER
 import se.koditoriet.fenris.DbKey
 import se.koditoriet.fenris.SYMMETRIC_KEY_ALGORITHM
 import se.koditoriet.fenris.SYMMETRIC_KEY_SIZE
@@ -19,12 +21,12 @@ import se.koditoriet.fenris.crypto.BackupSeed
 import se.koditoriet.fenris.crypto.Cryptographer
 import se.koditoriet.fenris.crypto.DecryptionContext
 import se.koditoriet.fenris.crypto.DummyAuthenticator
-import se.koditoriet.fenris.crypto.EncryptedData
-import se.koditoriet.fenris.crypto.EncryptionAlgorithm
-import se.koditoriet.fenris.crypto.HmacAlgorithm
-import se.koditoriet.fenris.crypto.KeyHandle
-import se.koditoriet.fenris.crypto.KeyIdentifier
+import se.koditoriet.fenris.crypto.types.EncryptionAlgorithm
+import se.koditoriet.fenris.crypto.types.HmacAlgorithm
+import se.koditoriet.fenris.crypto.types.KeyHandle
+import se.koditoriet.fenris.crypto.types.KeyIdentifier
 import se.koditoriet.fenris.crypto.generateTotpCode
+import se.koditoriet.fenris.crypto.types.EncryptedData
 import se.koditoriet.fenris.repository.Passkeys
 import se.koditoriet.fenris.repository.TotpSecrets
 import se.koditoriet.fenris.repository.VaultRepository
@@ -36,9 +38,6 @@ import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
-private val DB_KEK_IDENTIFIER = KeyIdentifier.Internal("db_kek")
-private val BACKUP_SECRET_DEK_IDENTIFIER = KeyIdentifier.Internal("backup_secret_dek")
-private val BACKUP_METADATA_DEK_IDENTIFIER = KeyIdentifier.Internal("backup_metadata_dek")
 private const val TAG = "Vault"
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -63,7 +62,7 @@ class Vault(
     private val unlockState: UnlockState?
         get() = _state.value.unlockState
 
-    suspend fun unlock(authenticator: Authenticator, dbKey: DbKey, backupKeys: BackupKeys?) {
+    suspend fun unlock(authenticator: Authenticator, dbKey: DbKey, backupKey: KeyHandle<EncryptionAlgorithm>?) {
         check(_state.value != InternalState.Uninitialized)
 
         if (_state.value !is InternalState.Unlocked) {
@@ -71,7 +70,7 @@ class Vault(
             val repository = withDbDek(authenticator, dbKey) {
                 repositoryFactory(dbFile.value.name, it)
             }
-            _state.value = InternalState.Unlocked(UnlockState(dbKey, backupKeys, repository))
+            _state.value = InternalState.Unlocked(UnlockState(dbKey, backupKey, repository))
         }
     }
 
@@ -131,7 +130,7 @@ class Vault(
             keyIdentifier = null,
             requiresAuthentication = true,
             allowDeviceCredential = true,
-            backupKeyHandle = unlockState?.backupKeys?.secretsBackupKey
+            backupKeyHandle = unlockState?.backupKey
         )
         val credentialId = ByteArray(32).run {
             secureRandom.nextBytes(this)
@@ -184,29 +183,30 @@ class Vault(
     suspend fun addTotpSecret(newSecret: NewTotpSecret) = withTotpSecretRepository { secrets ->
         Log.i(TAG, "Adding new TOTP secret")
         val secretBytes = base32Decode(newSecret.secretData.secret)
-        val encryptedSecret = encryptBackupSecretIfEnabled(secretBytes)?.encode()
-
-        val keyHandle = cryptographer.storeHmacKey(
-            keyIdentifier = null,
-            hmacAlgorithm = newSecret.secretData.algorithm.toHmacAlgorithm(),
-            allowDeviceCredential = true, // TODO: make this configurable?
-            requiresAuthentication = true,
-            keyMaterial = secretBytes,
-        )
-        secretBytes.fill(0)
-
-        val secret = TotpSecret(
-            id = TotpSecret.Id.None,
-            sortOrder = secrets.getNextSortOrder(),
-            issuer = newSecret.metadata.issuer,
-            account = newSecret.metadata.account,
-            digits = newSecret.secretData.digits,
-            period = newSecret.secretData.period,
-            algorithm = newSecret.secretData.algorithm,
-            keyAlias = keyHandle.alias,
-            encryptedBackupSecret = encryptedSecret,
-            timeOfCreation = clock.now().toEpochMilliseconds(),
-        )
+        val secret = try {
+            val encryptedSecret = encryptBackupSecretIfEnabled(secretBytes)?.encode()
+            val keyHandle = cryptographer.storeHmacKey(
+                keyIdentifier = null,
+                hmacAlgorithm = newSecret.secretData.algorithm.toHmacAlgorithm(),
+                allowDeviceCredential = true, // TODO: make this configurable?
+                requiresAuthentication = true,
+                keyMaterial = secretBytes,
+            )
+            TotpSecret(
+                id = TotpSecret.Id.None,
+                sortOrder = secrets.getNextSortOrder(),
+                issuer = newSecret.metadata.issuer,
+                account = newSecret.metadata.account,
+                digits = newSecret.secretData.digits,
+                period = newSecret.secretData.period,
+                algorithm = newSecret.secretData.algorithm,
+                keyAlias = keyHandle.alias,
+                encryptedBackupSecret = encryptedSecret,
+                timeOfCreation = clock.now().toEpochMilliseconds(),
+            )
+        } finally {
+            secretBytes.fill(0)
+        }
         secrets.insert(secret)
     }
 
@@ -247,9 +247,10 @@ class Vault(
     suspend fun create(
         requiresAuthentication: Boolean,
         backupSeed: BackupSeed?,
-        backupData: EncryptedData? = null,
+        backupPassword: String? = null,
+        backupData: VaultExportEnvelope? = null,
         onSecretImported: (Int, Int) -> Unit = { _, _ -> },
-    ): Pair<DbKey, BackupKeys?> {
+    ): Pair<DbKey, KeyHandle<EncryptionAlgorithm>?> {
         check(state == State.Uninitialized)
         Log.i(TAG, "Creating new vault with backups ${backupSeed?.let { "enabled" } ?: "disabled"}")
         if (requiresAuthentication) {
@@ -257,27 +258,28 @@ class Vault(
         } else {
             Log.i(TAG, "New vault does not require authentication to list accounts")
         }
-        val backupKeys = backupSeed?.let {
-            val secretDekMaterial = it.deriveBackupSecretKey()
-            val secretsBackupKey = createBackupKey(secretDekMaterial, BACKUP_SECRET_DEK_IDENTIFIER)
-            secretDekMaterial.fill(0)
-
-            val metadataDekMaterial = it.deriveBackupMetadataKey()
-            val metadataBackupKey = createBackupKey(metadataDekMaterial, BACKUP_METADATA_DEK_IDENTIFIER)
-            metadataDekMaterial.fill(0)
-            BackupKeys(secretsBackupKey, metadataBackupKey)
+        val backupKey = backupSeed?.let {
+            val secretDekMaterial = it.deriveBackupKey()
+            try {
+                createBackupKey(secretDekMaterial, BACKUP_DEK_IDENTIFIER)
+            } finally {
+                secretDekMaterial.fill(0)
+            }
         }
         val (dbKey, dbDekPlaintext) = createDbKey(requiresAuthentication)
-        val repository = repositoryFactory(dbFile.value.name, dbDekPlaintext)
-        dbDekPlaintext.fill(0)
+        val repository = try {
+            repositoryFactory(dbFile.value.name, dbDekPlaintext)
+        } finally {
+            dbDekPlaintext.fill(0)
+        }
 
-        val unlockState = UnlockState(dbKey, backupKeys, repository)
-        if (backupSeed != null && backupData != null) {
-            importBackup(backupSeed, backupData, unlockState, onSecretImported)
+        val unlockState = UnlockState(dbKey, backupKey, repository)
+        if (backupSeed != null && backupData != null && backupPassword != null) {
+            importBackup(backupSeed, backupData, backupPassword, unlockState, onSecretImported)
         }
 
         _state.value = InternalState.Unlocked(unlockState)
-        return Pair(dbKey, backupKeys)
+        return Pair(dbKey, backupKey)
     }
 
     suspend fun rekey(
@@ -305,9 +307,8 @@ class Vault(
     }
 
     suspend fun eraseBackups(): Unit = requireUnlocked { unlockState ->
-        unlockState.backupKeys?.let {
-            cryptographer.deleteKey(it.metadataBackupKey)
-            cryptographer.deleteKey(it.secretsBackupKey)
+        unlockState.backupKey?.let {
+            cryptographer.deleteKey(it)
         }
         unlockState.repository.totpSecrets().eraseBackups()
         unlockState.repository.passkeys().eraseBackups()
@@ -317,23 +318,24 @@ class Vault(
      * Returns true if the given seed can decrypt data encrypted with the backup key, otherwise false.
      */
     suspend fun validateSeed(seed: BackupSeed): Boolean = requireUnlocked { unlockState ->
-        check(unlockState.backupKeys != null)
-        val encryptionKey = unlockState.backupKeys.metadataBackupKey
+        check(unlockState.backupKey != null)
+        val encryptionKey = unlockState.backupKey
         val testPlaintext = ByteArray(32).apply { secureRandom.nextBytes(this) }
         val testCiphertext = cryptographer.withEncryptionKey(DummyAuthenticator, encryptionKey) {
             encrypt(testPlaintext)
         }
-        val decryptionKey = seed.deriveBackupMetadataKey()
+        val decryptionKey = seed.deriveBackupKey()
         try {
             cryptographer.withDecryptionKey(decryptionKey, encryptionKey.algorithm) {
                 decrypt(testCiphertext)
             }
-            decryptionKey.fill(0)
             Log.d(TAG, "Seed validation succeeded")
             true
         } catch (_: Exception) {
             Log.w(TAG, "Seed validation failed")
             false
+        } finally {
+            decryptionKey.fill(0)
         }
     }
 
@@ -341,96 +343,102 @@ class Vault(
         oldBackupSeed: BackupSeed,
         newBackupSeed: BackupSeed,
     ): Unit = requireUnlocked { unlockState ->
+        check(unlockState.backupKey != null) {
+            "Can only rekey if backups are enabled"
+        }
         Log.i(TAG, "Rekeying backup secrets")
-        val oldBackupSecretKey = oldBackupSeed.deriveBackupSecretKey()
-        val newBackupKeys = newBackupSeed.let {
+        val oldBackupSecretKey = oldBackupSeed.deriveBackupKey()
+        val newBackupKey = newBackupSeed.let {
             Log.d(TAG, "Creating new secret backup key")
-            val secretDekMaterial = it.deriveBackupSecretKey()
-            val secretsBackupKey = createBackupKey(secretDekMaterial, BACKUP_SECRET_DEK_IDENTIFIER)
-            secretDekMaterial.fill(0)
-
-            Log.d(TAG, "Creating new metadata backup key")
-            val metadataDekMaterial = it.deriveBackupMetadataKey()
-            val metadataBackupKey = createBackupKey(metadataDekMaterial, BACKUP_METADATA_DEK_IDENTIFIER)
-            metadataDekMaterial.fill(0)
-            BackupKeys(secretsBackupKey, metadataBackupKey)
+            val secretDekMaterial = it.deriveBackupKey()
+            try {
+                createBackupKey(secretDekMaterial, BACKUP_DEK_IDENTIFIER)
+            } finally {
+                secretDekMaterial.fill(0)
+            }
         }
 
-        val oldBackupKeyAlgorithm = unlockState.backupKeys!!.secretsBackupKey.algorithm
+        val oldBackupKeyAlgorithm = unlockState.backupKey.algorithm
         val secrets = unlockState.repository.totpSecrets()
         val passkeys = unlockState.repository.passkeys()
 
-        cryptographer.withDecryptionKey(oldBackupSecretKey, oldBackupKeyAlgorithm) {
-            cryptographer.withEncryptionKey(DummyAuthenticator, newBackupKeys.secretsBackupKey) {
-                Log.d(TAG, "Re-encrypting TOTP secrets...")
-                for (item in secrets.getAll()) {
-                    val decryptedSecret = decrypt(EncryptedData.decode(item.encryptedBackupSecret!!))
-                    val encryptedSecret = encrypt(decryptedSecret)
-                    decryptedSecret.fill(0)
+        try {
+            cryptographer.withDecryptionKey(oldBackupSecretKey, oldBackupKeyAlgorithm) {
+                cryptographer.withEncryptionKey(DummyAuthenticator, newBackupKey) {
+                    Log.d(TAG, "Re-encrypting TOTP secrets...")
+                    for (item in secrets.getAll()) {
+                        val decryptedSecret = decrypt(EncryptedData.decode(item.encryptedBackupSecret!!))
+                        val encryptedSecret = try {
+                            encrypt(decryptedSecret)
+                        } finally {
+                            decryptedSecret.fill(0)
+                        }
 
-                    val updatedItem = item.copy(encryptedBackupSecret = encryptedSecret.encode())
-                    secrets.update(updatedItem)
+                        val updatedItem = item.copy(encryptedBackupSecret = encryptedSecret.encode())
+                        secrets.update(updatedItem)
+                    }
+                    Log.d(TAG, "All TOTP secrets re-encrypted!")
+
+                    Log.d(TAG, "Re-encrypting passkeys...")
+                    for (item in passkeys.getAll()) {
+                        val decryptedPrivKey = decrypt(EncryptedData.decode(item.encryptedBackupPrivateKey!!))
+                        val encryptedPrivKey = try {
+                            encrypt(decryptedPrivKey)
+                        } finally {
+                            decryptedPrivKey.fill(0)
+                        }
+
+                        val updatedItem = item.copy(encryptedBackupPrivateKey = encryptedPrivKey.encode())
+                        passkeys.update(updatedItem)
+                    }
+                    Log.d(TAG, "All passkeys re-encrypted!")
                 }
-                Log.d(TAG, "All TOTP secrets re-encrypted!")
-
-                Log.d(TAG, "Re-encrypting passkeys...")
-                for (item in passkeys.getAll()) {
-                    val decryptedPrivKey = decrypt(EncryptedData.decode(item.encryptedBackupPrivateKey!!))
-                    val encryptedPrivKey = encrypt(decryptedPrivKey)
-                    decryptedPrivKey.fill(0)
-
-                    val updatedItem = item.copy(encryptedBackupPrivateKey = encryptedPrivKey.encode())
-                    passkeys.update(updatedItem)
-                }
-                Log.d(TAG, "All passkeys re-encrypted!")
             }
+        } finally {
+            oldBackupSecretKey.fill(0)
         }
-        oldBackupSecretKey.fill(0)
         _state.value = InternalState.Unlocked(
-            unlockState.copy(backupKeys = newBackupKeys)
+            unlockState.copy(backupKey = newBackupKey)
         )
     }
 
-    suspend fun export(): EncryptedData = requireUnlocked { unlockState ->
-        requireBackupsEnabled { backupKeys ->
+    suspend fun export(password: String): VaultExportEnvelope = requireUnlocked { unlockState ->
+        requireBackupsEnabled { backupKey ->
             val vaultExport = VaultExport(
                 secrets = unlockState.repository.totpSecrets().getAll(),
                 passkeys = unlockState.repository.passkeys().getAll(),
             )
             Log.i(TAG, "Exporting ${vaultExport.secrets.size} secrets and ${vaultExport.passkeys.size} passkeys")
-            val vaultExportBytes = vaultExport.encode()
-            cryptographer.withEncryptionKey(DummyAuthenticator, backupKeys.metadataBackupKey) {
-                encrypt(vaultExportBytes)
-            }
+            VaultExportEnvelope.encrypt(cryptographer, DummyAuthenticator, vaultExport, backupKey, password)
         }
     }
 
     private suspend fun importBackup(
         backupSeed: BackupSeed,
-        data: EncryptedData,
+        envelope: VaultExportEnvelope,
+        password: String,
         unlockState: UnlockState,
         onSecretImported: (Int, Int) -> Unit,
     ) {
         Log.i(TAG, "Importing backup")
-        val metadataKeyMaterial = backupSeed.deriveBackupMetadataKey()
-        val vaultExport = cryptographer.withDecryptionKey(metadataKeyMaterial, SYMMETRIC_KEY_ALGORITHM) {
-            VaultExport.decode(decrypt(data))
-        }
-        val totalItems = vaultExport.secrets.size + vaultExport.passkeys.size
-        onSecretImported(0, totalItems)
+        val vaultExport = envelope.decrypt(cryptographer, backupSeed, password)
+        val seedKeyMaterial = backupSeed.deriveBackupKey()
+        try {
+            cryptographer.withDecryptionKey(seedKeyMaterial, SYMMETRIC_KEY_ALGORITHM) {
+                val totalItems = vaultExport.secrets.size + vaultExport.passkeys.size
+                onSecretImported(0, totalItems)
+                Log.d(TAG, "Backup metadata successfully decoded")
 
-        Log.d(TAG, "Backup metadata successfully decoded")
-        metadataKeyMaterial.fill(0)
-
-        val secretKeyMaterial = backupSeed.deriveBackupSecretKey()
-        val secretDecryptionContext = DecryptionContext.create(secretKeyMaterial, SYMMETRIC_KEY_ALGORITHM)
-        importTotpSecrets(vaultExport.secrets, secretDecryptionContext, unlockState) {
-            onSecretImported(it, totalItems)
+                importTotpSecrets(vaultExport.secrets, this, unlockState) {
+                    onSecretImported(it, totalItems)
+                }
+                importPasskeys(vaultExport.passkeys, this, unlockState) {
+                    onSecretImported(it + vaultExport.secrets.size, totalItems)
+                }
+            }
+        } finally {
+            seedKeyMaterial.fill(0)
         }
-        importPasskeys(vaultExport.passkeys, secretDecryptionContext, unlockState) {
-            onSecretImported(it + vaultExport.secrets.size, totalItems)
-        }
-        secretKeyMaterial.fill(0)
     }
 
     private suspend fun importTotpSecrets(
@@ -501,10 +509,12 @@ class Vault(
     suspend fun getSecurityReport(): SecurityReport = requireUnlocked { unlockState ->
         Log.i(TAG, "Generating security report")
         val backupKeysSecurityLevel = unlockState
-            .backupKeys
-            ?.let { listOf(it.secretsBackupKey.alias, it.metadataBackupKey.alias) }
-            ?.map { KeyHandle.fromAlias<EncryptionAlgorithm>(it) }
-            ?.minOfOrNull { cryptographer.getKeySecurityLevel(it) }
+            .backupKey
+            ?.alias
+            ?.let {
+                val alias = KeyHandle.fromAlias<EncryptionAlgorithm>(it)
+                cryptographer.getKeySecurityLevel(alias)
+            }
 
         SecurityReport(
             backupKeyStatus = backupKeysSecurityLevel,
@@ -519,14 +529,17 @@ class Vault(
 
     private suspend fun DecryptionContext.importSecret(secrets: TotpSecrets, secret: TotpSecret) {
         val secretBytes = decrypt(EncryptedData.decode(secret.encryptedBackupSecret!!))
-        val newKeyHandle = cryptographer.storeHmacKey(
-            keyIdentifier = null,
-            hmacAlgorithm = secret.algorithm.toHmacAlgorithm(),
-            allowDeviceCredential = true,
-            requiresAuthentication = true,
-            keyMaterial = secretBytes
-        )
-        secretBytes.fill(0)
+        val newKeyHandle = try {
+            cryptographer.storeHmacKey(
+                keyIdentifier = null,
+                hmacAlgorithm = secret.algorithm.toHmacAlgorithm(),
+                allowDeviceCredential = true,
+                requiresAuthentication = true,
+                keyMaterial = secretBytes
+            )
+        } finally {
+            secretBytes.fill(0)
+        }
         val newSecret = secret.copy(
             sortOrder = secrets.getNextSortOrder(),
             keyAlias = newKeyHandle.alias,
@@ -537,14 +550,17 @@ class Vault(
 
     private suspend fun DecryptionContext.importPasskey(passkeys: Passkeys, passkey: Passkey) {
         val privateKeyBytes = decrypt(EncryptedData.decode(passkey.encryptedBackupPrivateKey!!))
-        val newKeyHandle = cryptographer.storePrivateKey(
-            keyIdentifier = null,
-            algorithm = passkey.keyHandle.algorithm,
-            allowDeviceCredential = true,
-            requiresAuthentication = true,
-            keyMaterial = privateKeyBytes,
-        )
-        privateKeyBytes.fill(0)
+        val newKeyHandle = try {
+            cryptographer.storePrivateKey(
+                keyIdentifier = null,
+                algorithm = passkey.keyHandle.algorithm,
+                allowDeviceCredential = true,
+                requiresAuthentication = true,
+                keyMaterial = privateKeyBytes,
+            )
+        } finally {
+            privateKeyBytes.fill(0)
+        }
         val newPasskey = passkey.copy(
             sortOrder = passkeys.getNextSortOrder(),
             keyAlias = newKeyHandle.alias,
@@ -554,9 +570,9 @@ class Vault(
     }
 
     private suspend fun encryptBackupSecretIfEnabled(secretBytes: ByteArray): EncryptedData? =
-        unlockState?.backupKeys?.let {
+        unlockState?.backupKey?.let {
             Log.d(TAG, "Backups are enabled; encrypting secret")
-            cryptographer.withEncryptionKey(DummyAuthenticator, it.secretsBackupKey) {
+            cryptographer.withEncryptionKey(DummyAuthenticator, it) {
                 encrypt(secretBytes)
             }
         }
@@ -629,12 +645,13 @@ class Vault(
         return action(unlockState!!)
     }
 
-    private suspend fun <T> requireBackupsEnabled(action: suspend (BackupKeys) -> T): T = requireUnlocked { state ->
-        check(state.backupKeys != null) {
-            "operation requires backups to be enabled"
+    private suspend fun <T> requireBackupsEnabled(action: suspend (KeyHandle<EncryptionAlgorithm>) -> T): T =
+        requireUnlocked { state ->
+            check(state.backupKey != null) {
+                "operation requires backups to be enabled"
+            }
+            action(state.backupKey)
         }
-        action(state.backupKeys)
-    }
 
     private sealed class InternalState(val public: State) {
         object Uninitialized : InternalState(State.Uninitialized)
@@ -656,13 +673,8 @@ class Vault(
 
     private data class UnlockState(
         val dbKey: DbKey,
-        val backupKeys: BackupKeys?,
+        val backupKey: KeyHandle<EncryptionAlgorithm>?,
         val repository: VaultRepository,
-    )
-
-    data class BackupKeys(
-        val secretsBackupKey: KeyHandle<EncryptionAlgorithm>,
-        val metadataBackupKey: KeyHandle<EncryptionAlgorithm>,
     )
 }
 

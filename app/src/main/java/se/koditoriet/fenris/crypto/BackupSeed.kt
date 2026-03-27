@@ -13,14 +13,10 @@ import java.security.MessageDigest.getInstance
 import java.security.SecureRandom
 
 private const val DOMAIN_BACKUP_SECRET_DEK: String = "backup_secret_dek"
-private const val DOMAIN_BACKUP_METADATA_DEK: String = "backup_metadata_dek"
 
 class BackupSeed(private val secret: ByteArray) {
-    fun deriveBackupSecretKey(): ByteArray =
+    fun deriveBackupKey(): ByteArray =
         deriveKey(DOMAIN_BACKUP_SECRET_DEK)
-
-    fun deriveBackupMetadataKey(): ByteArray =
-        deriveKey(DOMAIN_BACKUP_METADATA_DEK)
 
     fun wipe() {
         secret.fill(0)
@@ -37,14 +33,8 @@ class BackupSeed(private val secret: ByteArray) {
     fun toUri(): Uri =
         "$FENRIS_URI_SCHEME://$BACKUP_SEED_URI_HOST/${toBase64Url().string}".toUri()
 
-    private fun deriveKey(domain: String): ByteArray {
-        val prk = HmacContext.create(ByteArray(SYMMETRIC_KEY_SIZE), HmacAlgorithm.SHA256).run {
-            hmac(secret)
-        }
-        return HmacContext.create(prk, HmacAlgorithm.SHA256).run {
-            hmac(domain.toByteArray() + byteArrayOf(1))
-        }
-    }
+    private fun deriveKey(domain: String): ByteArray =
+        hkdf(secret, domain)
 
     companion object {
         fun generate(secureRandom: SecureRandom = SecureRandom()): BackupSeed =

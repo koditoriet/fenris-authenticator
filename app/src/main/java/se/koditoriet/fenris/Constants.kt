@@ -1,7 +1,8 @@
 package se.koditoriet.fenris
 
 import se.koditoriet.fenris.credentialprovider.webauthn.AuthDataFlag
-import se.koditoriet.fenris.crypto.EncryptionAlgorithm
+import se.koditoriet.fenris.crypto.types.EncryptionAlgorithm
+import se.koditoriet.fenris.crypto.types.KeyIdentifier
 
 /**
  * The AAGUID is a UUID uniquely identifying a WebAuthn authenticator.
@@ -16,6 +17,12 @@ val AAGUID: ByteArray = "071320aec08443fd94e6987933b23e1f".hexToByteArray()
  */
 const val SYMMETRIC_KEY_SIZE: Int = 32
 val SYMMETRIC_KEY_ALGORITHM = EncryptionAlgorithm.AES_GCM
+
+/**
+ * Use 32 byte salt whenever we hash a password.
+ */
+const val PASSWORD_SALT_SIZE: Int = 32
+
 
 /**
  * Number of seconds for which a symmetric key can be used after successful authentication.
@@ -60,3 +67,13 @@ val PASSKEY_CREATE_FLAGS = setOf(AuthDataFlag.UP, AuthDataFlag.UV, AuthDataFlag.
  * Default flags for passkey authentication.
  */
 val PASSKEY_AUTH_FLAGS = setOf(AuthDataFlag.UP, AuthDataFlag.UV, AuthDataFlag.BE)
+
+/**
+ * Identifier for SQLCipher key encryption key.
+ */
+val DB_KEK_IDENTIFIER = KeyIdentifier.Internal("db_kek")
+
+/**
+ * Identifier for backup data encryption key.
+ */
+val BACKUP_DEK_IDENTIFIER = KeyIdentifier.Internal("backup_secret_dek")

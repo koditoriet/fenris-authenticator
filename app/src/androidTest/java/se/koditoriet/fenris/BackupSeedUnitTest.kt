@@ -89,8 +89,8 @@ class BackupSeedUnitTest {
     fun `derived keys in different domains are always different`() {
         for (n in 1..10_000) {
             val seed = BackupSeed.generate(rng)
-            val secretKey = seed.deriveBackupSecretKey()
-            val metadataKey = seed.deriveBackupMetadataKey()
+            val secretKey = seed.deriveBackupKey()
+            val metadataKey = seed.deriveBackupKey()
             assertNotEquals(secretKey.toHexString(), metadataKey.toHexString())
         }
     }

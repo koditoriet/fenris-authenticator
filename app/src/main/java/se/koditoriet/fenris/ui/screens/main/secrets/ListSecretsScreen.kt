@@ -102,7 +102,7 @@ fun ListSecretsScreen(
         floatingActionButton = {
             Column(verticalArrangement = Arrangement.spacedBy(SPACING_L)) {
                 FloatingActionButton(onClick = { qrScannerState = QRScannerState.ScanAnySupported }) {
-                    Icon(Icons.Filled.QrCodeScanner, screenStrings.addSecret)
+                    Icon(Icons.Filled.QrCodeScanner, screenStrings.scanQRCode)
                 }
                 FloatingActionButton(onClick = { sheetViewState = SheetViewState.AddSecretActions }) {
                     Icon(Icons.Filled.Add, screenStrings.addSecret)

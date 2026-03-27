@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import se.koditoriet.fenris.ui.theme.LocalAccentColors
 
 @Composable
 fun LoadingSpinner() {
@@ -16,6 +17,9 @@ fun LoadingSpinner() {
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.fillMaxWidth()
     ) {
-        CircularProgressIndicator(modifier = Modifier.testTag("LoadingSpinner"))
+        CircularProgressIndicator(
+            modifier = Modifier.testTag("LoadingSpinner"),
+            color = LocalAccentColors.current.on,
+        )
     }
 }
