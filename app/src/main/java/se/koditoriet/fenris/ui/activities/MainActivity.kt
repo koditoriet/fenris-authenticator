@@ -80,12 +80,12 @@ fun MainActivity.MainActivityContent() {
     val credentialProviderEnabled by isEnabledCredentialProvider.collectAsState()
     val isBackgrounded by isBackgrounded.collectAsState()
 
-    if (!config.ready) {
-        Log.d(TAG, "Config not ready; deferring rendering for now")
-        return
-    }
+    LaunchedEffect(isBackgrounded, config.ready) {
+        if (!config.ready) {
+            Log.d(TAG, "Config not ready; deferring vault unlock for now")
+            return@LaunchedEffect
+        }
 
-    LaunchedEffect(isBackgrounded) {
         if (!isBackgrounded) {
             ignoreAuthFailure {
                 if (vaultState != Vault.State.Uninitialized) {
