@@ -32,12 +32,12 @@ import se.koditoriet.fenris.ui.screens.main.MainScreen
 import se.koditoriet.fenris.ui.screens.setup.SetupScreen
 import se.koditoriet.fenris.ui.theme.FenrisTheme
 import se.koditoriet.fenris.vault.Vault
-import se.koditoriet.fenris.viewmodel.FenrisViewModel
+import se.koditoriet.fenris.viewmodel.MainScreenViewModel
 
 private const val TAG = "MainActivity"
 
 class MainActivity : FragmentActivity() {
-    val viewModel: FenrisViewModel by viewModels()
+    val viewModel: MainScreenViewModel by viewModels()
 
     private var _isEnabledCredentialProvider = MutableStateFlow(false)
     val isEnabledCredentialProvider: StateFlow<Boolean> = _isEnabledCredentialProvider.asStateFlow()
@@ -75,12 +75,17 @@ class MainActivity : FragmentActivity() {
 
 @Composable
 fun MainActivity.MainActivityContent() {
-    val vaultState by viewModel.vaultState.collectAsState(Vault.State.Uninitialized)
-    val config by viewModel.config.collectAsState(Config.default)
+    val vaultState by viewModel.vaultState.collectAsState()
+    val config by viewModel.config.collectAsState()
     val credentialProviderEnabled by isEnabledCredentialProvider.collectAsState()
     val isBackgrounded by isBackgrounded.collectAsState()
 
-    LaunchedEffect(isBackgrounded) {
+    LaunchedEffect(isBackgrounded, config.ready) {
+        if (!config.ready) {
+            Log.d(TAG, "Config not ready; deferring vault unlock for now")
+            return@LaunchedEffect
+        }
+
         if (!isBackgrounded) {
             ignoreAuthFailure {
                 if (vaultState != Vault.State.Uninitialized) {

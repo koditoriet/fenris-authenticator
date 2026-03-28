@@ -60,7 +60,6 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import se.koditoriet.fenris.AppStrings
-import se.koditoriet.fenris.Config
 import se.koditoriet.fenris.appStrings
 import se.koditoriet.fenris.crypto.AuthenticatorFactory
 import se.koditoriet.fenris.ui.components.IrrevocableActionConfirmationDialog
@@ -93,7 +92,7 @@ fun SettingsScreen(
     timeZone: TimeZone = TimeZone.currentSystemDefault(),
 ) {
     val viewModel = viewModel<SettingsViewModel>()
-    val config by viewModel.config.collectAsState(Config.default)
+    val config by viewModel.config.collectAsState()
     val screenStrings = appStrings.settingsScreen
     var sheetViewState by remember { mutableStateOf<SettingsScreenSheetViewState?>(null) }
     var showWipeDialog by remember { mutableStateOf(false) }

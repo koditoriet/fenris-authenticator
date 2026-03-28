@@ -1,6 +1,6 @@
 package se.koditoriet.fenris.vault
 
-import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.sync.Mutex
 import se.koditoriet.fenris.DbKey
 import se.koditoriet.fenris.crypto.Authenticator
@@ -37,14 +37,9 @@ class SynchronizedVault(vaultFactory: () -> Vault) {
         }
     }
 
-    val state: Flow<Vault.State>
-        get() = vault.observeState()
-
-    val totpSecrets: Flow<List<TotpSecret>>
-        get() = vault.observeTotpSecrets()
-
-    val passkeys: Flow<List<Passkey>>
-        get() = vault.observePasskeys()
+    val state: StateFlow<Vault.State> by lazy { vault.observeState() }
+    val totpSecrets: StateFlow<List<TotpSecret>> by lazy { vault.observeTotpSecrets() }
+    val passkeys: StateFlow<List<Passkey>> by lazy { vault.observePasskeys() }
 }
 
 private class UnlockingAuthenticator(

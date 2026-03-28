@@ -14,14 +14,14 @@ import se.koditoriet.fenris.crypto.BiometricPromptAuthenticator
 import se.koditoriet.fenris.ui.screens.main.passkeys.ManagePasskeysScreen
 import se.koditoriet.fenris.ui.screens.main.secrets.ListSecretsScreen
 import se.koditoriet.fenris.ui.screens.main.settings.SettingsScreen
-import se.koditoriet.fenris.viewmodel.FenrisViewModel
+import se.koditoriet.fenris.viewmodel.MainScreenViewModel
 
 private const val TAG = "MainScreen"
 
 @Composable
 fun FragmentActivity.MainScreen(
     credentialProviderEnabled: Boolean,
-    viewModel: FenrisViewModel,
+    viewModel: MainScreenViewModel,
 ) {
     val authFactory = remember { BiometricPromptAuthenticator.Factory(this) }
     var viewState by remember { mutableStateOf<ViewState>(ViewState.ListSecrets) }

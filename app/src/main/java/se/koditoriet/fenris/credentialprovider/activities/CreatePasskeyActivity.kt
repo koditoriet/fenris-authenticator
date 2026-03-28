@@ -57,7 +57,7 @@ class CreatePasskeyActivity : FragmentActivity() {
         enableEdgeToEdge()
         setContent {
             Log.d(TAG, "Starting activity")
-            val passkeys by viewModel.passkeys.collectAsState(emptyList())
+            val passkeys by viewModel.passkeys.collectAsState()
             val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
             LaunchedEffect(Unit) {

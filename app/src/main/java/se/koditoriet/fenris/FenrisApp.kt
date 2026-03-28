@@ -18,7 +18,10 @@ import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -31,16 +34,24 @@ import kotlin.time.Duration.Companion.seconds
 
 private const val TAG = "FenrisApp"
 
-private val idleTimeoutScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
 class FenrisApp : Application() {
     val vault: SynchronizedVault
-    val config: DataStore<Config> by dataStore("config", ConfigSerializer)
+    val configDatastore: DataStore<Config> by dataStore("config", ConfigSerializer)
+    val config: StateFlow<Config> by lazy {
+        configDatastore.data.stateIn(
+            scope = applicationScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = Config.default,
+        )
+    }
+
     private var idleTimeout: TimeoutJob? = null
 
     fun startIdleTimeout() {
-        idleTimeoutScope.launch {
-            val cfg = config.data.first()
+        applicationScope.launch {
+            val cfg = configDatastore.data.first()
             if (cfg.lockOnClose) {
                 idleTimeout
                     ?.start(cfg.lockOnCloseGracePeriod.seconds)
@@ -53,7 +64,7 @@ class FenrisApp : Application() {
     }
 
     fun cancelIdleTimeout() {
-        idleTimeoutScope.launch {
+        applicationScope.launch {
             idleTimeout?.cancel()
         }
     }
@@ -71,6 +82,7 @@ class FenrisApp : Application() {
                 repositoryFactory = repositoryFactory,
                 cryptographer = Cryptographer(),
                 dbFile = lazy { getDatabasePath("vault")!! },
+                scope = applicationScope,
             )
         }
     }
@@ -102,7 +114,7 @@ class FenrisApp : Application() {
 
     private val screenOffReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            idleTimeoutScope.launch {
+            applicationScope.launch {
                 Log.i(TAG, "Screen off detected; locking vault immediately")
                 cancelIdleTimeout()
                 vault.withLock { lock() }

@@ -16,7 +16,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.viewModel
-import se.koditoriet.fenris.Config
 import se.koditoriet.fenris.appStrings
 import se.koditoriet.fenris.ui.components.IrrevocableActionConfirmationDialog
 import se.koditoriet.fenris.ui.components.listview.ListViewTopBar
@@ -31,15 +30,15 @@ import se.koditoriet.fenris.viewmodel.ManagePasskeysViewModel
 @Composable
 fun ManagePasskeysScreen() {
     val viewModel = viewModel<ManagePasskeysViewModel>()
-    val passkeys by viewModel.passkeys.collectAsState(emptyList())
-    val config by viewModel.config.collectAsState(Config.default)
+    val passkeys by viewModel.passkeys.collectAsState()
+    val config by viewModel.config.collectAsState()
     val screenStrings = remember { viewModel.appStrings.managePasskeysScreen }
-
     val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
     var sheetViewState by remember { mutableStateOf<SheetViewState?>(null) }
     var confirmDeletePasskey by remember { mutableStateOf<Passkey?>(null) }
     var filter by remember { mutableStateOf<String?>(null) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
     val passkeyListItems = passkeys.map { passkey ->
         PasskeyListItem(
             passkey = passkey,

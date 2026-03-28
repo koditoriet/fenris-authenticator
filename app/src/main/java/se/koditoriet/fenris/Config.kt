@@ -23,6 +23,8 @@ data class Config(
     val backupsEnabled: Boolean
         get() = backupKeyAlias != null
 
+    val ready: Boolean
+        get() = encryptedDbKey != null
 
     companion object {
         val default = Config()
