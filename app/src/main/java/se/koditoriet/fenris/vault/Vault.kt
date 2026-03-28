@@ -1,13 +1,16 @@
 package se.koditoriet.fenris.vault
 
 import android.util.Log
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import se.koditoriet.fenris.BACKUP_DEK_IDENTIFIER
 import se.koditoriet.fenris.DB_KEK_IDENTIFIER
 import se.koditoriet.fenris.DbKey
@@ -21,12 +24,12 @@ import se.koditoriet.fenris.crypto.BackupSeed
 import se.koditoriet.fenris.crypto.Cryptographer
 import se.koditoriet.fenris.crypto.DecryptionContext
 import se.koditoriet.fenris.crypto.DummyAuthenticator
+import se.koditoriet.fenris.crypto.generateTotpCode
+import se.koditoriet.fenris.crypto.types.EncryptedData
 import se.koditoriet.fenris.crypto.types.EncryptionAlgorithm
 import se.koditoriet.fenris.crypto.types.HmacAlgorithm
 import se.koditoriet.fenris.crypto.types.KeyHandle
 import se.koditoriet.fenris.crypto.types.KeyIdentifier
-import se.koditoriet.fenris.crypto.generateTotpCode
-import se.koditoriet.fenris.crypto.types.EncryptedData
 import se.koditoriet.fenris.repository.Passkeys
 import se.koditoriet.fenris.repository.TotpSecrets
 import se.koditoriet.fenris.repository.VaultRepository
@@ -47,6 +50,7 @@ class Vault(
     private val dbFile: Lazy<File>,
     private val secureRandom: SecureRandom = SecureRandom(),
     private val clock: Clock = Clock.System,
+    private val scope: CoroutineScope,
 ) {
     private val _state = MutableStateFlow(
         if (!cryptographer.isInitialized()) {
@@ -90,26 +94,38 @@ class Vault(
         }
     }
 
-    fun observeState(): Flow<State> =
-        _state.asStateFlow().map { it.public }
+    fun observeState(): StateFlow<State> =
+        _state.asStateFlow().map { it.public }.stateIn(
+            scope = scope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = _state.value.public,
+        )
 
-    fun observePasskeys(): Flow<List<Passkey>> =
+    fun observePasskeys(): StateFlow<List<Passkey>> =
         _state.asStateFlow().flatMapLatest {
             when (it) {
                 InternalState.Locked -> flowOf(emptyList())
                 InternalState.Uninitialized -> flowOf(emptyList())
                 is InternalState.Unlocked -> it.unlockState.repository.passkeys().observeAll()
             }
-        }
+        }.stateIn(
+            scope = scope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList(),
+        )
 
-    fun observeTotpSecrets(): Flow<List<TotpSecret>> =
+    fun observeTotpSecrets(): StateFlow<List<TotpSecret>> =
         _state.asStateFlow().flatMapLatest {
             when (it) {
                 InternalState.Locked -> flowOf(emptyList())
                 InternalState.Uninitialized -> flowOf(emptyList())
                 is InternalState.Unlocked -> it.unlockState.repository.totpSecrets().observeAll()
             }
-        }
+        }.stateIn(
+            scope = scope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList(),
+        )
 
     suspend fun getPasskeys(rpId: String): List<Passkey> = withPasskeyRepository {
         it.getAll(rpId)

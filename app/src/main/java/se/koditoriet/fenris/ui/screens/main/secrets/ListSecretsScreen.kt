@@ -28,7 +28,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import se.koditoriet.fenris.AppStrings
-import se.koditoriet.fenris.Config
 import se.koditoriet.fenris.codec.QRCodeData
 import se.koditoriet.fenris.crypto.AuthenticatorFactory
 import se.koditoriet.fenris.ui.components.BadInputInformationDialog
@@ -60,8 +59,8 @@ fun ListSecretsScreen(
 ) {
     val ctx = LocalContext.current
     val viewModel = viewModel<ListSecretsViewModel>()
-    val config by viewModel.config.collectAsState(Config.default)
-    val secrets by viewModel.secrets.collectAsState(emptyList())
+    val config by viewModel.config.collectAsState()
+    val secrets by viewModel.secrets.collectAsState()
     val screenStrings = remember { viewModel.appStrings.secretsScreen }
     var confirmDeleteSecret by remember { mutableStateOf<TotpSecret?>(null) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)

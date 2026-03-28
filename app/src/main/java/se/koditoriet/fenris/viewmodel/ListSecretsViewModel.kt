@@ -3,7 +3,7 @@ package se.koditoriet.fenris.viewmodel
 import android.app.Application
 import android.net.Uri
 import android.util.Log
-import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
@@ -20,8 +20,7 @@ import kotlin.time.Clock
 private const val TAG = "ListSecretsViewModel"
 
 class ListSecretsViewModel(private val app: Application) : ViewModelBase(app) {
-    val secrets: Flow<List<TotpSecret>>
-        get() = vault.totpSecrets
+    val secrets: StateFlow<List<TotpSecret>> by lazy { vault.totpSecrets }
 
     fun onLockVault() = onIOThread { vault.lockVault() }
     fun onAddSecret(newSecret: NewTotpSecret) = withVault { addTotpSecret(newSecret) }

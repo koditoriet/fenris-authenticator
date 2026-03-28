@@ -63,7 +63,7 @@ class FenrisCredentialProviderService : CredentialProviderService() {
         Log.i(TAG, "Credential list requested")
         scope.launch {
             (application as FenrisApp).vault.withLock {
-                val config = (application as FenrisApp).config.data.first()
+                val config = (application as FenrisApp).configDatastore.data.first()
                 when {
                     state == Vault.State.Locked && config.protectAccountList -> {
                         Log.i(TAG, "Vault is locked; presenting unlock option")
