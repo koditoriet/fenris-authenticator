@@ -5,7 +5,6 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
-import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 import se.koditoriet.fenris.codec.Base64Url
 import se.koditoriet.fenris.vault.CredentialId
 import se.koditoriet.fenris.vault.Passkey
@@ -22,10 +21,12 @@ import se.koditoriet.fenris.vault.UserId
 abstract class VaultRepository : RoomDatabase() {
     companion object {
         fun open(ctx: Context, path: String, dbKey: ByteArray): VaultRepository {
-            val supportFactory = SupportOpenHelperFactory(dbKey)
             return Room.databaseBuilder(ctx, VaultRepository::class.java, path).apply {
-                openHelperFactory(supportFactory)
-            }.build()
+                // we only use this to set the SQLCipher key immediately upon opening the database
+                allowMainThreadQueries()
+            }.build().apply {
+                query("PRAGMA key = \"x'${dbKey.toHexString()}'\";", arrayOf())
+            }
         }
     }
 
