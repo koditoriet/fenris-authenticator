@@ -19,6 +19,8 @@
     <string name="generic_open_system_settings">Open system settings</string>
     <string name="generic_maybe_later">Maybe later</string>
     <string name="generic_advanced_options">Advanced options</string>
+    <string name="generic_password">Password</string>
+    <string name="generic_confirm_password">Confirm password</string>
 
 
     <!-- QR scanner -->
@@ -48,8 +50,9 @@
 
 
     <!-- Input backup seed screen -->
-    <string name="seed_input_enter_recovery_phrase">Enter your recovery phrase</string>
+    <string name="seed_input_heading">Enter your recovery phrase</string>
     <string name="seed_input_restore_vault">Restore from backup</string>
+    <string name="seed_input_enter_backup_password">Enter backup password</string>
     <string name="seed_input_scan_qr_code">Scan QR code</string>
     <string name="seed_input_invalid_qr_code">Invalid recovery QR code</string>
     <string name="seed_input_invalid_qr_code_description">This QR code does not contain a valid backup seed.</string>
@@ -148,6 +151,9 @@
     <string name="settings_enable_backups_regenerate_seed_description">If you suspect that your backup seed has been compromised, you should regenerate it and destroy all existing backups.</string>
     <string name="settings_enable_backups_disable_dialog_confirm">Disable backups</string>
     <string name="settings_enable_backups_disable_dialog_text">Backups will be permanently disabled. If you lose access to your device, your secrets will be gone forever.</string>
+    <string name="settings_enable_backups_creating_backup_heading">Creating backup</string>
+    <string name="settings_enable_backups_creating_backup">Generating key…</string>
+    <string name="settings_enable_backups_create_backup_password">Create backup password</string>
 
     <string name="settings_biometric_lock">Privacy lock</string>
     <string name="settings_biometric_lock_description">Require authentication when opening the app to protect your information.\n\nCredential use always requires authentication and all data is encrypted at rest, regardless of this setting.</string>
@@ -169,7 +175,7 @@
     <string name="settings_key_storage_overview_description">Get an overview of the security of your vault.</string>
     <string name="settings_key_storage_overview_sheet_heading">Key Storage Overview</string>
     <string name="settings_key_storage_overview_sheet_description">Review the security of your keys and secrets.</string>
-    <string name="settings_key_storage_overview_sheet_backup_keys_stored_in">Backup keys are stored in %1$s.</string>
+    <string name="settings_key_storage_overview_sheet_backup_keys_stored_in">Backup key is stored in %1$s.</string>
     <string name="settings_key_storage_overview_sheet_backups_disabled">Backups are disabled.</string>
     <plurals name="settings_key_storage_overview_sheet_secret_group_grade">
         <item quantity="one">%1$d/%2$d secret stored in %3$s.</item>
@@ -184,7 +190,7 @@
     <string name="settings_key_storage_overview_sheet_grade_weak">Weak</string>
 
     <string name="settings_erase_data">Erase data</string>
-    <string name="settings_erase_data_description">Deletes all vault data permanently and resets all settings to their default values.</string>
+    <string name="settings_erase_data_description">Deletes all vault data permanently but keeps your settings intact.</string>
     <string name="settings_erase_data_dialog_text">All your secrets will be permanently erased.</string>
     <string name="settings_erase_data_dialog_confirm">Erase data</string>
 

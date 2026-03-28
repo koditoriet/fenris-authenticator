@@ -5,8 +5,10 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.material3.ColorScheme
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -27,6 +29,21 @@ fun <T> FragmentActivity.onIOThread(f: suspend (T) -> Any): (T) -> Unit =
 
 fun <T, U> FragmentActivity.onIOThread(f: suspend (T, U) -> Any): (T, U) -> Unit =
     { a, b -> lifecycleScope.launch(Dispatchers.IO) { f(a, b) } }
+
+fun <T, U, V> FragmentActivity.onIOThread(f: suspend (T, U, V) -> Any): (T, U, V) -> Unit =
+    { a, b, c -> lifecycleScope.launch(Dispatchers.IO) { f(a, b, c) } }
+
+@Composable
+fun onIOThread(f: suspend () -> Any): () -> Unit {
+    val scope = LocalLifecycleOwner.current.lifecycleScope
+    return { scope.launch(Dispatchers.IO) { f() } }
+}
+
+@Composable
+fun <T> onIOThread(f: suspend (T) -> Any): (T) -> Unit {
+    val scope = LocalLifecycleOwner.current.lifecycleScope
+    return { scope.launch(Dispatchers.IO) { f(it) } }
+}
 
 fun Context.openUri(uri: Uri) {
     Intent(Intent.ACTION_VIEW, uri).apply {

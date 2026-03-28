@@ -4,42 +4,43 @@ import android.app.Application
 import android.net.Uri
 import android.util.Log
 import kotlinx.coroutines.flow.first
-import se.koditoriet.fenris.Config.BackupKeys
 import se.koditoriet.fenris.crypto.BackupSeed
-import se.koditoriet.fenris.crypto.EncryptedData
+import se.koditoriet.fenris.vault.VaultExportEnvelope
 
 private const val TAG = "SetupViewModel"
 
 class SetupViewModel(private val app: Application) : ViewModelBase(app) {
     suspend fun createVault(backupSeed: BackupSeed?) = vault.withLock {
         Log.i(TAG, "Creating vault; enable backups: ${backupSeed != null}")
-        val (dbKey, backupKeys) = create(
+        val (dbKey, backupKey) = create(
             requiresAuthentication = config.first().protectAccountList,
             backupSeed = backupSeed,
         )
         configDatastore.updateData {
             it.copy(
                 encryptedDbKey = dbKey,
-                backupKeys = backupKeys?.let(BackupKeys::fromVaultBackupKeys),
+                backupKeyAlias = backupKey?.alias,
             )
         }
     }
 
     suspend fun restoreVaultFromBackup(
         backupSeed: BackupSeed,
+        backupPassword: String,
         uri: Uri,
         onSecretImported: (Int, Int) -> Unit = { _, _ -> },
     ): Unit = vault.withLock {
         Log.i(TAG, "Restoring vault from backup")
         try {
             val backupData = app.contentResolver.openInputStream(uri)!!.use { stream ->
-                EncryptedData.decode(stream.readBytes().decodeToString())
+                VaultExportEnvelope.decode(stream.readBytes())
             }
 
             Log.d(TAG, "Restoring vault backup")
-            val (dbKey, backupKeys) = create(
+            val (dbKey, backupKey) = create(
                 requiresAuthentication = config.first().protectAccountList,
                 backupSeed = backupSeed,
+                backupPassword = backupPassword,
                 backupData = backupData,
                 onSecretImported = onSecretImported,
             )
@@ -48,7 +49,7 @@ class SetupViewModel(private val app: Application) : ViewModelBase(app) {
             configDatastore.updateData {
                 it.copy(
                     encryptedDbKey = dbKey,
-                    backupKeys = BackupKeys.fromVaultBackupKeys(backupKeys!!)
+                    backupKeyAlias = backupKey?.alias,
                 )
             }
             Log.i(TAG, "Backup successfully imported")

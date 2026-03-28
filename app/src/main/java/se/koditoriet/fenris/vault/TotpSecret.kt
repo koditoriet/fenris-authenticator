@@ -12,8 +12,8 @@ import se.koditoriet.fenris.codec.totpDigits
 import se.koditoriet.fenris.codec.totpIssuer
 import se.koditoriet.fenris.codec.totpPeriod
 import se.koditoriet.fenris.codec.totpSecret
-import se.koditoriet.fenris.crypto.HmacAlgorithm
-import se.koditoriet.fenris.crypto.KeyHandle
+import se.koditoriet.fenris.crypto.types.HmacAlgorithm
+import se.koditoriet.fenris.crypto.types.KeyHandle
 
 @Serializable
 @Entity(tableName = "totp_secrets")

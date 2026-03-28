@@ -5,8 +5,8 @@ import androidx.room.PrimaryKey
 import androidx.room.TypeConverter
 import kotlinx.serialization.Serializable
 import se.koditoriet.fenris.codec.Base64Url
-import se.koditoriet.fenris.crypto.ECAlgorithm
-import se.koditoriet.fenris.crypto.KeyHandle
+import se.koditoriet.fenris.crypto.types.ECAlgorithm
+import se.koditoriet.fenris.crypto.types.KeyHandle
 
 @Serializable
 @Entity(tableName = "passkeys")

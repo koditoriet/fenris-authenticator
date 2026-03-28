@@ -17,7 +17,7 @@ class SettingsViewModel(private val app: Application) : ViewModelBase(app) {
             Log.i(TAG, "Disabling backups")
             configDatastore.updateData {
                 Log.d(TAG, "Wiping backup keys")
-                it.copy(backupKeys = null)
+                it.copy(backupKeyAlias = null)
             }
             Log.d(TAG, "Erasing encrypted backup secrets")
             eraseBackups()
@@ -63,10 +63,12 @@ class SettingsViewModel(private val app: Application) : ViewModelBase(app) {
         wipe()
     }
 
-    fun onExportVault(uri: Uri) = withVault {
+    fun onExportVault(uri: Uri, password: String, onExportCompleted: () -> Unit) = withVault {
         Log.i(TAG, "Exporting backup to $uri")
         app.contentResolver.openOutputStream(uri)!!.use { stream ->
-            stream.write(export().encode().toByteArray())
+            stream.write(export(password).encode())
+            Log.i(TAG, "Backup export completed")
+            onExportCompleted()
         }
     }
 

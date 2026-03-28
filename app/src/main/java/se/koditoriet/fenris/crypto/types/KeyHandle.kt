@@ -1,4 +1,4 @@
-package se.koditoriet.fenris.crypto
+package se.koditoriet.fenris.crypto.types
 
 import android.security.keystore.KeyProperties
 

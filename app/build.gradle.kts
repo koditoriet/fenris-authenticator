@@ -27,7 +27,7 @@ android {
         minSdk = 31
         targetSdk = 36
         versionCode = 1
-        versionName = "0.1-pre10"
+        versionName = "0.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -107,6 +107,9 @@ dependencies {
 
     // Printing
     implementation(libs.androidx.print)
+
+    // Argon2 for backup 2FA
+    implementation(libs.com.lambdapioneer.argon2kt)
 
     // Room
     ksp(libs.androidx.room.compiler)

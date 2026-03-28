@@ -4,6 +4,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.sync.Mutex
 import se.koditoriet.fenris.DbKey
 import se.koditoriet.fenris.crypto.Authenticator
+import se.koditoriet.fenris.crypto.types.EncryptionAlgorithm
+import se.koditoriet.fenris.crypto.types.KeyHandle
 import java.security.Signature
 
 class SynchronizedVault(vaultFactory: () -> Vault) {
@@ -21,7 +23,7 @@ class SynchronizedVault(vaultFactory: () -> Vault) {
 
     suspend fun lockVault() = withLock { lock() }
 
-    suspend fun unlockVault(authenticator: Authenticator, dbKey: DbKey, backupKeys: Vault.BackupKeys?) {
+    suspend fun unlockVault(authenticator: Authenticator, dbKey: DbKey, backupKey: KeyHandle<EncryptionAlgorithm>?) {
         val unlockingAuthenticator = UnlockingAuthenticator(
             authenticator = authenticator,
             acquireLock = { mutex.lock() },
@@ -29,7 +31,7 @@ class SynchronizedVault(vaultFactory: () -> Vault) {
         )
         mutex.lock()
         try {
-            vault.unlock(unlockingAuthenticator, dbKey, backupKeys)
+            vault.unlock(unlockingAuthenticator, dbKey, backupKey)
         } finally {
             mutex.unlock()
         }
