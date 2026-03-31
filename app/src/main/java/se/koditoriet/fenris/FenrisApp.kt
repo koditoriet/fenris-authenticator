@@ -40,6 +40,7 @@ class FenrisApp : Application() {
     val vault: SynchronizedVault
     val configDatastore: DataStore<Config> by dataStore("config", ConfigSerializer)
     val config: StateFlow<Config> by lazy {
+        Log.d(TAG, "Creating config StateFlow")
         configDatastore.data.stateIn(
             scope = applicationScope,
             started = SharingStarted.WhileSubscribed(5000),
@@ -89,6 +90,12 @@ class FenrisApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        Log.i(TAG, "Preloading config")
+        applicationScope.launch {
+            config.first { it.ready }
+            Log.i(TAG, "Config preload completed")
+        }
+
         idleTimeout = TimeoutJob(
             name = "LockOnIdle",
             application = this,

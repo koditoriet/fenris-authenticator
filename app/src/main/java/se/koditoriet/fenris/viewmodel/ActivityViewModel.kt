@@ -2,7 +2,6 @@ package se.koditoriet.fenris.viewmodel
 
 import android.app.Application
 import android.util.Log
-import kotlinx.coroutines.flow.first
 import se.koditoriet.fenris.crypto.AuthenticatorFactory
 import se.koditoriet.fenris.crypto.types.KeyHandle
 
@@ -16,7 +15,7 @@ abstract class ActivityViewModel(app: Application) : ViewModelBase(app) {
 
     suspend fun unlockVault(authFactory: AuthenticatorFactory) {
         Log.i(TAG, "Attempting to unlock vault")
-        val config = config.first()
+        val config = currentConfig()
         check(config.encryptedDbKey != null)
         val authenticator = authFactory.withReason(
             reason = appStrings.viewModel.authUnlockVault,

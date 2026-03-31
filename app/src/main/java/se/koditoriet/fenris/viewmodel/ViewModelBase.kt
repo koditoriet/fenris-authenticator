@@ -6,6 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import se.koditoriet.fenris.AppStrings
 import se.koditoriet.fenris.Config
@@ -24,6 +25,9 @@ abstract class ViewModelBase(private val app: Application) : AndroidViewModel(ap
 
     val appStrings: AppStrings by lazy { app.appStrings }
     val config: StateFlow<Config> by lazy { fenrisApp.config }
+
+    suspend fun currentConfig(): Config =
+        config.first { it.ready }
 
     protected fun onIOThread(f: suspend () -> Unit) {
         viewModelScope.launch(Dispatchers.IO) { f() }
