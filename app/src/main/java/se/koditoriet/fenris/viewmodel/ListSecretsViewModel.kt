@@ -4,7 +4,6 @@ import android.app.Application
 import android.net.Uri
 import android.util.Log
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -32,7 +31,7 @@ class ListSecretsViewModel(private val app: Application) : ViewModelBase(app) {
     @OptIn(ExperimentalSerializationApi::class)
     fun onImportFile(uri: Uri): Unit = withVault {
         Log.i(TAG, "Importing secrets from file $uri")
-        check(config.first().enableDeveloperFeatures) {
+        check(currentConfig().enableDeveloperFeatures) {
             "tried to use developer feature without being a developer"
         }
         check(state == Vault.State.Unlocked)

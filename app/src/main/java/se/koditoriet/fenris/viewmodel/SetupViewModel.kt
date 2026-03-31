@@ -13,6 +13,7 @@ class SetupViewModel(private val app: Application) : ViewModelBase(app) {
     suspend fun createVault(backupSeed: BackupSeed?) = vault.withLock {
         Log.i(TAG, "Creating vault; enable backups: ${backupSeed != null}")
         val (dbKey, backupKey) = create(
+            // we have to use config.first(), because currentConfig() blocks until we have an initialized config
             requiresAuthentication = config.first().protectAccountList,
             backupSeed = backupSeed,
         )
@@ -38,6 +39,7 @@ class SetupViewModel(private val app: Application) : ViewModelBase(app) {
 
             Log.d(TAG, "Restoring vault backup")
             val (dbKey, backupKey) = create(
+                // we have to use config.first(), because currentConfig() blocks until we have an initialized config
                 requiresAuthentication = config.first().protectAccountList,
                 backupSeed = backupSeed,
                 backupPassword = backupPassword,
