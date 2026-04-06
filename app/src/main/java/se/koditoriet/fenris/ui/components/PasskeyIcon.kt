@@ -15,7 +15,7 @@ fun PasskeyIcon(
 ) {
     Icon(
         modifier = modifier,
-        painter = painterResource(R.drawable.outline_passkey_24),
+        painter = painterResource(R.drawable.passkey),
         contentDescription = null,
         tint = tint,
     )

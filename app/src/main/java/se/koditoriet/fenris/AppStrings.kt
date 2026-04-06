@@ -48,6 +48,7 @@ class AppStrings(private val ctx: Context) {
         val openSystemSettings by ctx.s(R.string.generic_open_system_settings)
         val advanced by ctx.s(R.string.generic_advanced_options)
         val password by ctx.s(R.string.generic_password)
+        val passkeys by ctx.s(R.string.generic_passkeys)
         val confirmPassword by ctx.s(R.string.generic_confirm_password)
     }
 

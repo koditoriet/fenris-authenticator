@@ -20,6 +20,7 @@
     <string name="generic_maybe_later">Maybe later</string>
     <string name="generic_advanced_options">Advanced options</string>
     <string name="generic_password">Password</string>
+    <string name="generic_passkeys">Passkeys</string>
     <string name="generic_confirm_password">Confirm password</string>
 
 
