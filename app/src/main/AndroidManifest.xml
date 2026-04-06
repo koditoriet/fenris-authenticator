@@ -13,12 +13,12 @@
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Fenris.Splash">
+        android:theme="@style/Theme.Fenris">
 
         <activity
             android:name=".ui.activities.MainActivity"
             android:exported="true"
-            android:theme="@style/Theme.Fenris.Splash">
+            android:theme="@style/Theme.Fenris">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -27,15 +27,15 @@
 
         <activity
             android:name=".credentialprovider.activities.CreatePasskeyActivity"
-            android:theme="@style/Theme.Fenris.Splash" />
+            android:theme="@style/Theme.Fenris" />
 
         <activity
             android:name=".credentialprovider.activities.AuthenticateActivity"
-            android:theme="@style/Theme.Fenris.Splash" />
+            android:theme="@style/Theme.Fenris" />
 
         <activity
             android:name=".credentialprovider.activities.ListPasskeysActivity"
-            android:theme="@style/Theme.Fenris.Splash" />
+            android:theme="@style/Theme.Fenris" />
 
         <service android:name=".credentialprovider.FenrisCredentialProviderService"
             android:enabled="true"

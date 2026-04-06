@@ -46,7 +46,7 @@ class ListPasskeysActivity : FragmentActivity() {
                 (application as FenrisApp).vault.withLock {
                     val response = createBeginGetCredentialResponse(
                         vault = this,
-                        context = applicationContext,
+                        context = this@ListPasskeysActivity,
                         request = request,
                     )
 

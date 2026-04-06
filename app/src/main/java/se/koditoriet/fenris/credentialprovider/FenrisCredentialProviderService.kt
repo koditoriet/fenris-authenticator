@@ -1,5 +1,6 @@
 package se.koditoriet.fenris.credentialprovider
 
+import android.graphics.drawable.Icon
 import android.os.Build
 import android.os.CancellationSignal
 import android.os.OutcomeReceiver
@@ -24,6 +25,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import se.koditoriet.fenris.FenrisApp
+import se.koditoriet.fenris.R
 import se.koditoriet.fenris.appStrings
 import se.koditoriet.fenris.credentialprovider.activities.CreatePasskeyActivity
 import se.koditoriet.fenris.credentialprovider.activities.ListPasskeysActivity
@@ -105,7 +107,14 @@ class FenrisCredentialProviderService : CredentialProviderService() {
             return
         }
         val pendingIntent = createPendingIntent(applicationContext, CreatePasskeyActivity::class.java)
-        val entries = listOf(CreateEntry(appStrings.generic.appName, pendingIntent))
+        val entries = listOf(
+            CreateEntry(
+                accountName = appStrings.generic.passkeys,
+                pendingIntent = pendingIntent,
+                icon = Icon.createWithResource(this, R.drawable.passkey),
+                isAutoSelectAllowed = true,
+            ),
+        )
         callback.onResult(BeginCreateCredentialResponse(entries))
     }
 
