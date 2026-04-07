@@ -67,7 +67,7 @@ private suspend fun getPasskeys(
         Log.i(TAG, "RP did not specify allowedCredentials")
     }
 
-    val passkeyIcon = Icon.createWithResource(context, R.drawable.passkey)
+    val passkeyIcon = Icon.createWithResource(context, R.drawable.passkey_fenris)
     return vault.getPasskeys(request.rpId ?: validator.appInfoToRpId(callingAppInfo)).flatMap { passkey ->
         if (allowedCredentials.isEmpty() || allowedCredentials.contains(passkey.credentialId)) {
             val data = Bundle().apply { putString(CREDENTIAL_ID, passkey.credentialId.string) }

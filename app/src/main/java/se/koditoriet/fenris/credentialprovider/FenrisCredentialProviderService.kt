@@ -111,7 +111,7 @@ class FenrisCredentialProviderService : CredentialProviderService() {
             CreateEntry(
                 accountName = appStrings.generic.passkeys,
                 pendingIntent = pendingIntent,
-                icon = Icon.createWithResource(this, R.drawable.passkey),
+                icon = Icon.createWithResource(this, R.drawable.passkey_fenris),
                 isAutoSelectAllowed = true,
             ),
         )

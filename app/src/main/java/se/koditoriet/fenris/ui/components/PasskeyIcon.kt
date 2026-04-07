@@ -12,11 +12,21 @@ import se.koditoriet.fenris.R
 fun PasskeyIcon(
     modifier: Modifier = Modifier,
     tint: Color = MaterialTheme.colorScheme.primary,
+    flavor: PasskeyIconFlavor = PasskeyIconFlavor.Standard,
 ) {
+    val resource = when (flavor) {
+        PasskeyIconFlavor.Standard -> R.drawable.passkey_standard
+        PasskeyIconFlavor.Fenris -> R.drawable.passkey_fenris
+    }
     Icon(
         modifier = modifier,
-        painter = painterResource(R.drawable.passkey),
+        painter = painterResource(resource),
         contentDescription = null,
         tint = tint,
     )
+}
+
+enum class PasskeyIconFlavor {
+    Standard,
+    Fenris,
 }
