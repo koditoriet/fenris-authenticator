@@ -17,6 +17,7 @@ import se.koditoriet.fenris.FenrisApp
 import se.koditoriet.fenris.credentialprovider.createBeginGetCredentialResponse
 import se.koditoriet.fenris.crypto.AuthenticationFailedException
 import se.koditoriet.fenris.ui.components.PasskeyIcon
+import se.koditoriet.fenris.ui.components.PasskeyIconFlavor
 import se.koditoriet.fenris.ui.components.ThemedEmptySpace
 import se.koditoriet.fenris.ui.theme.BACKGROUND_ICON_SIZE
 import se.koditoriet.fenris.ui.theme.FenrisTheme
@@ -56,7 +57,10 @@ class ListPasskeysActivity : FragmentActivity() {
             }
             FenrisTheme {
                 ThemedEmptySpace {
-                    PasskeyIcon(Modifier.size(BACKGROUND_ICON_SIZE))
+                    PasskeyIcon(
+                        modifier = Modifier.size(BACKGROUND_ICON_SIZE),
+                        flavor = PasskeyIconFlavor.Fenris,
+                    )
                 }
             }
         }

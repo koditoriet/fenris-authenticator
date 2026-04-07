@@ -30,6 +30,7 @@ import se.koditoriet.fenris.credentialprovider.webauthn.SignedAuthResponse
 import se.koditoriet.fenris.credentialprovider.webauthn.WebAuthnValidator
 import se.koditoriet.fenris.crypto.AuthenticationFailedException
 import se.koditoriet.fenris.ui.components.PasskeyIcon
+import se.koditoriet.fenris.ui.components.PasskeyIconFlavor
 import se.koditoriet.fenris.ui.components.ThemedEmptySpace
 import se.koditoriet.fenris.ui.components.WarningInformationDialog
 import se.koditoriet.fenris.ui.theme.BACKGROUND_ICON_SIZE
@@ -97,7 +98,10 @@ class AuthenticateActivity : FragmentActivity() {
 
             FenrisTheme {
                 ThemedEmptySpace {
-                    PasskeyIcon(Modifier.size(BACKGROUND_ICON_SIZE))
+                    PasskeyIcon(
+                        modifier = Modifier.size(BACKGROUND_ICON_SIZE),
+                        flavor = PasskeyIconFlavor.Fenris,
+                    )
                 }
 
                 if (showUnableToEstablishTrustDialog.value) {
