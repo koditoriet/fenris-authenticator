@@ -1,6 +1,5 @@
 package se.koditoriet.fenris.ui.screens.main.secrets
 
-import android.net.Uri
 import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.ExperimentalAnimationApi
@@ -27,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.viewModel
 import se.koditoriet.fenris.Config
 import se.koditoriet.fenris.crypto.AuthenticatorFactory
+import se.koditoriet.fenris.crypto.wordMap
 import se.koditoriet.fenris.ui.components.BadInputInformationDialog
 import se.koditoriet.fenris.ui.components.IrrevocableActionConfirmationDialog
 import se.koditoriet.fenris.ui.components.QrScanner
@@ -37,6 +37,7 @@ import se.koditoriet.fenris.ui.screens.main.secrets.sheets.AddSecretsSheet
 import se.koditoriet.fenris.ui.screens.main.secrets.sheets.EditNewSecretSheet
 import se.koditoriet.fenris.ui.screens.main.secrets.sheets.EditSecretMetadataSheet
 import se.koditoriet.fenris.ui.screens.main.secrets.sheets.SecretActionsSheet
+import se.koditoriet.fenris.ui.screens.setup.RestoreBackupScreen
 import se.koditoriet.fenris.ui.theme.SPACING_L
 import se.koditoriet.fenris.vault.NewTotpSecret
 import se.koditoriet.fenris.vault.TotpSecret
@@ -60,6 +61,7 @@ fun ListSecretsScreen(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var sheetViewState by remember { mutableStateOf<SheetViewState>(SheetViewState.Inactive) }
     var qrScannerState by remember { mutableStateOf<QRScannerState>(QRScannerState.Inactive) }
+    var importBackupState by remember { mutableStateOf<ImportBackupState>(ImportBackupState.Inactive) }
     var filter by remember { mutableStateOf<String?>(null) }
     val listItemEnvironment = ListItemEnvironment.remember()
 
@@ -135,12 +137,30 @@ fun ListSecretsScreen(
                 padding = padding,
                 hideSecretsFromAccessibility = config.hideSecretsFromAccessibility,
                 enableDeveloperFeatures = config.enableDeveloperFeatures,
-                onImportFile = viewModel::onImportFile,
                 onAddSecret = viewModel::onAddSecret,
                 onUpdateSecret = viewModel::onUpdateSecret,
                 onDeleteSecret = { confirmDeleteSecret = it },
                 onChangeSheetViewState = { sheetViewState = it },
+                onInitiateFileImport = { importBackupState = ImportBackupState.ImportBackupPhrase },
                 onInitiateQRCodeScan = { qrScannerState = QRScannerState.ScanTOTPSecret }
+            )
+        }
+    }
+    when (importBackupState) {
+        ImportBackupState.Inactive -> { /* NOP! */ }
+        ImportBackupState.ImportBackupPhrase -> {
+            // TODO: Display seed phrase input screen and do stuff with URI and seed
+            RestoreBackupScreen(
+                seedWords = wordMap.keys,
+                onRestore = { seed, uri ->
+                    viewModel.onDecodeBackupData(seed, uri) {
+                        Log.i("Tag", "Decoded backup with $it.secrets.size secrets and $it.passkeys.size passkeys")
+                    }
+
+                    viewModel.onImportExportSecrets(seed, uri) { i1, i2 ->
+                        Log.i("Tag", "Imported $i1 of $i2 secrets from backup")}
+                    importBackupState = ImportBackupState.Inactive
+                }
             )
         }
     }
@@ -184,11 +204,11 @@ private fun ListSecretsBottomSheet(
     padding: PaddingValues,
     hideSecretsFromAccessibility: Boolean,
     enableDeveloperFeatures: Boolean,
-    onImportFile: (Uri) -> Unit,
     onAddSecret: (NewTotpSecret) -> Unit,
     onUpdateSecret: (TotpSecret) -> Unit,
     onDeleteSecret: (TotpSecret) -> Unit,
     onInitiateQRCodeScan: () -> Unit,
+    onInitiateFileImport: () -> Unit,
     onChangeSheetViewState: (SheetViewState) -> Unit,
 ) {
     BottomSheet(
@@ -208,7 +228,7 @@ private fun ListSecretsBottomSheet(
                     },
                     onImportFile = {
                         onChangeSheetViewState(SheetViewState.Inactive)
-                        onImportFile(it)
+                        onInitiateFileImport()
                     }
                 )
             }
@@ -275,4 +295,9 @@ private sealed interface SheetViewState {
 private sealed interface QRScannerState {
     object Inactive : QRScannerState
     object ScanTOTPSecret : QRScannerState
+}
+
+private sealed interface ImportBackupState {
+    object Inactive : ImportBackupState
+    object ImportBackupPhrase : ImportBackupState
 }

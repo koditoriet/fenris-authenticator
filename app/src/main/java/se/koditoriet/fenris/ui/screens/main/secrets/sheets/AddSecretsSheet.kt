@@ -3,7 +3,6 @@ package se.koditoriet.fenris.ui.screens.main.secrets.sheets
 import BottomSheetAction
 import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
-import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material.icons.Icons
@@ -19,7 +18,6 @@ import se.koditoriet.fenris.appStrings
 import se.koditoriet.fenris.codec.QrCodeReader
 import se.koditoriet.fenris.ui.components.sheet.BottomSheetGlobalHeader
 import se.koditoriet.fenris.ui.supportedImageMimeTypes
-import se.koditoriet.fenris.ui.supportedImportFileTypes
 import se.koditoriet.fenris.vault.NewTotpSecret
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -28,7 +26,7 @@ fun AddSecretsSheet(
     enableFileImport: Boolean,
     onAddSecretByQR: () -> Unit,
     onAddSecret: (NewTotpSecret?) -> Unit,
-    onImportFile: (Uri) -> Unit,
+    onImportFile: () -> Unit,
 ) {
     val screenStrings = appStrings.secretsScreen
     val ctx = LocalContext.current
@@ -49,15 +47,13 @@ fun AddSecretsSheet(
             }
         }
     )
-    val importFileLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument(),
-        onResult = { it?.run { onImportFile(it) } }
-    )
 
     BottomSheetGlobalHeader(
         heading = screenStrings.addSecretSheetHeading,
         details = screenStrings.addSecretSheetDescription,
     )
+
+    // Add via QR scan (camera)
     if (hasCamera) {
         BottomSheetAction(
             icon = Icons.Default.QrCodeScanner,
@@ -65,18 +61,24 @@ fun AddSecretsSheet(
             onClick = onAddSecretByQR,
         )
     }
+
+    // Add via QR scan (image file)
     BottomSheetAction(
         icon = Icons.Default.Image,
         text = screenStrings.addSecretSheetScanImage,
         onClick = { importImageLauncher.launch(supportedImageMimeTypes) },
     )
+
+    // Add via file import
     if (enableFileImport) {
         BottomSheetAction(
             icon = Icons.Default.FileDownload,
             text = screenStrings.addSecretSheetImportFile,
-            onClick = { importFileLauncher.launch(supportedImportFileTypes) },
+            onClick = onImportFile, // In the future, we'll want to add support for selection of file format
         )
     }
+
+    // Add manually
     BottomSheetAction(
         icon = Icons.Default.Edit,
         text = screenStrings.addSecretSheetEnterManually,

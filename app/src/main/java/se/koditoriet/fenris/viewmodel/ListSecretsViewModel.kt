@@ -11,6 +11,9 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
 import se.koditoriet.fenris.SortMode
 import se.koditoriet.fenris.crypto.AuthenticatorFactory
+import se.koditoriet.fenris.crypto.BackupSeed
+import se.koditoriet.fenris.crypto.EncryptedData
+import se.koditoriet.fenris.vault.MiniVaultExport
 import se.koditoriet.fenris.vault.NewTotpSecret
 import se.koditoriet.fenris.vault.TotpAlgorithm
 import se.koditoriet.fenris.vault.TotpSecret
@@ -29,6 +32,29 @@ class ListSecretsViewModel(private val app: Application) : ViewModelBase(app) {
     fun onDeleteSecret(id: TotpSecret.Id) = withVault { deleteSecret(id) }
     fun onReindexSecrets() = withVault { reindexSecrets() }
     fun onSortModeChange(sortMode: SortMode) = updateConfig { it.copy(totpSecretSortMode = sortMode) }
+
+    fun onDecodeBackupData(seed: BackupSeed, uri: Uri, onBackupDataDecoded: (MiniVaultExport) -> Unit): Unit = withVault {
+        try {
+            val backupData = app.contentResolver.openInputStream(uri)!!.use { stream ->
+                EncryptedData.decode(stream.readBytes().decodeToString())
+            }
+
+            onBackupDataDecoded(decodeBackupData(seed, backupData))
+        } catch (e: Exception) {
+            throw e
+        }
+    }
+
+    fun onImportExportSecrets(backupSeed: BackupSeed, uri: Uri, onSecretImported: (Int, Int) -> Unit) = withVault {
+        try {
+            val backupData = app.contentResolver.openInputStream(uri)!!.use { stream ->
+                EncryptedData.decode(stream.readBytes().decodeToString())
+            }
+            importBackup(backupSeed, backupData, onSecretImported)
+        } catch (e: Exception) {
+            throw e
+        }
+    }
 
     @OptIn(ExperimentalSerializationApi::class)
     fun onImportFile(uri: Uri): Unit = withVault {

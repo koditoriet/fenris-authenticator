@@ -244,6 +244,48 @@ class Vault(
         }
     }
 
+    suspend fun decodeBackupData(
+        backupSeed: BackupSeed,
+        backupData: EncryptedData,
+    ): MiniVaultExport {
+        val metadataKeyMaterial = backupSeed.deriveBackupMetadataKey()
+        val vaultExport = cryptographer.withDecryptionKey(metadataKeyMaterial, INTERNAL_SYMMETRIC_KEY_ALGORITHM) {
+            VaultExport.decode(decrypt(backupData))
+        }
+        return MiniVaultExport(
+            secrets = vaultExport.secrets.map { MiniTotpSecret(it.id, it.sortOrder, it.issuer) },
+            passkeys = vaultExport.passkeys.map { MiniPassKey(it.credentialId, it.sortOrder, it.displayName) }
+        )
+    }
+
+    suspend fun importBackup(
+        backupSeed: BackupSeed,
+        backupData: EncryptedData,
+        onSecretImported: (Int, Int) -> Unit
+    ) {
+        val metadataKeyMaterial = backupSeed.deriveBackupMetadataKey()
+        val backupSecretDecryptionContext = DecryptionContext.create(metadataKeyMaterial, INTERNAL_SYMMETRIC_KEY_ALGORITHM)
+        val vaultExport = cryptographer.withDecryptionKey(metadataKeyMaterial, INTERNAL_SYMMETRIC_KEY_ALGORITHM) {
+            VaultExport.decode(decrypt(backupData))
+        }
+        var secretsImported = 0
+        val totalSecretsToImport = vaultExport.secrets.size + vaultExport.passkeys.size
+
+        withTotpSecretRepository { secrets ->
+            for (secret in vaultExport.secrets) {
+                backupSecretDecryptionContext.importSecret(secrets, secret) // Fails on decrypt...
+                onSecretImported(secretsImported++, totalSecretsToImport)
+            }
+        }
+
+        withPasskeyRepository { passkeys ->
+//            vaultExport.passkeys.forEach {
+//                passkeys.insert(it) // TODO: skip duplicates
+//                onSecretImported(secretsImported++, totalSecretsToImport)
+//            }
+        }
+    }
+
     suspend fun create(
         requiresAuthentication: Boolean,
         backupSeed: BackupSeed?,
@@ -257,16 +299,7 @@ class Vault(
         } else {
             Log.i(TAG, "New vault does not require authentication to list accounts")
         }
-        val backupKeys = backupSeed?.let {
-            val secretDekMaterial = it.deriveBackupSecretKey()
-            val secretsBackupKey = createBackupKey(secretDekMaterial, BACKUP_SECRET_DEK_IDENTIFIER)
-            secretDekMaterial.fill(0)
-
-            val metadataDekMaterial = it.deriveBackupMetadataKey()
-            val metadataBackupKey = createBackupKey(metadataDekMaterial, BACKUP_METADATA_DEK_IDENTIFIER)
-            metadataDekMaterial.fill(0)
-            BackupKeys(secretsBackupKey, metadataBackupKey)
-        }
+        val backupKeys = deriveBackupKeys(backupSeed)
         val (dbKey, dbDekPlaintext) = createDbKey(requiresAuthentication)
         val repository = repositoryFactory(dbFile.value.name, dbDekPlaintext)
         dbDekPlaintext.fill(0)
@@ -278,6 +311,19 @@ class Vault(
 
         _state.value = InternalState.Unlocked(unlockState)
         return Pair(dbKey, backupKeys)
+    }
+
+    private fun deriveBackupKeys(backupSeed: BackupSeed?): BackupKeys? {
+        return backupSeed?.let {
+            val secretDekMaterial = it.deriveBackupSecretKey()
+            val secretsBackupKey = createBackupKey(secretDekMaterial, BACKUP_SECRET_DEK_IDENTIFIER)
+            secretDekMaterial.fill(0)
+
+            val metadataDekMaterial = it.deriveBackupMetadataKey()
+            val metadataBackupKey = createBackupKey(metadataDekMaterial, BACKUP_METADATA_DEK_IDENTIFIER)
+            metadataDekMaterial.fill(0)
+            BackupKeys(secretsBackupKey, metadataBackupKey)
+        }
     }
 
     suspend fun rekey(
