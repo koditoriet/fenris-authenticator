@@ -141,6 +141,7 @@ class Vault(
         userId: ByteArray,
         userName: String,
         displayName: String,
+        algorithm: PasskeyAlgorithm,
     ): Pair<CredentialId, ECPublicKey> = withPasskeyRepository { passkeys ->
         val keyPairInfo = cryptographer.generateECKeyPair(
             keyIdentifier = null,
@@ -162,7 +163,8 @@ class Vault(
             keyAlias = keyPairInfo.keyHandle.alias,
             publicKey = keyPairInfo.publicKey.toBase64Url(),
             encryptedBackupPrivateKey = keyPairInfo.encryptedPrivateKey?.encode(),
-            timeOfCreation = clock.now().toEpochMilliseconds()
+            timeOfCreation = clock.now().toEpochMilliseconds(),
+            algorithm = algorithm,
         )
         passkeys.insert(passkey)
         Pair(credentialId, keyPairInfo.publicKey)

@@ -19,6 +19,7 @@ class AppStrings(private val ctx: Context) {
     val restoringBackupScreen by lazy { RestoringBackupScreen(ctx) }
     val restoreBackupFailedScreen by lazy { RestoreBackupFailedScreen(ctx) }
     val enablePasskeysScreen by lazy { EnablePasskeysScreen(ctx) }
+    val imports by lazy { Imports(ctx) }
 
     val totpSecretForm by lazy { TotpSecretForm(ctx) }
 
@@ -313,6 +314,22 @@ class AppStrings(private val ctx: Context) {
             false -> R.string.list_view_filter_inactive
         }.let { ctx.getString(it) }
 
+    }
+
+    class Imports(private val ctx: Context) {
+        val importFrom by ctx.s(R.string.imports_confirm_import)
+        val importFromDescription by ctx.s(R.string.imports_confirm_import)
+
+        val confirmImport by ctx.s(R.string.imports_confirm_import)
+        val confirmImportDescription by ctx.s(R.string.imports_confirm_import)
+
+        val importFailed by ctx.s(R.string.imports_import_failed)
+        fun importFailedInvalidFormat(format: String) = ctx.s(R.string.imports_import_failed_invalid_format, format)
+
+        fun numFailedImports(failedImports: Int) = ctx.resources.getQuantityString(
+            R.plurals.imports_number_of_failed_imports,
+            failedImports
+        )
     }
 }
 

@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.StateFlow
 import se.koditoriet.fenris.crypto.AuthenticatorFactory
 import se.koditoriet.fenris.vault.CredentialId
 import se.koditoriet.fenris.vault.Passkey
+import se.koditoriet.fenris.vault.PasskeyAlgorithm
 
 class CredentialProviderViewModel(app: Application) : ActivityViewModel(app) {
     val passkeys: StateFlow<List<Passkey>> by lazy { vault.passkeys }
@@ -13,7 +14,7 @@ class CredentialProviderViewModel(app: Application) : ActivityViewModel(app) {
     suspend fun updatePasskey(passkey: Passkey) = vault.withLock { updatePasskey(passkey) }
 
     suspend fun addPasskey(rpId: String, userId: ByteArray, userName: String, displayName: String) = vault.withLock {
-        addPasskey(rpId, userId, userName, displayName)
+        addPasskey(rpId, userId, userName, displayName, PasskeyAlgorithm.ES256)
     }
 
     suspend fun signWithPasskey(authFactory: AuthenticatorFactory, passkey: Passkey, data: ByteArray) = vault.withLock {

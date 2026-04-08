@@ -289,7 +289,6 @@ fun SettingsScreen(
             BottomSheet(
                 hideSheet = { sheetViewState = null },
                 sheetState = sheetState,
-                padding = padding,
                 sheetViewState = viewState,
             ) {
                 when (viewState) {

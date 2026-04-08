@@ -1,24 +1,20 @@
 package se.koditoriet.fenris.viewmodel
 
 import android.app.Application
-import android.net.Uri
 import android.util.Log
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.decodeFromStream
 import se.koditoriet.fenris.SortMode
 import se.koditoriet.fenris.crypto.AuthenticatorFactory
+import se.koditoriet.fenris.vault.NewPasskey
 import se.koditoriet.fenris.vault.NewTotpSecret
 import se.koditoriet.fenris.vault.TotpAlgorithm
 import se.koditoriet.fenris.vault.TotpSecret
-import se.koditoriet.fenris.vault.Vault
 import kotlin.time.Clock
 
 private const val TAG = "ListSecretsViewModel"
 
-class ListSecretsViewModel(private val app: Application) : ViewModelBase(app) {
+class ListSecretsViewModel(app: Application) : ViewModelBase(app) {
     val secrets: StateFlow<List<TotpSecret>> by lazy { vault.totpSecrets }
 
     fun onLockVault() = onIOThread { vault.lockVault() }
@@ -28,21 +24,30 @@ class ListSecretsViewModel(private val app: Application) : ViewModelBase(app) {
     fun onReindexSecrets() = withVault { reindexSecrets() }
     fun onSortModeChange(sortMode: SortMode) = updateConfig { it.copy(totpSecretSortMode = sortMode) }
 
-    @OptIn(ExperimentalSerializationApi::class)
-    fun onImportFile(uri: Uri): Unit = withVault {
-        Log.i(TAG, "Importing secrets from file $uri")
-        check(currentConfig().enableDeveloperFeatures) {
-            "tried to use developer feature without being a developer"
+    fun onImportCredentials(
+        secrets: Set<NewTotpSecret>,
+        passkeys: Set<NewPasskey>,
+        onSuccess: () -> Unit,
+        onFailure: (Set<NewTotpSecret>) -> Unit,
+    ) = withVault {
+        require(passkeys.isEmpty()) {
+            "passkey imports are not supported yet"
         }
-        check(state == Vault.State.Unlocked)
-        app.contentResolver.openInputStream(uri)!!.use { stream ->
-            // Only JSON supported for now
-            Json.decodeFromStream<Map<String, JsonImportItem>>(stream).forEach {
-                Log.d(TAG, "Adding secret '${it.key} (${it.value.account})'")
-                val account = it.value.toNewTotpSecret(it.key)
-                addTotpSecret(account)
-                account.secretData.secret.fill('\u0000')
+
+        val failures = mutableSetOf<NewTotpSecret>()
+        secrets.forEach {
+            try {
+                addTotpSecret(it)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to import secret", e)
+                failures += it
             }
+        }
+
+        if (failures.isEmpty()) {
+            onSuccess()
+        } else {
+            onFailure(failures)
         }
     }
 

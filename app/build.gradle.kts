@@ -61,21 +61,26 @@ android {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
     }
-    kotlin {
-        jvmToolchain(21)
-        compilerOptions {
-            jvmTarget = JvmTarget.JVM_21
-        }
-    }
     buildFeatures {
         compose = true
     }
-    room {
-        schemaDirectory("$projectDir/schemas")
+}
+
+kotlin {
+    jvmToolchain(21)
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_21
     }
 }
 
+room {
+    schemaDirectory("$projectDir/schemas")
+}
+
 dependencies {
+    // Kotlin extensions
+    implementation(libs.kotlin.reflect)
+
     // Core Android stuff
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -104,6 +109,7 @@ dependencies {
 
     // Serialization
     implementation(libs.org.jetbrains.kotlinx.serialization.json)
+    implementation(libs.org.jetbrains.kotlinx.serialization.protobuf)
 
     // SQLCipher
     implementation(libs.net.zetetic.sqlcipher.android)

@@ -52,7 +52,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import se.koditoriet.fenris.appStrings
-import se.koditoriet.fenris.codec.QrCodeReader
+import se.koditoriet.fenris.codec.QRCodeReader
 import java.util.concurrent.Executors
 import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
@@ -247,8 +247,6 @@ private class QrScannerCameraDeviceStateCallback(
         2
     )
 
-    private val qrCodeReader = QrCodeReader()
-
     @OptIn(ExperimentalAtomicApi::class)
     override fun onOpened(device: CameraDevice) {
         Log.d(TAG, "Camera device opened")
@@ -256,7 +254,7 @@ private class QrScannerCameraDeviceStateCallback(
         cameraImageReader.setOnImageAvailableListener(
             { reader ->
                 reader.acquireLatestImage()?.let { image ->
-                    val scanResult = qrCodeReader.tryScanImage(image)
+                    val scanResult = QRCodeReader.tryScanImage(image)
                     image.close()
 
                     val qrWasScannedBefore = qrAlreadyScanned.exchange(scanResult != null)
