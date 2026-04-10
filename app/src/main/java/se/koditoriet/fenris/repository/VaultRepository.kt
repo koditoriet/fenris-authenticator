@@ -1,6 +1,7 @@
 package se.koditoriet.fenris.repository
 
 import android.content.Context
+import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
@@ -11,7 +12,13 @@ import se.koditoriet.fenris.vault.Passkey
 import se.koditoriet.fenris.vault.TotpSecret
 import se.koditoriet.fenris.vault.UserId
 
-@Database(entities = [TotpSecret::class, Passkey::class], version = 3)
+@Database(
+    version = 4,
+    entities = [TotpSecret::class, Passkey::class],
+    autoMigrations = [
+        AutoMigration(from = 3, to = 4),
+    ]
+)
 @TypeConverters(
     TotpSecret.Id.TypeConverters::class,
     UserId.TypeConverters::class,

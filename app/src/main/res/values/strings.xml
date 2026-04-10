@@ -75,6 +75,7 @@
 
     <!-- Restore backup screens -->
     <string name="restoring_backup_heading">Restoring backup</string>
+    <string name="restoring_backup_done">Backup restored</string>
     <plurals name="restoring_backup_restored_secrets">
         <item quantity="one">Restored %1$d/%2$d secret…</item>
         <item quantity="other">Restored %1$d/%2$d secrets…</item>
@@ -115,7 +116,7 @@
     <string name="secrets_add_secret_sheet_description">Choose a source to add a new account.</string>
     <string name="secrets_add_secret_sheet_scan_qr_code">Scan QR Code</string>
     <string name="secrets_add_secret_sheet_scan_image">Scan Image</string>
-    <string name="secrets_add_secret_sheet_import_file">Import File</string>
+    <string name="secrets_add_secret_sheet_import_file">Import from File</string>
     <string name="secrets_add_secret_sheet_enter_manually">Enter Manually</string>
 
     <string name="secrets_actions_sheet_no_account">(N/A)</string>
@@ -152,8 +153,8 @@
     <string name="settings_enable_backups_regenerate_seed_description">If you suspect that your backup seed has been compromised, you should regenerate it and destroy all existing backups.</string>
     <string name="settings_enable_backups_disable_dialog_confirm">Disable backups</string>
     <string name="settings_enable_backups_disable_dialog_text">Backups will be permanently disabled. If you lose access to your device, your secrets will be gone forever.</string>
-    <string name="settings_enable_backups_creating_backup_heading">Creating backup</string>
-    <string name="settings_enable_backups_creating_backup">Generating key…</string>
+    <string name="settings_enable_backups_creating_backup">Creating backup…</string>
+    <string name="settings_enable_backups_creating_backup_finished">Backup successfully created</string>
     <string name="settings_enable_backups_create_backup_password">Create backup password</string>
 
     <string name="settings_biometric_lock">Privacy lock</string>
@@ -239,4 +240,24 @@
     <string name="list_view_sort_alphabetically_inactive">Sort alphabetically</string>
     <string name="list_view_filter_active">Filter (active))</string>
     <string name="list_view_filter_inactive">Filter</string>
+
+
+    <!-- Credential imports -->
+    <string name="imports_import_failed">Import Failed</string>
+    <string name="imports_import_failed_invalid_format">The selected file does not seem to contain secrets exported from %1$s</string>
+
+    <string name="imports_confirm_import">Confirm Import</string>
+    <string name="imports_confirm_import_description">Uncheck any items you do not wish to import, then tap \'Confirm Import\'.</string>
+
+    <string name="imports_import_from">Import From…</string>
+    <string name="imports_import_from_description">Select a provider to import secrets from.</string>
+
+    <string name="imports_importing_credentials">Importing Credentials…</string>
+    <string name="imports_import_finished">Import Finished</string>
+
+    <plurals name="imports_number_of_failed_imports">
+        <item quantity="one">A credential could not be imported.</item>
+        <item quantity="other">%1$d/%2$d credentials could not be imported.</item>
+    </plurals>
+
 </resources>

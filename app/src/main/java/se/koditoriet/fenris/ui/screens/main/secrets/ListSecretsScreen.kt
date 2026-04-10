@@ -1,12 +1,10 @@
 package se.koditoriet.fenris.ui.screens.main.secrets
 
-import android.net.Uri
 import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.LockOpen
@@ -18,6 +16,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SheetState
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -28,22 +27,37 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import se.koditoriet.fenris.AppStrings
+import se.koditoriet.fenris.appStrings
 import se.koditoriet.fenris.codec.QRCodeData
 import se.koditoriet.fenris.crypto.AuthenticatorFactory
+import se.koditoriet.fenris.importformat.GoogleAuthenticatorDecoder
+import se.koditoriet.fenris.importformat.ImportFormatDecoder
 import se.koditoriet.fenris.ui.components.BadInputInformationDialog
 import se.koditoriet.fenris.ui.components.IrrevocableActionConfirmationDialog
+import se.koditoriet.fenris.ui.components.LocalLoadingOverlay
 import se.koditoriet.fenris.ui.components.QrScanner
+import se.koditoriet.fenris.ui.components.WarningInformationDialog
 import se.koditoriet.fenris.ui.components.listview.ListViewTopBar
 import se.koditoriet.fenris.ui.components.listview.ReorderableList
 import se.koditoriet.fenris.ui.components.sheet.BottomSheet
 import se.koditoriet.fenris.ui.openUri
+import se.koditoriet.fenris.ui.screens.main.secrets.SheetViewState.AddSecretActions
 import se.koditoriet.fenris.ui.screens.main.secrets.SheetViewState.AddingNewSecret
+import se.koditoriet.fenris.ui.screens.main.secrets.SheetViewState.ConfirmImport
+import se.koditoriet.fenris.ui.screens.main.secrets.SheetViewState.EditSecretMetadata
+import se.koditoriet.fenris.ui.screens.main.secrets.SheetViewState.ImportFromFile
+import se.koditoriet.fenris.ui.screens.main.secrets.SheetViewState.Inactive
+import se.koditoriet.fenris.ui.screens.main.secrets.SheetViewState.SecretActions
 import se.koditoriet.fenris.ui.screens.main.secrets.sheets.AddSecretsSheet
+import se.koditoriet.fenris.ui.screens.main.secrets.sheets.ConfirmImportSheet
 import se.koditoriet.fenris.ui.screens.main.secrets.sheets.EditNewSecretSheet
 import se.koditoriet.fenris.ui.screens.main.secrets.sheets.EditSecretMetadataSheet
+import se.koditoriet.fenris.ui.screens.main.secrets.sheets.ImportFromFileSheet
 import se.koditoriet.fenris.ui.screens.main.secrets.sheets.SecretActionsSheet
 import se.koditoriet.fenris.ui.theme.SPACING_L
+import se.koditoriet.fenris.vault.NewPasskey
 import se.koditoriet.fenris.vault.NewTotpSecret
+import se.koditoriet.fenris.vault.NewTotpSecret.Metadata
 import se.koditoriet.fenris.vault.TotpSecret
 import se.koditoriet.fenris.viewmodel.ListSecretsViewModel
 import kotlin.time.Clock
@@ -57,17 +71,25 @@ fun ListSecretsScreen(
     onSettings: () -> Unit,
     clock: Clock = Clock.System,
 ) {
+    val loadingOverlay = LocalLoadingOverlay.current
     val ctx = LocalContext.current
     val viewModel = viewModel<ListSecretsViewModel>()
     val config by viewModel.config.collectAsState()
     val secrets by viewModel.secrets.collectAsState()
     val screenStrings = remember { viewModel.appStrings.secretsScreen }
+
+    var failedImports by remember { mutableStateOf<Int?>(null) }
     var confirmDeleteSecret by remember { mutableStateOf<TotpSecret?>(null) }
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var sheetViewState by remember { mutableStateOf<SheetViewState>(SheetViewState.Inactive) }
+    var sheetViewState by remember { mutableStateOf<SheetViewState>(Inactive) }
     var qrScannerState by remember { mutableStateOf<QRScannerState>(QRScannerState.Inactive) }
     var filter by remember { mutableStateOf<String?>(null) }
+    var sheetSwipeDismissable by remember { mutableStateOf(true) }
+
     val listItemEnvironment = ListItemEnvironment.remember()
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+        confirmValueChange = { it != SheetValue.Hidden || sheetSwipeDismissable },
+    )
 
     val secretListItems = secrets.map { secret ->
         TotpSecretListItem(
@@ -77,7 +99,7 @@ fun ListSecretsScreen(
             environment = listItemEnvironment,
             getTotpCodes = { viewModel.getTotpCodes(authFactory, it) },
             onUpdateSecret = viewModel::onUpdateSecret,
-            onLongClickSecret = { sheetViewState = SheetViewState.SecretActions(it) },
+            onLongClickSecret = { sheetViewState = SecretActions(it) },
         )
     }
 
@@ -103,7 +125,7 @@ fun ListSecretsScreen(
                 FloatingActionButton(onClick = { qrScannerState = QRScannerState.ScanAnySupported }) {
                     Icon(Icons.Filled.QrCodeScanner, screenStrings.scanQRCode)
                 }
-                FloatingActionButton(onClick = { sheetViewState = SheetViewState.AddSecretActions }) {
+                FloatingActionButton(onClick = { sheetViewState = AddSecretActions }) {
                     Icon(Icons.Filled.Add, screenStrings.addSecret)
                 }
             }
@@ -116,7 +138,7 @@ fun ListSecretsScreen(
             padding = padding,
             filter = filter,
             items = secretListItems,
-            selectedItem = (sheetViewState as? SheetViewState.SecretActions)?.selectedItem,
+            selectedItem = (sheetViewState as? SecretActions)?.selectedItem,
             sortMode = config.totpSecretSortMode,
             alphabeticItemComparator = comparator,
             filterPlaceholderText = screenStrings.filterPlaceholder,
@@ -131,25 +153,47 @@ fun ListSecretsScreen(
                 onCancel = { confirmDeleteSecret = null },
                 onConfirm = {
                     confirmDeleteSecret = null
-                    sheetViewState = SheetViewState.Inactive
+                    sheetViewState = Inactive
                     viewModel.onDeleteSecret(secret.id)
                 }
             )
         }
 
-        if (sheetViewState != SheetViewState.Inactive) {
+        failedImports?.let {
+            WarningInformationDialog(
+                title = appStrings.imports.importFailed,
+                text = appStrings.imports.numFailedImports(it),
+                onDismiss = { failedImports = null },
+            )
+        }
+
+        if (sheetViewState != Inactive) {
             ListSecretsBottomSheet(
                 viewState = sheetViewState,
                 sheetState = sheetState,
-                padding = padding,
                 hideSecretsFromAccessibility = config.hideSecretsFromAccessibility,
-                enableDeveloperFeatures = config.enableDeveloperFeatures,
-                onImportFile = viewModel::onImportFile,
                 onAddSecret = viewModel::onAddSecret,
                 onUpdateSecret = viewModel::onUpdateSecret,
                 onDeleteSecret = { confirmDeleteSecret = it },
-                onChangeSheetViewState = { sheetViewState = it },
-                onInitiateQRCodeScan = { qrScannerState = QRScannerState.ScanTOTPSecret }
+                onChangeSheetViewState = {
+                    sheetSwipeDismissable = true
+                    sheetViewState = it
+                },
+                onChangeSheetSwipeDismissable = { sheetSwipeDismissable = it },
+                onInitiateQRCodeScan = { qrScannerState = QRScannerState.ScanTOTPSecret },
+                onImportCredentials = { secrets, passkeys ->
+                    loadingOverlay.show(ctx.appStrings.imports.importingCredentials)
+                    viewModel.onImportCredentials(
+                        secrets, passkeys,
+                        onSuccess = {
+                            loadingOverlay.done(
+                                ctx.appStrings.generic.ok,
+                                ctx.appStrings.imports.importFinished,
+                            )
+                        },
+                        onFailure = { failedImports = it.size },
+                    )
+                },
             )
         }
     }
@@ -173,6 +217,10 @@ fun ListSecretsScreen(
                     when (it) {
                         is QRCodeData.TotpSecret -> { sheetViewState = AddingNewSecret(it.newTotpSecret) }
                         is QRCodeData.FidoRequest -> { ctx.openUri(it.request) }
+                        is QRCodeData.GoogleAuthenticatorExport -> {
+                            val decodedImport = GoogleAuthenticatorDecoder.decodeProtobufPayload(it.protobufPayload)
+                            sheetViewState = ConfirmImport(decodedImport)
+                        }
                     }
                 }
             )
@@ -185,44 +233,40 @@ fun ListSecretsScreen(
 private fun ListSecretsBottomSheet(
     viewState: SheetViewState,
     sheetState: SheetState,
-    padding: PaddingValues,
     hideSecretsFromAccessibility: Boolean,
-    enableDeveloperFeatures: Boolean,
-    onImportFile: (Uri) -> Unit,
     onAddSecret: (NewTotpSecret) -> Unit,
     onUpdateSecret: (TotpSecret) -> Unit,
     onDeleteSecret: (TotpSecret) -> Unit,
     onInitiateQRCodeScan: () -> Unit,
+    onImportCredentials: (Set<NewTotpSecret>, Set<NewPasskey>) -> Unit,
     onChangeSheetViewState: (SheetViewState) -> Unit,
+    onChangeSheetSwipeDismissable: (Boolean) -> Unit,
 ) {
     BottomSheet(
-        hideSheet = { onChangeSheetViewState(SheetViewState.Inactive) },
+        hideSheet = { onChangeSheetViewState(Inactive) },
         sheetState = sheetState,
         sheetViewState = viewState,
-        padding = padding,
     ) { state ->
         when (state) {
-            SheetViewState.Inactive -> { /* NOP! */ }
-            SheetViewState.AddSecretActions -> {
+            Inactive -> { /* NOP! */ }
+            AddSecretActions -> {
                 AddSecretsSheet(
-                    enableFileImport = enableDeveloperFeatures,
                     onAddSecretByQR = { onInitiateQRCodeScan() },
                     onAddSecret = {
-                        onChangeSheetViewState(SheetViewState.AddingNewSecret(it))
+                        onChangeSheetViewState(AddingNewSecret(it))
                     },
                     onImportFile = {
-                        onChangeSheetViewState(SheetViewState.Inactive)
-                        onImportFile(it)
+                        onChangeSheetViewState(ImportFromFile)
                     }
                 )
             }
 
-            is SheetViewState.SecretActions -> {
+            is SecretActions -> {
                 SecretActionsSheet(
                     totpSecret = state.selectedItem.totpSecret,
                     onEditMetadata = {
                         onChangeSheetViewState(
-                            SheetViewState.EditSecretMetadata(state.selectedItem.update(it))
+                            EditSecretMetadata(state.selectedItem.update(it))
                         )
                     },
                     onDeleteSecret = {
@@ -231,12 +275,12 @@ private fun ListSecretsBottomSheet(
                 )
             }
 
-            is SheetViewState.EditSecretMetadata -> {
+            is EditSecretMetadata -> {
                 BackHandler {
-                    onChangeSheetViewState(SheetViewState.SecretActions(state.selectedItem))
+                    onChangeSheetViewState(SecretActions(state.selectedItem))
                 }
                 EditSecretMetadataSheet(
-                    metadata = NewTotpSecret.Metadata(
+                    metadata = Metadata(
                         issuer = state.selectedItem.totpSecret.issuer,
                         account = state.selectedItem.totpSecret.account
                     ),
@@ -246,22 +290,45 @@ private fun ListSecretsBottomSheet(
                             account = newMetadata.account
                         )
                         onUpdateSecret(updatedSecret)
-                        onChangeSheetViewState(SheetViewState.Inactive)
+                        onChangeSheetViewState(Inactive)
                     },
                 )
             }
 
-            is SheetViewState.AddingNewSecret -> {
+            is AddingNewSecret -> {
                 BackHandler {
-                    onChangeSheetViewState(SheetViewState.AddSecretActions)
+                    onChangeSheetViewState(AddSecretActions)
                 }
                 EditNewSecretSheet(
                     prefilledSecret = state.prefilledSecret,
                     hideSecretsFromAccessibility = hideSecretsFromAccessibility,
                     onSave = { newSecret ->
                         onAddSecret(newSecret)
-                        onChangeSheetViewState(SheetViewState.Inactive)
+                        onChangeSheetViewState(Inactive)
                     },
+                )
+            }
+
+            ImportFromFile -> {
+                BackHandler {
+                    onChangeSheetViewState(AddSecretActions)
+                }
+                ImportFromFileSheet(
+                    onImportFromFile = { onChangeSheetViewState(ConfirmImport(it)) }
+                )
+            }
+
+            is ConfirmImport -> {
+                BackHandler {
+                    onChangeSheetViewState(ImportFromFile)
+                }
+                ConfirmImportSheet(
+                    decodedImport = state.decodedImport,
+                    onTouchImportList = { onChangeSheetSwipeDismissable(!it) },
+                    onConfirmImport = { secrets, passkeys ->
+                        onChangeSheetViewState(Inactive)
+                        onImportCredentials(secrets, passkeys)
+                    }
                 )
             }
         }
@@ -319,8 +386,8 @@ private fun AnySupportedQRScanner(
         onQrScanned = {
             try {
                 val data = QRCodeData.parse(it)
-                closeScanner()
                 onSuccess(data)
+                closeScanner()
             } catch (e: Exception) {
                 unsupportedQRCode = true
                 Log.w(TAG, "Scanned unsupported QR code", e)
@@ -333,9 +400,11 @@ private fun AnySupportedQRScanner(
 private sealed interface SheetViewState {
     object Inactive : SheetViewState
     object AddSecretActions : SheetViewState
+    object ImportFromFile : SheetViewState
     data class SecretActions(val selectedItem: TotpSecretListItem) : SheetViewState
     data class EditSecretMetadata(val selectedItem: TotpSecretListItem) : SheetViewState
     data class AddingNewSecret(val prefilledSecret: NewTotpSecret?) : SheetViewState
+    data class ConfirmImport(val decodedImport: ImportFormatDecoder.DecodedImport) : SheetViewState
 }
 
 private sealed interface QRScannerState {

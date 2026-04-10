@@ -101,7 +101,6 @@ fun ManagePasskeysScreen() {
                 hideSheet = { sheetViewState = null },
                 sheetState = sheetState,
                 sheetViewState = viewState,
-                padding = padding,
             ) { viewState ->
                 when (viewState) {
                     is SheetViewState.Actions -> {

@@ -3,6 +3,7 @@ package se.koditoriet.fenris.codec
 import android.graphics.Bitmap
 import android.media.Image
 import android.net.Uri
+import android.util.Base64
 import androidx.core.net.toUri
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.BinaryBitmap
@@ -14,14 +15,16 @@ import com.google.zxing.common.HybridBinarizer
 import se.koditoriet.fenris.vault.NewTotpSecret
 import kotlin.math.min
 
-class QrCodeReader {
-    private val reader: MultiFormatReader = MultiFormatReader().apply {
-        setHints(
-            mapOf(
-                DecodeHintType.POSSIBLE_FORMATS to listOf(BarcodeFormat.QR_CODE),
-                DecodeHintType.TRY_HARDER to true,
+object QRCodeReader {
+    private val reader: MultiFormatReader by lazy {
+        MultiFormatReader().apply {
+            setHints(
+                mapOf(
+                    DecodeHintType.POSSIBLE_FORMATS to listOf(BarcodeFormat.QR_CODE),
+                    DecodeHintType.TRY_HARDER to true,
+                )
             )
-        )
+        }
     }
 
     /**
@@ -72,6 +75,7 @@ class QrCodeReader {
 sealed interface QRCodeData {
     class TotpSecret(val newTotpSecret: NewTotpSecret) : QRCodeData
     class FidoRequest(val request: Uri) : QRCodeData
+    class GoogleAuthenticatorExport(val protobufPayload: ByteArray) : QRCodeData
 
     companion object {
         fun parse(s: String): QRCodeData {
@@ -79,6 +83,12 @@ sealed interface QRCodeData {
             return when (uri.scheme?.lowercase()) {
                 "otpauth" -> { TotpSecret(NewTotpSecret.fromUri(uri)) }
                 "fido" -> { FidoRequest(uri) }
+                "otpauth-migration" -> {
+                    require(uri.host == "offline") { "invalid otpauth-migration uri host part" }
+                    val base64Data = uri.getQueryParameter("data")
+                        ?: throw IllegalArgumentException("invalid otpauth-migration uri query part")
+                    GoogleAuthenticatorExport(Base64.decode(base64Data, Base64.DEFAULT))
+                }
                 else -> { throw IllegalArgumentException("unsupported qr code") }
             }
         }

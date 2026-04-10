@@ -71,6 +71,28 @@ data class NewTotpSecret(
             require(digits in 4..10)
             require(period > 0)
         }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as SecretData
+
+            if (digits != other.digits) return false
+            if (period != other.period) return false
+            if (!secret.contentEquals(other.secret)) return false
+            if (algorithm != other.algorithm) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = digits
+            result = 31 * result + period
+            result = 31 * result + secret.contentHashCode()
+            result = 31 * result + algorithm.hashCode()
+            return result
+        }
     }
 
     companion object {

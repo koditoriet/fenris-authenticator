@@ -29,13 +29,14 @@ class BitReader(val bytes: ByteArray, val size: Int = bytes.size * 8) {
         return result
     }
 
-    fun chunks(bitsPerChunk: Int): Iterable<Int> = object : Iterable<Int> {
-        override fun iterator() = BitReaderIterator(this@BitReader, bitsPerChunk)
+    fun chunks(bitsPerChunk: Int, zeroPadEnd: Boolean = false): Iterable<Int> = object : Iterable<Int> {
+        override fun iterator() = BitReaderIterator(this@BitReader, bitsPerChunk, zeroPadEnd)
     }
 
     private class BitReaderIterator(
         private val reader: BitReader,
         private val bitsPerChunk: Int,
+        private val zeroPadEnd: Boolean,
     ) : Iterator<Int> {
         private var offset: Int = 0
 
@@ -47,7 +48,11 @@ class BitReader(val bytes: ByteArray, val size: Int = bytes.size * 8) {
             val bitsToRead = min(bitsPerChunk, reader.size - offset)
             val result = reader.getBits(offset, bitsToRead)
             offset += bitsToRead
-            return result
+            return if (zeroPadEnd && bitsToRead < bitsPerChunk) {
+                result.shl(bitsPerChunk - bitsToRead)
+            } else {
+                result
+            }
         }
 
         override fun hasNext() = offset < reader.size

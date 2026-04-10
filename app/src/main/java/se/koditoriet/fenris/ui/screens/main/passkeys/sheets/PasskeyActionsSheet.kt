@@ -1,6 +1,6 @@
 package se.koditoriet.fenris.ui.screens.main.passkeys.sheets
 
-import BottomSheetAction
+import se.koditoriet.fenris.ui.components.sheet.BottomSheetAction
 import BottomSheetContextualHeader
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DeleteForever

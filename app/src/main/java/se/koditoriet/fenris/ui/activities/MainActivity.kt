@@ -10,6 +10,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -24,6 +25,9 @@ import kotlinx.coroutines.launch
 import se.koditoriet.fenris.crypto.BiometricPromptAuthenticator
 import se.koditoriet.fenris.Config
 import se.koditoriet.fenris.credentialprovider.FenrisCredentialProviderService
+import se.koditoriet.fenris.ui.components.LoadingOverlay
+import se.koditoriet.fenris.ui.components.LoadingOverlayImpl
+import se.koditoriet.fenris.ui.components.LocalLoadingOverlay
 import se.koditoriet.fenris.ui.ignoreAuthFailure
 import se.koditoriet.fenris.ui.onIOThread
 import se.koditoriet.fenris.ui.screens.EnablePasskeysScreen
@@ -68,7 +72,9 @@ class MainActivity : FragmentActivity() {
 
         enableEdgeToEdge()
         setContent {
-            MainActivityContent()
+            CompositionLocalProvider(LocalLoadingOverlay provides LoadingOverlayImpl) {
+                MainActivityContent()
+            }
         }
     }
 }

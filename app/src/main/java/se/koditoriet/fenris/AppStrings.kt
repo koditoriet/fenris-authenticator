@@ -19,6 +19,7 @@ class AppStrings(private val ctx: Context) {
     val restoringBackupScreen by lazy { RestoringBackupScreen(ctx) }
     val restoreBackupFailedScreen by lazy { RestoreBackupFailedScreen(ctx) }
     val enablePasskeysScreen by lazy { EnablePasskeysScreen(ctx) }
+    val imports by lazy { Imports(ctx) }
 
     val totpSecretForm by lazy { TotpSecretForm(ctx) }
 
@@ -107,6 +108,7 @@ class AppStrings(private val ctx: Context) {
 
     class RestoringBackupScreen(private val ctx: Context) {
         val heading by ctx.s(R.string.restoring_backup_heading)
+        val backupRestored by ctx.s(R.string.restoring_backup_done)
         fun restoredSecrets(done: Int, total: Int) = ctx.resources.getQuantityString(
             R.plurals.restoring_backup_restored_secrets, done, done, total)
     }
@@ -184,8 +186,8 @@ class AppStrings(private val ctx: Context) {
         )
         val enableBackupsDisableDialogConfirm by ctx.s(R.string.settings_enable_backups_disable_dialog_confirm)
         val enableBackupsDisableDialogText by ctx.s(R.string.settings_enable_backups_disable_dialog_text)
-        val creatingBackupHeading by ctx.s(R.string.settings_enable_backups_creating_backup_heading)
         val creatingBackup by ctx.s(R.string.settings_enable_backups_creating_backup)
+        val backupFinished by ctx.s(R.string.settings_enable_backups_creating_backup_finished)
         val createBackupPassword by ctx.s(R.string.settings_enable_backups_create_backup_password)
 
         val biometricLock by ctx.s(R.string.settings_biometric_lock)
@@ -313,6 +315,25 @@ class AppStrings(private val ctx: Context) {
             false -> R.string.list_view_filter_inactive
         }.let { ctx.getString(it) }
 
+    }
+
+    class Imports(private val ctx: Context) {
+        val importFrom by ctx.s(R.string.imports_confirm_import)
+        val importFromDescription by ctx.s(R.string.imports_confirm_import)
+
+        val confirmImport by ctx.s(R.string.imports_confirm_import)
+        val confirmImportDescription by ctx.s(R.string.imports_confirm_import)
+
+        val importFailed by ctx.s(R.string.imports_import_failed)
+        fun importFailedInvalidFormat(format: String) = ctx.s(R.string.imports_import_failed_invalid_format, format)
+
+        val importingCredentials by ctx.s(R.string.imports_importing_credentials)
+        val importFinished by ctx.s(R.string.imports_import_finished)
+
+        fun numFailedImports(failedImports: Int) = ctx.resources.getQuantityString(
+            R.plurals.imports_number_of_failed_imports,
+            failedImports
+        )
     }
 }
 

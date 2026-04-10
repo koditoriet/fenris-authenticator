@@ -88,7 +88,6 @@ fun RestoreBackupScreen(
             BottomSheet(
                 hideSheet = { showPasswordInput = false },
                 sheetState = sheetState,
-                padding = padding,
                 sheetViewState = showPasswordInput,
             ) {
                 PasswordInputSheet(

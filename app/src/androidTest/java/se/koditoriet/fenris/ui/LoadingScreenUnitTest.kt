@@ -6,6 +6,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import org.junit.Rule
 import org.junit.Test
 import se.koditoriet.fenris.ui.components.LoadingOverlay
+import se.koditoriet.fenris.ui.components.LoadingOverlayImpl
 
 class LoadingScreenUnitTest {
     @get:Rule
@@ -13,22 +14,26 @@ class LoadingScreenUnitTest {
 
     @Test
     fun `The loading screen is visible when calling showLoader and is not visible when calling hideLoader`() {
-        val showLoadingScreen = mutableStateOf(false)
-
         composeTestRule.setContent {
-            LoadingOverlay(showLoadingScreen.value)
+            LoadingOverlayImpl.Render()
         }
+
         // Invisible per default
         composeTestRule.onNodeWithTag("LoadingScreen").assertDoesNotExist()
         composeTestRule.onNodeWithTag("LoadingSpinner").assertDoesNotExist()
 
         // Set visible
-        showLoadingScreen.value = true
+        LoadingOverlayImpl.show()
         composeTestRule.onNodeWithTag("LoadingScreen").assertExists()
         composeTestRule.onNodeWithTag("LoadingSpinner").assertExists()
 
+        // Set done
+        LoadingOverlayImpl.done("")
+        composeTestRule.onNodeWithTag("LoadingScreen").assertExists()
+        composeTestRule.onNodeWithTag("LoadingCheckbox").assertExists()
+
         // Set invisible
-        showLoadingScreen.value = false
+        LoadingOverlayImpl.hide()
         composeTestRule.onNodeWithTag("LoadingScreen").assertDoesNotExist()
         composeTestRule.onNodeWithTag("LoadingSpinner").assertDoesNotExist()
     }

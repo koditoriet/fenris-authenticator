@@ -4,8 +4,10 @@ import org.junit.Test
 
 import org.junit.Assert.*
 import se.koditoriet.fenris.codec.base32Decode
+import se.koditoriet.fenris.codec.base32Encode
 import se.koditoriet.fenris.codec.isValidBase32
 import kotlin.random.Random
+import kotlin.random.nextInt
 
 class Base32UnitTest {
     private val validBase32Examples = listOf(
@@ -21,7 +23,41 @@ class Base32UnitTest {
     )
 
     @Test
-    fun `base32 can decode base32`() {
+    fun `base32Encode can encode base32`() {
+        for ((base32, bytes) in validBase32Examples) {
+            assertEquals(
+                base32.uppercase().trimEnd('='),
+                base32Encode(bytes).concatToString().trimEnd('='),
+            )
+        }
+    }
+
+    @Test
+    fun `base32Encode returns correctly padded base32`() {
+        val rng = Random(42)
+        for (n in 0..1000) {
+            val len = rng.nextInt(0, 24)
+            val bytes = rng.nextBytes(len)
+            assertEquals(0, base32Encode(bytes).size % 8)
+        }
+    }
+
+    @Test
+    fun `base32Encode and base32Decode are inverses`() {
+        val rng = Random(42)
+        for (n in 0..1000) {
+            val len = rng.nextInt(0, 24)
+            val bytes = rng.nextBytes(len)
+            val encoded = base32Encode(bytes)
+            assertEquals(
+                bytes.toHexString(),
+                base32Decode(encoded).toHexString(),
+            )
+        }
+    }
+
+    @Test
+    fun `base32Decode can decode base32`() {
         for ((base32, bytes) in validBase32Examples) {
             assertArrayEquals(bytes, base32Decode(base32.toCharArray()))
         }

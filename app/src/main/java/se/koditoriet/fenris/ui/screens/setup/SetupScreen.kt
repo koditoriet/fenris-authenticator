@@ -3,8 +3,6 @@ package se.koditoriet.fenris.ui.screens.setup
 import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -15,8 +13,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import se.koditoriet.fenris.appStrings
 import se.koditoriet.fenris.crypto.BackupSeed
 import se.koditoriet.fenris.crypto.wordMap
+import se.koditoriet.fenris.ui.components.LocalLoadingOverlay
 import se.koditoriet.fenris.ui.onIOThread
-import se.koditoriet.fenris.ui.screens.SpinnerScreen
 import se.koditoriet.fenris.viewmodel.SetupViewModel
 
 private const val TAG = "SetupScreen"
@@ -26,7 +24,6 @@ private const val TAG = "SetupScreen"
 fun FragmentActivity.SetupScreen() {
     val viewModel = viewModel<SetupViewModel>()
     var viewState by remember { mutableStateOf<ViewState>(ViewState.InitialSetup) }
-    var importProgress by remember { mutableStateOf(Pair(0, 0)) }
 
     BackHandler {
         viewState.previousViewState?.apply {
@@ -55,36 +52,31 @@ fun FragmentActivity.SetupScreen() {
         }
 
         ViewState.RestoreBackup -> {
+            val loadingOverlay = LocalLoadingOverlay.current
+            val screenStrings = appStrings.restoringBackupScreen
             RestoreBackupScreen(
                 seedWords = wordMap.keys,
                 onRestore = onIOThread { backupSeed, password, uri ->
-                    viewState = ViewState.RestoringBackup
+                    loadingOverlay.show(screenStrings.restoredSecrets(0, 0))
                     try {
                         viewModel.restoreVaultFromBackup(
                             backupSeed = backupSeed,
                             backupPassword = password,
                             uri = uri,
-                            onSecretImported = { done, total -> importProgress = Pair(done, total) },
+                            onSecretImported = { done, total ->
+                                loadingOverlay.update(screenStrings.restoredSecrets(done, total))
+                            },
                         )
                     } catch (e: Exception) {
                         Log.e(TAG, "Failed to restore from backup", e)
+                        loadingOverlay.hide()
                         viewState = ViewState.RestoreBackupFailed
                     } finally {
                         backupSeed.wipe()
+                        loadingOverlay.done(appStrings.generic.ok, screenStrings.backupRestored)
                     }
                 }
             )
-        }
-
-        ViewState.RestoringBackup -> {
-            val screenStrings = appStrings.restoringBackupScreen
-            SpinnerScreen(screenStrings.heading) {
-                Text(
-                    text = screenStrings.restoredSecrets(importProgress.first, importProgress.second),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-            }
         }
 
         ViewState.RestoreBackupFailed -> {
