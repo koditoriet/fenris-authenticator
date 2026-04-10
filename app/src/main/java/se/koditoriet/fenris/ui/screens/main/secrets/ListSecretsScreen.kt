@@ -34,6 +34,7 @@ import se.koditoriet.fenris.importformat.GoogleAuthenticatorDecoder
 import se.koditoriet.fenris.importformat.ImportFormatDecoder
 import se.koditoriet.fenris.ui.components.BadInputInformationDialog
 import se.koditoriet.fenris.ui.components.IrrevocableActionConfirmationDialog
+import se.koditoriet.fenris.ui.components.LocalLoadingOverlay
 import se.koditoriet.fenris.ui.components.QrScanner
 import se.koditoriet.fenris.ui.components.WarningInformationDialog
 import se.koditoriet.fenris.ui.components.listview.ListViewTopBar
@@ -70,6 +71,7 @@ fun ListSecretsScreen(
     onSettings: () -> Unit,
     clock: Clock = Clock.System,
 ) {
+    val loadingOverlay = LocalLoadingOverlay.current
     val ctx = LocalContext.current
     val viewModel = viewModel<ListSecretsViewModel>()
     val config by viewModel.config.collectAsState()
@@ -180,9 +182,15 @@ fun ListSecretsScreen(
                 onChangeSheetSwipeDismissable = { sheetSwipeDismissable = it },
                 onInitiateQRCodeScan = { qrScannerState = QRScannerState.ScanTOTPSecret },
                 onImportCredentials = { secrets, passkeys ->
+                    loadingOverlay.show(ctx.appStrings.imports.importingCredentials)
                     viewModel.onImportCredentials(
                         secrets, passkeys,
-                        onSuccess = { },
+                        onSuccess = {
+                            loadingOverlay.done(
+                                ctx.appStrings.generic.ok,
+                                ctx.appStrings.imports.importFinished,
+                            )
+                        },
                         onFailure = { failedImports = it.size },
                     )
                 },

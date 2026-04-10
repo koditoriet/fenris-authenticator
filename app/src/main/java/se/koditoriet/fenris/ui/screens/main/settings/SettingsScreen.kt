@@ -63,9 +63,9 @@ import se.koditoriet.fenris.AppStrings
 import se.koditoriet.fenris.appStrings
 import se.koditoriet.fenris.crypto.AuthenticatorFactory
 import se.koditoriet.fenris.ui.components.IrrevocableActionConfirmationDialog
+import se.koditoriet.fenris.ui.components.LocalLoadingOverlay
 import se.koditoriet.fenris.ui.components.sheet.BottomSheet
 import se.koditoriet.fenris.ui.primaryHint
-import se.koditoriet.fenris.ui.screens.SpinnerScreen
 import se.koditoriet.fenris.ui.screens.main.settings.sheets.PasswordInputSheet
 import se.koditoriet.fenris.ui.screens.main.settings.sheets.SecurityReportSheet
 import se.koditoriet.fenris.ui.theme.GRACE_PERIOD_INPUT_FIELD_HEIGHT
@@ -91,12 +91,13 @@ fun SettingsScreen(
     clock: Clock = Clock.System,
     timeZone: TimeZone = TimeZone.currentSystemDefault(),
 ) {
+    val loadingOverlay = LocalLoadingOverlay.current
+    val ctx = LocalContext.current
     val viewModel = viewModel<SettingsViewModel>()
     val config by viewModel.config.collectAsState()
     val screenStrings = appStrings.settingsScreen
     var sheetViewState by remember { mutableStateOf<SettingsScreenSheetViewState?>(null) }
     var showWipeDialog by remember { mutableStateOf(false) }
-    var showSpinnerScreen by remember { mutableStateOf(false) }
     var showDisableBackupsDialog by remember { mutableStateOf(false) }
     val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
     val lifecycleOwner = rememberLifecycleOwner()
@@ -248,16 +249,6 @@ fun SettingsScreen(
             }
         }
 
-        if (showSpinnerScreen) {
-            SpinnerScreen(screenStrings.creatingBackupHeading) {
-                Text(
-                    text = screenStrings.creatingBackup,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-            }
-        }
-
         // Confirmation dialog - erase data
         if (showWipeDialog) {
             IrrevocableActionConfirmationDialog(
@@ -303,10 +294,13 @@ fun SettingsScreen(
                             confirmPassword = true,
                             onSubmit = { password ->
                                 sheetViewState = null
-                                showSpinnerScreen = true
+                                loadingOverlay.show(screenStrings.creatingBackup)
                                 lifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
                                     viewModel.onExportVault(viewState.uri, password) {
-                                        showSpinnerScreen = false
+                                        loadingOverlay.done(
+                                            dismissButtonText = ctx.appStrings.generic.ok,
+                                            text = screenStrings.backupFinished
+                                        )
                                     }
                                 }
                             }
