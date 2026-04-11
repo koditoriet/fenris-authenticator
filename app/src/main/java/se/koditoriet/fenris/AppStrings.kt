@@ -188,6 +188,7 @@ class AppStrings(private val ctx: Context) {
         val enableBackupsDisableDialogText by ctx.s(R.string.settings_enable_backups_disable_dialog_text)
         val creatingBackup by ctx.s(R.string.settings_enable_backups_creating_backup)
         val backupFinished by ctx.s(R.string.settings_enable_backups_creating_backup_finished)
+        val backupFailed by ctx.s(R.string.settings_enable_backups_creating_backup_finished)
         val createBackupPassword by ctx.s(R.string.settings_enable_backups_create_backup_password)
 
         val biometricLock by ctx.s(R.string.settings_biometric_lock)

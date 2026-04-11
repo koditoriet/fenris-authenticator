@@ -32,6 +32,12 @@ class LoadingScreenUnitTest {
         composeTestRule.onNodeWithTag("LoadingScreen").assertExists()
         composeTestRule.onNodeWithTag("LoadingCheckbox").assertExists()
 
+        // Set failed
+        LoadingOverlayImpl.show()
+        LoadingOverlayImpl.done("", success = false)
+        composeTestRule.onNodeWithTag("LoadingScreen").assertExists()
+        composeTestRule.onNodeWithTag("LoadingWarningTriangle").assertExists()
+
         // Set invisible
         LoadingOverlayImpl.hide()
         composeTestRule.onNodeWithTag("LoadingScreen").assertDoesNotExist()
