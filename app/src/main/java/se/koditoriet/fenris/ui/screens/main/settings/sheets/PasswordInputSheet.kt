@@ -72,7 +72,8 @@ fun PasswordInputSheet(
 
         MainButton(
             text = confirmButtonText,
-            enabled = !confirmPassword || passwordFieldState.text == confirmPasswordFieldState.text,
+            enabled = passwordFieldState.text.isNotEmpty() &&
+                        (!confirmPassword || passwordFieldState.text == confirmPasswordFieldState.text),
             onClick = { onSubmit(passwordFieldState.text.toString()) },
         )
     }

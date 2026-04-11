@@ -1,6 +1,5 @@
 package se.koditoriet.fenris.ui.screens.main.settings
 
-import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -54,7 +53,6 @@ import androidx.credentials.CredentialManager
 import androidx.lifecycle.compose.rememberLifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -137,9 +135,7 @@ fun SettingsScreen(
                 BackupSettingsRow(
                     screenStrings = screenStrings,
                     enableBackups = config.backupsEnabled,
-                    clock = clock,
-                    timeZone = timeZone,
-                    onExport = { sheetViewState = SettingsScreenSheetViewState.CreateBackupPasswordSheet(it) },
+                    onExport = { sheetViewState = SettingsScreenSheetViewState.CreateBackupPasswordSheet },
                     onRegenerateBackupSeed = onRegenerateBackupSeed,
                     onDisableBackups = { showDisableBackupsDialog = true }
                 )
@@ -288,21 +284,43 @@ fun SettingsScreen(
                     }
 
                     is SettingsScreenSheetViewState.CreateBackupPasswordSheet -> {
+                        var password by remember { mutableStateOf("") }
+                        val exportFileLauncher = rememberLauncherForActivityResult(
+                            contract = ActivityResultContracts.CreateDocument("application/json"),
+                            onResult = {
+                                it?.also { uri ->
+                                    sheetViewState = null
+                                    loadingOverlay.show(screenStrings.creatingBackup)
+                                    viewModel.onExportVault(
+                                        uri = uri,
+                                        password = password,
+                                        onExportCompleted = {
+                                            loadingOverlay.done(
+                                                dismissButtonText = ctx.appStrings.generic.ok,
+                                                text = screenStrings.backupFinished,
+                                                success = true,
+                                            )
+                                        },
+                                        onExportFailed = {
+                                            loadingOverlay.done(
+                                                dismissButtonText = ctx.appStrings.generic.ok,
+                                                text = screenStrings.backupFailed,
+                                                success = false,
+                                            )
+                                        }
+                                    )
+                                }
+                            },
+                        )
+
                         PasswordInputSheet(
                             heading = screenStrings.createBackupPassword,
                             confirmButtonText = screenStrings.enableBackupsExport,
                             confirmPassword = true,
-                            onSubmit = { password ->
-                                sheetViewState = null
-                                loadingOverlay.show(screenStrings.creatingBackup)
-                                lifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-                                    viewModel.onExportVault(viewState.uri, password) {
-                                        loadingOverlay.done(
-                                            dismissButtonText = ctx.appStrings.generic.ok,
-                                            text = screenStrings.backupFinished
-                                        )
-                                    }
-                                }
+                            onSubmit = {
+                                password = it
+                                val suggestedFileName = fileNameFromDate("vault-export-", ".fab", clock, timeZone)
+                                exportFileLauncher.launch(suggestedFileName)
                             }
                         )
                     }
@@ -316,9 +334,7 @@ fun SettingsScreen(
 private fun BackupSettingsRow(
     screenStrings: AppStrings.SettingsScreen,
     enableBackups: Boolean,
-    clock: Clock,
-    timeZone: TimeZone,
-    onExport: (Uri) -> Unit,
+    onExport: () -> Unit,
     onRegenerateBackupSeed: () -> Unit,
     onDisableBackups: () -> Unit,
 ) {
@@ -329,14 +345,9 @@ private fun BackupSettingsRow(
         enabled = enableBackups,
         onCheckedChange = { onDisableBackups() },
     ) {
-        val exportFileLauncher = rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.CreateDocument("application/octet-stream"),
-            onResult = { it?.run(onExport) },
-        )
         Column(verticalArrangement = Arrangement.spacedBy(SPACING_M)) {
-            val suggestedFileName = fileNameFromDate("vault-export-", ".eve", clock, timeZone)
             AssistChip(
-                onClick = { exportFileLauncher.launch(suggestedFileName) },
+                onClick = onExport,
                 label = { Text(screenStrings.enableBackupsExport) },
             )
             SettingsDescription(screenStrings.enableBackupsRegenerateSeedDescription)
@@ -505,6 +516,6 @@ private fun fileNameFromDate(prefix: String, suffix: String, clock: Clock, timeZ
 }
 
 private sealed interface SettingsScreenSheetViewState {
-    class CreateBackupPasswordSheet(val uri: Uri) : SettingsScreenSheetViewState
+    object CreateBackupPasswordSheet : SettingsScreenSheetViewState
     class SecurityReportSheet(val report: SecurityReport) : SettingsScreenSheetViewState
 }

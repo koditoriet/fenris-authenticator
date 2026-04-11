@@ -26,9 +26,8 @@ private const val TAG = "LoadingOverlay"
 sealed interface LoadingOverlay {
     fun show(text: String? = null)
     fun hide()
-
     fun update(text: String? = null)
-    fun done(dismissButtonText: String, text: String? = null, onDismissed: () -> Unit = {})
+    fun done(dismissButtonText: String, text: String? = null, success: Boolean = true, onDismissed: () -> Unit = {})
 }
 
 val LocalLoadingOverlay = staticCompositionLocalOf { LoadingOverlayImpl }
@@ -52,12 +51,12 @@ object LoadingOverlayImpl : LoadingOverlay {
         }
     }
 
-    override fun done(dismissButtonText: String, text: String?, onDismissed: () -> Unit) {
+    override fun done(dismissButtonText: String, text: String?, success: Boolean, onDismissed: () -> Unit) {
         Log.d(TAG, "Marking loading overlay as done with text '$text'")
         state.value = when (state.value) {
             LoadingOverlayState.Inactive -> state.value
             is LoadingOverlayState.Done -> state.value
-            is LoadingOverlayState.Loading -> LoadingOverlayState.Done(dismissButtonText, text, onDismissed)
+            is LoadingOverlayState.Loading -> LoadingOverlayState.Done(dismissButtonText, text, success, onDismissed)
         }
     }
 
@@ -83,7 +82,12 @@ object LoadingOverlayImpl : LoadingOverlay {
                                 .wrapContentSize(Alignment.Center)
                                 .testTag("LoadingScreen")
                         ) {
-                            LoadingSpinner(state is LoadingOverlayState.Loading)
+                            val spinnerState = when (state) {
+                                is LoadingOverlayState.Done if state.success -> LoadingSpinnerState.SUCCESS
+                                is LoadingOverlayState.Done -> LoadingSpinnerState.FAILED
+                                is LoadingOverlayState.Loading -> LoadingSpinnerState.LOADING
+                            }
+                            LoadingSpinner(spinnerState)
 
                             state.text?.let {
                                 Spacer(Modifier.height(SPACING_XL))
@@ -123,6 +127,7 @@ private sealed interface LoadingOverlayState {
     data class Done(
         val dismissButtonText: String,
         override val text: String?,
+        val success: Boolean,
         val onDismissed: () -> Unit,
     ) : LoadingOverlayState
 
