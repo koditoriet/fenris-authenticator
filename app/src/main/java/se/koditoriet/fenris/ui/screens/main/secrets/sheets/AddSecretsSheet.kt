@@ -3,6 +3,7 @@ package se.koditoriet.fenris.ui.screens.main.secrets.sheets
 import se.koditoriet.fenris.ui.components.sheet.BottomSheetAction
 import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material.icons.Icons
@@ -20,11 +21,14 @@ import se.koditoriet.fenris.ui.components.sheet.BottomSheetGlobalHeader
 import se.koditoriet.fenris.ui.supportedImageMimeTypes
 import se.koditoriet.fenris.vault.NewTotpSecret
 
+private const val TAG = "AddSecretsSheet"
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddSecretsSheet(
     onAddSecretByQR: () -> Unit,
     onAddSecret: (NewTotpSecret?) -> Unit,
+    onError: () -> Unit,
     onImportFile: () -> Unit,
 ) {
     val screenStrings = appStrings.secretsScreen
@@ -36,11 +40,17 @@ fun AddSecretsSheet(
         contract = ActivityResultContracts.OpenDocument(),
         onResult = {
             it?.run {
-                val bitmap = ctx.contentResolver.openInputStream(it).use { stream ->
-                    BitmapFactory.decodeStream(stream)
-                }
-                QRCodeReader.tryScanBitmap(bitmap)?.let { uri ->
-                    onAddSecret(NewTotpSecret.fromUri(uri))
+                try {
+                    val bitmap = ctx.contentResolver.openInputStream(it).use { stream ->
+                        BitmapFactory.decodeStream(stream)
+                    }
+                    check(bitmap != null) { "Unable to decode bitmap" }
+                    QRCodeReader.tryScanBitmap(bitmap)?.let { uri ->
+                        onAddSecret(NewTotpSecret.fromUri(uri))
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to import TOTP secret from image", e)
+                    onError()
                 }
             }
         }

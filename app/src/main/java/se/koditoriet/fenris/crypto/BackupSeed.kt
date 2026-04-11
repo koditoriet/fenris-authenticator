@@ -40,6 +40,10 @@ class BackupSeed(private val secret: ByteArray) {
         fun generate(secureRandom: SecureRandom = SecureRandom()): BackupSeed =
             BackupSeed(ByteArray(SYMMETRIC_KEY_SIZE).apply(secureRandom::nextBytes))
 
+        /**
+         * Parse the given URI into a backup seed.
+         * @throws IllegalArgumentException if the URI is not a valid Fenris backup seed URI.
+         */
         fun fromUri(uri: Uri): BackupSeed {
             require(uri.scheme == FENRIS_URI_SCHEME)
             require(uri.host == BACKUP_SEED_URI_HOST)
@@ -50,6 +54,14 @@ class BackupSeed(private val secret: ByteArray) {
             return BackupSeed(bytes)
         }
 
+        /**
+         * Parses the given list of words into a backup seed. The number of words must be exactly equal to the
+         * number expected from an mnemonic (see BACKUP_SEED_MNEMONIC_LENGTH_WORDS), and all words must be present
+         * in the list of allowed mnemonic words (wordMap). Additionally, the decoded backup seed must end with
+         * a valid checksum byte.
+         *
+         * @throws IllegalArgumentException if any of the above requirements are not met.
+         */
         fun fromMnemonic(words: List<String>): BackupSeed {
             require(words.size == BACKUP_SEED_MNEMONIC_LENGTH_WORDS)
             val bitWriter = BitWriter()
@@ -60,6 +72,7 @@ class BackupSeed(private val secret: ByteArray) {
                 bitWriter.write(index.shr(8).toByte(), 3)
                 bitWriter.write(index.toByte(), 8)
             }
+
             val mnemonicBytes = bitWriter.getBytes()
             val secretBytes = mnemonicBytes.take(SYMMETRIC_KEY_SIZE).toByteArray()
             val expectedChecksum = mnemonicBytes.drop(SYMMETRIC_KEY_SIZE).first()
@@ -68,9 +81,11 @@ class BackupSeed(private val secret: ByteArray) {
                 .digest(secretBytes)
                 .take(1)
                 .first()
-            if (expectedChecksum != actualChecksum) {
-                throw IllegalArgumentException("checksum mismatch; mnemonic is corrupted")
+
+            require (expectedChecksum != actualChecksum) {
+                "checksum mismatch; mnemonic is corrupted"
             }
+
             return BackupSeed(secretBytes)
         }
     }

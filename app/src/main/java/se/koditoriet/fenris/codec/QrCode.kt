@@ -78,6 +78,10 @@ sealed interface QRCodeData {
     class GoogleAuthenticatorExport(val protobufPayload: ByteArray) : QRCodeData
 
     companion object {
+        /**
+         * Parse the given QR code into a QRCodeData, if the QR code is supported.
+         * @throws IllegalArgumentException if the QR code is unsupported, invalid or corrupt.
+         */
         fun parse(s: String): QRCodeData {
             val uri = s.toUri()
             return when (uri.scheme?.lowercase()) {

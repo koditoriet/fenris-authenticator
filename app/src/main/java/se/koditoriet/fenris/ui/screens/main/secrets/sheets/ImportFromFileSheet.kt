@@ -1,5 +1,7 @@
 package se.koditoriet.fenris.ui.screens.main.secrets.sheets
 
+import android.content.Context
+import android.net.Uri
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -22,7 +24,7 @@ private const val TAG = "ImportFromFileSheet"
 
 @Composable
 fun ImportFromFileSheet(
-    onImportFromFile: (ImportFormatDecoder.DecodedImport) -> Unit,
+    onFileImported: (ImportFormatDecoder.DecodedImport) -> Unit,
 ) {
     val sheetStrings = appStrings.imports
     val ctx = LocalContext.current
@@ -38,17 +40,15 @@ fun ImportFromFileSheet(
         contract = ActivityResultContracts.OpenDocument(),
         onResult = {
             it?.run {
-                val bytes = ctx.contentResolver.openInputStream(this).use { stream ->
-                    stream!!.readBytes()
+                try {
+                    // throw an NPE instead of null checking to make sure all error handling goes through the catch
+                    val decodedImport = importFromFile(ctx, selectedDecoder!!)
+                    onFileImported(decodedImport)
+                } catch (e: Exception) {
+                    val decoderName = selectedDecoder?.javaClass?.simpleName ?: "<none>"
+                    Log.e(TAG, "Failed to import from file using decoder $decoderName", e)
+                    importFailed = true
                 }
-                selectedDecoder?.run {
-                    try {
-                        onImportFromFile(decode(bytes))
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Unable to decode import data", e)
-                        importFailed = true
-                    }
-                } ?: Log.e(TAG, "Selected decoder disappeared while opening file")
             }
         }
     )
@@ -72,8 +72,18 @@ fun ImportFromFileSheet(
     if (importFailed) {
         WarningInformationDialog(
             title = sheetStrings.importFailed,
-            text = sheetStrings.importFailedInvalidFormat(selectedDecoder!!.formatName),
+            text = sheetStrings.importFailedInvalidFormat(selectedDecoder?.formatName ?: "???"),
             onDismiss = { importFailed = false },
         )
     }
+}
+
+private fun Uri.importFromFile(
+    ctx: Context,
+    selectedDecoder: ImportFormatDecoder,
+): ImportFormatDecoder.DecodedImport {
+    val bytes = ctx.contentResolver.openInputStream(this)?.use { stream ->
+        stream.readBytes()
+    } ?: throw IllegalStateException("unable to open input stream")
+    return selectedDecoder.decode(bytes)
 }

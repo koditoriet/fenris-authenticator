@@ -3,6 +3,7 @@ package se.koditoriet.fenris.ui
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
 import se.koditoriet.fenris.ui.components.LoadingOverlay
@@ -13,7 +14,7 @@ class LoadingScreenUnitTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun `The loading screen is visible when calling showLoader and is not visible when calling hideLoader`() {
+    fun `The loading screen is visible when calling showLoader and is not visible when calling hideLoader`() = runTest {
         composeTestRule.setContent {
             LoadingOverlayImpl.Render()
         }

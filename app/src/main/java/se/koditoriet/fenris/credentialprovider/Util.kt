@@ -38,7 +38,7 @@ suspend fun createBeginGetCredentialResponse(
             is BeginGetPublicKeyCredentialOption -> getPasskeys(
                 vault = vault,
                 context = context,
-                callingAppInfo = request.callingAppInfo!!,
+                callingAppInfo = request.callingAppInfo,
                 option = it,
                 validator = context.webAuthnValidator,
             )
@@ -52,7 +52,7 @@ suspend fun createBeginGetCredentialResponse(
 private suspend fun getPasskeys(
     vault: Vault,
     context: Context,
-    callingAppInfo: CallingAppInfo,
+    callingAppInfo: CallingAppInfo?,
     option: BeginGetPublicKeyCredentialOption,
     validator: WebAuthnValidator,
 ): List<CredentialEntry> {
@@ -68,7 +68,9 @@ private suspend fun getPasskeys(
     }
 
     val passkeyIcon = Icon.createWithResource(context, R.drawable.passkey_fenris)
-    return vault.getPasskeys(request.rpId ?: validator.appInfoToRpId(callingAppInfo)).flatMap { passkey ->
+    val rpId = request.rpId ?: callingAppInfo?.let { validator.appInfoToRpId(it) }
+    val passkeys = rpId?.let { vault.getPasskeys(it) } ?: emptyList()
+    return passkeys.flatMap { passkey ->
         if (allowedCredentials.isEmpty() || allowedCredentials.contains(passkey.credentialId)) {
             val data = Bundle().apply { putString(CREDENTIAL_ID, passkey.credentialId.string) }
             listOf(

@@ -61,7 +61,11 @@ class WebAuthnValidator(
 
     fun appInfoToOrigin(callingAppInfo: CallingAppInfo): String {
         if (callingAppInfo.isOriginPopulated()) {
-            return callingAppInfo.getOrigin(privilegedBrowserList)!!
+            try {
+                return callingAppInfo.getOrigin(privilegedBrowserList)!!
+            } catch (e: Exception) {
+                Log.w(TAG, "Unable to get populated origin; falling back to Android origin", e)
+            }
         }
 
         // If origin is not populated, we're dealing with an app origin
@@ -75,16 +79,12 @@ class WebAuthnValidator(
      * Derives an rpId from a CallingAppInfo.
      * Only web origins are supported, and we approximate the rpId by taking the host of the origin URI.
      */
-    fun appInfoToRpId(callingAppInfo: CallingAppInfo): String {
-        require(callingAppInfo.isOriginPopulated())
-
-        val origin = callingAppInfo.getOrigin(privilegedBrowserList)
-        require(origin != null)
-
-        val host = origin.toUri().host
-        require(host != null)
-
-        return host
+    fun appInfoToRpId(callingAppInfo: CallingAppInfo): String? {
+        if (!callingAppInfo.isOriginPopulated()) {
+            return null
+        }
+        val origin = callingAppInfo.getOrigin(privilegedBrowserList) ?: return null
+        return origin.toUri().host
     }
 }
 

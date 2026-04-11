@@ -71,6 +71,7 @@ class SettingsViewModel(private val app: Application) : ViewModelBase(app) {
     ) = withVault {
         Log.i(TAG, "Exporting backup to $uri")
         try {
+            // throw an NPE instead of null checking to make sure all error handling goes through the catch
             app.contentResolver.openOutputStream(uri)!!.use { stream ->
                 stream.write(export(password).encode())
                 Log.i(TAG, "Backup export completed")

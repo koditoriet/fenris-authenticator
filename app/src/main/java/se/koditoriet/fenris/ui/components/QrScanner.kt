@@ -51,6 +51,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import se.koditoriet.fenris.appStrings
 import se.koditoriet.fenris.codec.QRCodeReader
 import java.util.concurrent.Executors
@@ -129,19 +133,27 @@ private fun QrScannerView(
     val handler = Handler(handlerThread.looper)
     val cameraManager = LocalContext.current.getSystemService(Context.CAMERA_SERVICE) as CameraManager
     val cameraId = cameraManager.getBackCameraId()
+    val scope = LocalLifecycleOwner.current.lifecycleScope
 
     val availableOutputSizes = cameraManager
         .getCameraCharacteristics(cameraId)
-        .get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)!!
-        .getOutputSizes(ImageFormat.YUV_420_888)
-        .filter { it.w.toFloat() / it.h in 1.75f..1.80f }
+        .get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
+        ?.getOutputSizes(ImageFormat.YUV_420_888)
+        ?.filter { it.w.toFloat() / it.h in 1.75f..1.80f }
+        ?: emptyList()
 
     Log.i(TAG, "Available 16:9 output sizes: ${availableOutputSizes.joinToString(", ")}")
 
     // Pick the largest available 16:9 resolution that is not _too_ large
     val outputSize = availableOutputSizes
         .filter { it.w < 1920 }
-        .maxByOrNull { it.w } ?: availableOutputSizes.maxBy { it.w }
+        .maxByOrNull { it.w } ?: availableOutputSizes.minByOrNull { it.w }
+
+    if (outputSize == null) {
+        Log.e(TAG, "No suitable output size found")
+        onCameraClosed()
+        return
+    }
 
     Log.i(TAG, "Picked output size $outputSize")
 
@@ -158,11 +170,17 @@ private fun QrScannerView(
                             outputSize = outputSize,
                             handler = handler,
                             previewSurface = previewSurface,
-                            onQrScanned = onQrScanned,
+                            onQrScanned = {
+                                scope.launch(Dispatchers.Main) {
+                                    onQrScanned(it)
+                                }
+                            },
                             onConfigured = { captureSession = it },
                             onClosed = {
                                 captureSession = null
-                                onCameraClosed()
+                                scope.launch(Dispatchers.Main) {
+                                    onCameraClosed()
+                                }
                             },
                         )
 

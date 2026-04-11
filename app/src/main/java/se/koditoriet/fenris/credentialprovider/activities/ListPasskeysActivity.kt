@@ -23,15 +23,27 @@ import se.koditoriet.fenris.ui.theme.BACKGROUND_ICON_SIZE
 import se.koditoriet.fenris.ui.theme.FenrisTheme
 import se.koditoriet.fenris.viewmodel.CredentialProviderViewModel
 
-private const val TAG = "UnlockVaultActivity"
+private const val TAG = "ListPasskeysActivity"
 
 class ListPasskeysActivity : FragmentActivity() {
     private val viewModel by viewModels<CredentialProviderViewModel>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Log.i(TAG, "UnlockVaultActivity created, proceeding to unlock vault")
-        val request = PendingIntentHandler.retrieveBeginGetCredentialRequest(intent)!!
+
+        val intent = intent
+        if (intent == null) {
+            Log.w(TAG, "Activity created with null intent")
+            finishWithResult(null)
+            return
+        }
+
+        val request = PendingIntentHandler.retrieveBeginGetCredentialRequest(intent)
+        if (request == null) {
+            Log.e(TAG, "Intent does not contain a BeginGetCredentialRequest")
+            finishWithResult(null)
+            return
+        }
 
         enableEdgeToEdge()
         setContent {

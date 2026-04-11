@@ -19,28 +19,61 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import se.koditoriet.fenris.ui.theme.SPACING_XL
 
 private const val TAG = "LoadingOverlay"
 
 sealed interface LoadingOverlay {
-    fun show(text: String? = null)
-    fun hide()
-    fun update(text: String? = null)
-    fun done(dismissButtonText: String, text: String? = null, success: Boolean = true, onDismissed: () -> Unit = {})
+    suspend fun show(text: String? = null)
+    suspend fun hide()
+    suspend fun update(text: String? = null)
+    suspend fun done(
+        dismissButtonText: String,
+        text: String? = null,
+        success: Boolean = true,
+        onDismissed: () -> Unit = {},
+    )
+
+    fun show(scope: CoroutineScope, text: String? = null) {
+        scope.launch { show(text) }
+    }
+
+    fun hide(scope: CoroutineScope) {
+        scope.launch { hide() }
+    }
+
+    fun update(scope: CoroutineScope, text: String?) {
+        scope.launch { update(text) }
+    }
+
+    fun done(
+        scope: CoroutineScope,
+        dismissButtonText: String,
+        text: String? = null,
+        success: Boolean = true,
+        onDismissed: () -> Unit = {},
+    ) {
+        scope.launch { done(dismissButtonText, text, success, onDismissed) }
+    }
 }
 
-val LocalLoadingOverlay = staticCompositionLocalOf { LoadingOverlayImpl }
+val LocalLoadingOverlay = staticCompositionLocalOf<LoadingOverlay> { LoadingOverlayImpl }
 
 object LoadingOverlayImpl : LoadingOverlay {
     private val state = mutableStateOf<LoadingOverlayState>(LoadingOverlayState.Inactive)
 
-    override fun show(text: String?) {
+    override suspend fun show(text: String?) = withContext(Dispatchers.Main) {
         Log.d(TAG, "Showing loading overlay with text '$text'")
         state.value = LoadingOverlayState.Loading(text)
     }
 
-    override fun update(text: String?) {
+    override suspend fun update(text: String?) = withContext(Dispatchers.Main) {
         Log.d(TAG, "Updating loading overlay with text '$text'")
         state.value = state.value.let { state ->
             when (state) {
@@ -51,7 +84,12 @@ object LoadingOverlayImpl : LoadingOverlay {
         }
     }
 
-    override fun done(dismissButtonText: String, text: String?, success: Boolean, onDismissed: () -> Unit) {
+    override suspend fun done(
+        dismissButtonText: String,
+        text: String?,
+        success: Boolean,
+        onDismissed: () -> Unit,
+    ) = withContext(Dispatchers.Main) {
         Log.d(TAG, "Marking loading overlay as done with text '$text'")
         state.value = when (state.value) {
             LoadingOverlayState.Inactive -> state.value
@@ -60,13 +98,14 @@ object LoadingOverlayImpl : LoadingOverlay {
         }
     }
 
-    override fun hide() {
+    override suspend fun hide() = withContext(Dispatchers.Main) {
         Log.d(TAG, "Hiding loading overlay")
         state.value = LoadingOverlayState.Inactive
     }
 
     @Composable
     fun Render() = state.value.let { state ->
+        val scope = LocalLifecycleOwner.current.lifecycleScope
         when (state) {
             LoadingOverlayState.Inactive -> { /* NOP! */ }
             else -> {
@@ -103,7 +142,7 @@ object LoadingOverlayImpl : LoadingOverlay {
                             MainButton(
                                 text = state.dismissButtonText,
                                 onClick = {
-                                    hide()
+                                    hide(scope)
                                     state.onDismissed()
                                 }
                             )
