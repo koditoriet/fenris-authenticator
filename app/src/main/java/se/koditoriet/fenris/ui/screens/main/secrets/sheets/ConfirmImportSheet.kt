@@ -87,6 +87,7 @@ fun ConfirmImportSheet(
         MainButton(
             text = sheetStrings.confirmImport,
             enabled = totpSecrets.isNotEmpty() || passkeys.isNotEmpty(),
+            oneshot = true,
             onClick = { onConfirmImport(totpSecrets, passkeys) },
         )
     }

@@ -47,7 +47,6 @@ fun InitialSetupScreen(
 ) {
     val screenStrings = appStrings.setupScreen
     var backupChoice by remember { mutableStateOf(BackupChoice.EnableBackups) }
-    var mainButtonEnabled by remember { mutableStateOf(true) }
 
     Scaffold(
         topBar = {
@@ -109,15 +108,12 @@ fun InitialSetupScreen(
             }
             MainButton(
                 text = appStrings.generic.next,
-                enabled = mainButtonEnabled,
+                oneshot = true,
                 onClick = {
-                    if (mainButtonEnabled) {
-                        mainButtonEnabled = false
-                        when (backupChoice) {
-                            BackupChoice.DisableBackups -> onSkipBackups()
-                            BackupChoice.EnableBackups -> onEnableBackups()
-                            BackupChoice.ImportAndEnableBackups -> onRestoreBackup()
-                        }
+                    when (backupChoice) {
+                        BackupChoice.DisableBackups -> onSkipBackups()
+                        BackupChoice.EnableBackups -> onEnableBackups()
+                        BackupChoice.ImportAndEnableBackups -> onRestoreBackup()
                     }
                 }
             )
