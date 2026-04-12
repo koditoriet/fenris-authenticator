@@ -18,6 +18,8 @@ import androidx.credentials.CreatePublicKeyCredentialResponse
 import androidx.credentials.provider.CallingAppInfo
 import androidx.credentials.provider.PendingIntentHandler
 import androidx.fragment.app.FragmentActivity
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import se.koditoriet.fenris.PASSKEY_CREATE_FLAGS
 import se.koditoriet.fenris.crypto.BiometricPromptAuthenticator
 import se.koditoriet.fenris.appStrings
@@ -52,7 +54,23 @@ class CreatePasskeyActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         val screenStrings = appStrings.credentialProvider
         val authFactory = BiometricPromptAuthenticator.Factory(this@CreatePasskeyActivity)
-        val requestInfo = CreateRequestInfo.fromIntent(intent!!)
+
+        val intent = if (intent == null) {
+            Log.w(TAG, "Activity created with null intent")
+            finishWithResponse(null)
+            return
+        } else {
+            intent
+        }
+
+        val requestInfo = try {
+            CreateRequestInfo.fromIntent(intent)
+        } catch (e: Exception) {
+            Log.e(TAG, "Unable to extract request info from intent", e)
+            finishWithResponse(null)
+            return
+        }
+
         val requestInfoIsValid = requestInfo.isValid(webAuthnValidator)
 
         enableEdgeToEdge()
@@ -110,7 +128,9 @@ class CreatePasskeyActivity : FragmentActivity() {
                                     TAG,
                                     "Created passkey with credential id ${response.credentialId.toBase64Url()}"
                                 )
-                                finishWithResponse(response)
+                                withContext(Dispatchers.Main) {
+                                    finishWithResponse(response)
+                                }
                             }
                         )
                     }
@@ -193,7 +213,11 @@ private class CreateRequestInfo(
         fun fromIntent(intent: Intent): CreateRequestInfo {
             Log.d(TAG, "Extracting credential options")
 
-            val request = PendingIntentHandler.retrieveProviderCreateCredentialRequest(intent)!!
+            val request = PendingIntentHandler.retrieveProviderCreateCredentialRequest(intent)
+            require(request != null) {
+                "Intent does not contain a ProviderCreateCredentialRequest"
+            }
+
             val publicKeyCredentialRequest = request.callingRequest as CreatePublicKeyCredentialRequest
 
             Log.d(TAG, "Parsing request JSON")

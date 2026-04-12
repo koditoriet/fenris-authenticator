@@ -22,6 +22,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import se.koditoriet.fenris.BACKUP_SEED_MNEMONIC_LENGTH_WORDS
 import se.koditoriet.fenris.appStrings
 import se.koditoriet.fenris.crypto.BackupSeed
@@ -50,8 +51,9 @@ fun RegenerateBackupSeedScreen() {
     var showBackupReseedFailedDialog by remember { mutableStateOf(false) }
 
     fun continueIfSeedIsValid(seed: BackupSeed) {
-        lifecycleScope.launch(Dispatchers.IO) {
-            if (viewModel.validateSeed(seed)) {
+        lifecycleScope.launch(Dispatchers.Main) {
+            val success = withContext(Dispatchers.IO) { viewModel.validateSeed(seed) }
+            if (success) {
                 viewState = RegenerateBackupSeedViewState.ShowNewSeed(seed)
             } else {
                 seed.wipe()
@@ -104,11 +106,9 @@ fun RegenerateBackupSeedScreen() {
                         confirmButtonText = screenStrings.confirmNewSeed,
                         modifier = Modifier.padding(padding),
                         onContinue = {
-                            lifecycleScope.launch(Dispatchers.IO) {
-                                if (viewModel.rekeyBackups(frozenViewState.oldSeed, newSeed)) {
-                                    showBackupReseedCompleteDialog = true
-                                } else {
-                                    showBackupReseedCompleteDialog = false
+                            lifecycleScope.launch(Dispatchers.Main) {
+                                showBackupReseedCompleteDialog = withContext(Dispatchers.IO) {
+                                    viewModel.rekeyBackups(frozenViewState.oldSeed, newSeed)
                                 }
                                 frozenViewState.oldSeed.wipe()
                                 newSeed.wipe()

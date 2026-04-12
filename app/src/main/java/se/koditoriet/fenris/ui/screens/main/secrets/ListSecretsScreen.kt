@@ -25,7 +25,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.launch
 import se.koditoriet.fenris.AppStrings
 import se.koditoriet.fenris.appStrings
 import se.koditoriet.fenris.codec.QRCodeData
@@ -168,11 +171,13 @@ fun ListSecretsScreen(
         }
 
         if (sheetViewState != Inactive) {
+            val scope = LocalLifecycleOwner.current.lifecycleScope
             ListSecretsBottomSheet(
                 viewState = sheetViewState,
                 sheetState = sheetState,
                 hideSecretsFromAccessibility = config.hideSecretsFromAccessibility,
                 onAddSecret = viewModel::onAddSecret,
+                onAddSecretFailed = { failedImports = 1 },
                 onUpdateSecret = viewModel::onUpdateSecret,
                 onDeleteSecret = { confirmDeleteSecret = it },
                 onChangeSheetViewState = {
@@ -182,11 +187,12 @@ fun ListSecretsScreen(
                 onChangeSheetSwipeDismissable = { sheetSwipeDismissable = it },
                 onInitiateQRCodeScan = { qrScannerState = QRScannerState.ScanTOTPSecret },
                 onImportCredentials = { secrets, passkeys ->
-                    loadingOverlay.show(ctx.appStrings.imports.importingCredentials)
+                    loadingOverlay.show(scope, ctx.appStrings.imports.importingCredentials)
                     viewModel.onImportCredentials(
                         secrets, passkeys,
                         onSuccess = {
                             loadingOverlay.done(
+                                scope = scope,
                                 ctx.appStrings.generic.ok,
                                 ctx.appStrings.imports.importFinished,
                             )
@@ -235,6 +241,7 @@ private fun ListSecretsBottomSheet(
     sheetState: SheetState,
     hideSecretsFromAccessibility: Boolean,
     onAddSecret: (NewTotpSecret) -> Unit,
+    onAddSecretFailed: () -> Unit,
     onUpdateSecret: (TotpSecret) -> Unit,
     onDeleteSecret: (TotpSecret) -> Unit,
     onInitiateQRCodeScan: () -> Unit,
@@ -255,9 +262,10 @@ private fun ListSecretsBottomSheet(
                     onAddSecret = {
                         onChangeSheetViewState(AddingNewSecret(it))
                     },
+                    onError = onAddSecretFailed,
                     onImportFile = {
                         onChangeSheetViewState(ImportFromFile)
-                    }
+                    },
                 )
             }
 
@@ -314,7 +322,7 @@ private fun ListSecretsBottomSheet(
                     onChangeSheetViewState(AddSecretActions)
                 }
                 ImportFromFileSheet(
-                    onImportFromFile = { onChangeSheetViewState(ConfirmImport(it)) }
+                    onFileImported = { onChangeSheetViewState(ConfirmImport(it)) }
                 )
             }
 

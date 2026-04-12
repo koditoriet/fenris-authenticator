@@ -50,6 +50,19 @@ class AuthenticateActivity : FragmentActivity() {
         val authFactory = BiometricPromptAuthenticator.Factory(this@AuthenticateActivity)
         val clock: Clock = Clock.System
 
+        val intent = intent
+        if (intent == null) {
+            Log.w(TAG, "Activity called without intent")
+            finishWithResult(null)
+            return
+        }
+
+        val requestInfo = GetRequestInfo.fromIntent(webAuthnValidator, intent)
+        if (requestInfo == null) {
+            finishWithResult(null)
+            return
+        }
+
         enableEdgeToEdge()
         setContent {
             val showUnableToEstablishTrustDialog = remember { mutableStateOf(false) }
@@ -61,8 +74,6 @@ class AuthenticateActivity : FragmentActivity() {
                     finishWithResult(null)
                     return@LaunchedEffect
                 }
-
-                val requestInfo = GetRequestInfo.fromIntent(webAuthnValidator, intent)
 
                 Log.d(TAG, "Fetching passkey with credential ID ${requestInfo.credentialId}")
                 val passkey = viewModel.getPasskey(requestInfo.credentialId)
@@ -91,7 +102,6 @@ class AuthenticateActivity : FragmentActivity() {
                     viewModel.updatePasskey(passkey.copy(timeOfLastUse = clock.now().toEpochMilliseconds()))
                     finishWithResult(signedResponse)
                 } catch (_: AuthenticationFailedException) {
-                    Log.i(TAG, "Aborting signing")
                     finishWithResult(null)
                 }
             }
@@ -153,6 +163,11 @@ private class GetRequestInfo(
 
     fun isValid(storedPasskey: Passkey): Boolean {
         val rpId = requestJson.rpId ?: validator.appInfoToRpId(callingAppInfo)
+        if (rpId == null) {
+            Log.e(TAG, "Unable to obtain RP")
+            return false
+        }
+
         if (!validator.rpIsValid(rpId)) {
             Log.e(TAG, "Request RP is invalid!")
             return false
@@ -172,17 +187,27 @@ private class GetRequestInfo(
     }
 
     companion object {
-        fun fromIntent(validator: WebAuthnValidator, intent: Intent): GetRequestInfo {
+        fun fromIntent(validator: WebAuthnValidator, intent: Intent): GetRequestInfo? {
             Log.d(TAG, "Extracting selected credential ID")
             val credentialId = intent
-                .getBundleExtra(CREDENTIAL_DATA)!!
-                .getString(CREDENTIAL_ID)!!
+                .getBundleExtra(CREDENTIAL_DATA)
+                ?.getString(CREDENTIAL_ID)
+
+            if (credentialId == null) {
+                Log.e(TAG, "Intent does not contain a credential ID")
+                return null
+            }
 
             Log.i(TAG, "User requested signing with credential $credentialId")
 
             Log.d(TAG, "Extracting credential options")
             val request = PendingIntentHandler
-                .retrieveProviderGetCredentialRequest(intent)!!
+                .retrieveProviderGetCredentialRequest(intent)
+
+            if (request == null) {
+                Log.e(TAG, "Intent does not contain a ProviderGetCredentialRequest")
+                return null
+            }
 
             val credentialOption = request.credentialOptions.first() as GetPublicKeyCredentialOption
 

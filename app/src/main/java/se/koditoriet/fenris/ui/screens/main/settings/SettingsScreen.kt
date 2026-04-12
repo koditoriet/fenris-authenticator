@@ -1,6 +1,7 @@
 package se.koditoriet.fenris.ui.screens.main.settings
 
 import android.os.Build
+import android.util.Log
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -50,6 +51,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.credentials.CredentialManager
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.rememberLifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -79,6 +81,8 @@ import se.koditoriet.fenris.viewmodel.SecurityReport
 import se.koditoriet.fenris.viewmodel.SettingsViewModel
 import kotlin.time.Clock
 
+private const val TAG = "SettingsScreen"
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -100,6 +104,7 @@ fun SettingsScreen(
     val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
     val lifecycleOwner = rememberLifecycleOwner()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = LocalLifecycleOwner.current.lifecycleScope
 
     Scaffold(
         topBar = {
@@ -290,12 +295,13 @@ fun SettingsScreen(
                             onResult = {
                                 it?.also { uri ->
                                     sheetViewState = null
-                                    loadingOverlay.show(screenStrings.creatingBackup)
+                                    loadingOverlay.show(scope, screenStrings.creatingBackup)
                                     viewModel.onExportVault(
                                         uri = uri,
                                         password = password,
                                         onExportCompleted = {
                                             loadingOverlay.done(
+                                                scope = scope,
                                                 dismissButtonText = ctx.appStrings.generic.ok,
                                                 text = screenStrings.backupFinished,
                                                 success = true,
@@ -303,6 +309,7 @@ fun SettingsScreen(
                                         },
                                         onExportFailed = {
                                             loadingOverlay.done(
+                                                scope = scope,
                                                 dismissButtonText = ctx.appStrings.generic.ok,
                                                 text = screenStrings.backupFailed,
                                                 success = false,
@@ -392,7 +399,15 @@ private fun PasskeySettingsRow(
             AssistChip(
                 onClick = {
                     val pendingIntent = credentialManager.createSettingsPendingIntent()
-                    pendingIntent.send()
+                    try {
+                        pendingIntent.send()
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Unable to open settings", e)
+
+                        /* NOP - if for some unlikely reason we can't launch the settings screen,
+                        *  it's better to do nothing than to crash at least.
+                        */
+                    }
                 },
                 label = { Text(appStrings.generic.openSystemSettings) },
             )

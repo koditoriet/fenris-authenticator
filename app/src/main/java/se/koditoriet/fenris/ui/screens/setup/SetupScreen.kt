@@ -9,7 +9,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import se.koditoriet.fenris.appStrings
 import se.koditoriet.fenris.crypto.BackupSeed
 import se.koditoriet.fenris.crypto.wordMap
@@ -52,6 +57,7 @@ fun FragmentActivity.SetupScreen() {
         }
 
         ViewState.RestoreBackup -> {
+            val scope = LocalLifecycleOwner.current.lifecycleScope
             val loadingOverlay = LocalLoadingOverlay.current
             val screenStrings = appStrings.restoringBackupScreen
             RestoreBackupScreen(
@@ -64,16 +70,18 @@ fun FragmentActivity.SetupScreen() {
                             backupPassword = password,
                             uri = uri,
                             onSecretImported = { done, total ->
-                                loadingOverlay.update(screenStrings.restoredSecrets(done, total))
+                                loadingOverlay.update(scope, screenStrings.restoredSecrets(done, total))
                             },
                         )
                     } catch (e: Exception) {
                         Log.e(TAG, "Failed to restore from backup", e)
-                        loadingOverlay.hide()
-                        viewState = ViewState.RestoreBackupFailed
+                        withContext(Dispatchers.Main) {
+                            loadingOverlay.hide()
+                            viewState = ViewState.RestoreBackupFailed
+                        }
                     } finally {
                         backupSeed.wipe()
-                        loadingOverlay.done(appStrings.generic.ok, screenStrings.backupRestored)
+                        loadingOverlay.done(scope, appStrings.generic.ok, screenStrings.backupRestored)
                     }
                 }
             )

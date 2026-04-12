@@ -82,7 +82,7 @@ class FenrisApp : Application() {
             Vault(
                 repositoryFactory = repositoryFactory,
                 cryptographer = Cryptographer(),
-                dbFile = lazy { getDatabasePath("vault")!! },
+                dbFile = lazy { getDatabasePath("vault") },
                 scope = applicationScope,
             )
         }

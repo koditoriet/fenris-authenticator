@@ -1,6 +1,7 @@
 package se.koditoriet.fenris.ui.screens
 
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,6 +30,8 @@ import se.koditoriet.fenris.ui.components.PasskeyIcon
 import se.koditoriet.fenris.ui.components.SecondaryButton
 import se.koditoriet.fenris.ui.theme.PADDING_XL
 import se.koditoriet.fenris.ui.theme.SPACING_L
+
+private const val TAG = "EnablePasskeysScreen"
 
 @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -78,7 +81,15 @@ fun EnablePasskeysScreen(
                 text = appStrings.generic.openSystemSettings,
                 onClick = {
                     val pendingIntent = credentialManager.createSettingsPendingIntent()
-                    pendingIntent.send()
+                    try {
+                        pendingIntent.send()
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Unable to open settings", e)
+
+                        /* NOP - if for some unlikely reason we can't launch the settings screen,
+                        *  it's better to do nothing than to crash at least.
+                        */
+                    }
                 },
                 secondaryButton = SecondaryButton(
                     text = appStrings.generic.maybeLater,
