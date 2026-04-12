@@ -97,10 +97,12 @@ fun SeedPhraseInput(
         }
 
         val seedPhraseIsValid = words.all { it in seedWords }
+        var confirmButtonEnabled by remember { mutableStateOf(true) }
         MainButton(
             text = confirmButtonText,
-            enabled = seedPhraseIsValid,
+            enabled = seedPhraseIsValid && confirmButtonEnabled,
             onClick = {
+                confirmButtonEnabled = false
                 if (seedPhraseIsValid) {
                     try {
                         onContinue(BackupSeed.fromMnemonic(words))
@@ -108,6 +110,7 @@ fun SeedPhraseInput(
                         invalidBackupSeedPhrase = true
                         Log.w(TAG, "Invalid seed phrase", e)
                     }
+                    confirmButtonEnabled = true
                 }
             },
             secondaryButton = SecondaryButton(
