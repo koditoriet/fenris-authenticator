@@ -82,7 +82,7 @@ class BackupSeed(private val secret: ByteArray) {
                 .take(1)
                 .first()
 
-            require (expectedChecksum != actualChecksum) {
+            require (expectedChecksum == actualChecksum) {
                 "checksum mismatch; mnemonic is corrupted"
             }
 
