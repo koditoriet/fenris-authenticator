@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 3,
-    "identityHash": "19e96aff078798753647ab77d0ab21b0",
+    "identityHash": "2541b590cd62996094dcb6b8f70ad2e5",
     "entities": [
       {
         "tableName": "totp_secrets",
@@ -81,7 +81,7 @@
       },
       {
         "tableName": "passkeys",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`credentialId` TEXT NOT NULL, `sortOrder` INTEGER NOT NULL, `userId` TEXT NOT NULL, `userName` TEXT NOT NULL, `displayName` TEXT NOT NULL, `rpId` TEXT NOT NULL, `keyAlias` TEXT NOT NULL, `publicKey` TEXT NOT NULL, `encryptedBackupPrivateKey` TEXT, `timeOfCreation` INTEGER NOT NULL, `timeOfLastUse` INTEGER, `algorithm` TEXT NOT NULL, PRIMARY KEY(`credentialId`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`credentialId` TEXT NOT NULL, `sortOrder` INTEGER NOT NULL, `userId` TEXT NOT NULL, `userName` TEXT NOT NULL, `displayName` TEXT NOT NULL, `rpId` TEXT NOT NULL, `keyAlias` TEXT NOT NULL, `publicKey` TEXT NOT NULL, `encryptedBackupPrivateKey` TEXT, `timeOfCreation` INTEGER NOT NULL, `timeOfLastUse` INTEGER, PRIMARY KEY(`credentialId`))",
         "fields": [
           {
             "fieldPath": "credentialId",
@@ -146,12 +146,6 @@
             "fieldPath": "timeOfLastUse",
             "columnName": "timeOfLastUse",
             "affinity": "INTEGER"
-          },
-          {
-            "fieldPath": "algorithm",
-            "columnName": "algorithm",
-            "affinity": "TEXT",
-            "notNull": true
           }
         ],
         "primaryKey": {
@@ -164,7 +158,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '19e96aff078798753647ab77d0ab21b0')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '2541b590cd62996094dcb6b8f70ad2e5')"
     ]
   }
 }
