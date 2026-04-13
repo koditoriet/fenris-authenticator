@@ -11,7 +11,10 @@ import androidx.compose.material3.OutlinedSecureTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -32,6 +35,7 @@ fun PasswordInputSheet(
     confirmPassword: Boolean = false,
     onSubmit: (password: String) -> Unit,
 ) {
+    var passwordFieldsEnabled by remember { mutableStateOf(true) }
     val passwordFieldState = rememberTextFieldState()
     val confirmPasswordFieldState = rememberTextFieldState()
     val focusRequester = remember { FocusRequester() }
@@ -56,6 +60,7 @@ fun PasswordInputSheet(
             BottomSheetGlobalHeader(heading = heading)
             OutlinedSecureTextField(
                 state = passwordFieldState,
+                enabled = passwordFieldsEnabled,
                 modifier = fieldModifier.focusRequester(focusRequester),
                 label = { Text(appStrings.generic.password) },
             )
@@ -63,6 +68,7 @@ fun PasswordInputSheet(
             if (confirmPassword) {
                 OutlinedSecureTextField(
                     state = confirmPasswordFieldState,
+                    enabled = passwordFieldsEnabled,
                     modifier = fieldModifier,
                     label = { Text(appStrings.generic.confirmPassword) },
                     isError = passwordFieldState.text != confirmPasswordFieldState.text,
@@ -75,7 +81,10 @@ fun PasswordInputSheet(
             oneshot = true,
             enabled = passwordFieldState.text.isNotEmpty() &&
                         (!confirmPassword || passwordFieldState.text == confirmPasswordFieldState.text),
-            onClick = { onSubmit(passwordFieldState.text.toString()) },
+            onClick = {
+                passwordFieldsEnabled = false
+                onSubmit(passwordFieldState.text.toString())
+            },
         )
     }
 }

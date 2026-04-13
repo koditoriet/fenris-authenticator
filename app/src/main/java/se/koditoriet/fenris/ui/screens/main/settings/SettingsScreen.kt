@@ -60,6 +60,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import se.koditoriet.fenris.AppStrings
+import se.koditoriet.fenris.BACKUP_MIME_TYPE
 import se.koditoriet.fenris.appStrings
 import se.koditoriet.fenris.crypto.AuthenticatorFactory
 import se.koditoriet.fenris.ui.components.IrrevocableActionConfirmationDialog
@@ -291,7 +292,7 @@ fun SettingsScreen(
                     is SettingsScreenSheetViewState.CreateBackupPasswordSheet -> {
                         var password by remember { mutableStateOf("") }
                         val exportFileLauncher = rememberLauncherForActivityResult(
-                            contract = ActivityResultContracts.CreateDocument("application/json"),
+                            contract = ActivityResultContracts.CreateDocument(BACKUP_MIME_TYPE),
                             onResult = {
                                 it?.also { uri ->
                                     sheetViewState = null
@@ -326,7 +327,7 @@ fun SettingsScreen(
                             confirmPassword = true,
                             onSubmit = {
                                 password = it
-                                val suggestedFileName = fileNameFromDate("vault-export-", ".fab", clock, timeZone)
+                                val suggestedFileName = fileNameFromDate("fenris-backup-", clock, timeZone)
                                 exportFileLauncher.launch(suggestedFileName)
                             }
                         )
@@ -524,10 +525,10 @@ private fun RowScope.SettingsInfo(
     }
 }
 
-private fun fileNameFromDate(prefix: String, suffix: String, clock: Clock, timeZone: TimeZone): String {
+private fun fileNameFromDate(prefix: String, clock: Clock, timeZone: TimeZone): String {
     val localNow = clock.now().toLocalDateTime(timeZone)
     val dateString = LocalDate.Formats.ISO.format(localNow.date)
-    return "$prefix$dateString$suffix"
+    return "$prefix$dateString"
 }
 
 private sealed interface SettingsScreenSheetViewState {

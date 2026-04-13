@@ -18,6 +18,7 @@ import kotlinx.coroutines.withContext
 import se.koditoriet.fenris.appStrings
 import se.koditoriet.fenris.crypto.BackupSeed
 import se.koditoriet.fenris.crypto.wordMap
+import se.koditoriet.fenris.ui.components.LoadingOverlayImpl
 import se.koditoriet.fenris.ui.components.LocalLoadingOverlay
 import se.koditoriet.fenris.ui.onIOThread
 import se.koditoriet.fenris.viewmodel.SetupViewModel
@@ -93,4 +94,6 @@ fun FragmentActivity.SetupScreen() {
             )
         }
     }
+
+    LoadingOverlayImpl.Render()
 }

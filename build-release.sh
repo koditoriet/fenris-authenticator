@@ -5,7 +5,14 @@ VERSION="$(./gradlew -q printVersionName)"
 APK_NAME="${APP_NAME}_${VERSION}.apk"
 AAB_NAME="${APP_NAME}_${VERSION}.aab"
 
-./gradlew clean assembleRelease bundleRelease
+if [ "$1" == "--no-clean" ] ; then
+  echo "NOTE: not cleaning before build; build is NOT suitable for release!"
+  CLEAN=""
+else
+  CLEAN="clean"
+fi
+
+./gradlew $CLEAN assembleRelease bundleRelease
 
 # apksigner breaks if there's more than one key per PKCS11 slot,
 # so we make sure to only use one "standard" yubikey slot and the opensc pkcs11
