@@ -319,8 +319,8 @@ class AppStrings(private val ctx: Context) {
     }
 
     class Imports(private val ctx: Context) {
-        val importFrom by ctx.s(R.string.imports_confirm_import)
-        val importFromDescription by ctx.s(R.string.imports_confirm_import)
+        val importFrom by ctx.s(R.string.imports_import_from)
+        val importFromDescription by ctx.s(R.string.imports_import_from_description)
 
         val confirmImport by ctx.s(R.string.imports_confirm_import)
         val confirmImportDescription by ctx.s(R.string.imports_confirm_import)

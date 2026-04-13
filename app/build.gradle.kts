@@ -78,9 +78,6 @@ room {
 }
 
 dependencies {
-    // Kotlin extensions
-    implementation(libs.kotlin.reflect)
-
     // Core Android stuff
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
