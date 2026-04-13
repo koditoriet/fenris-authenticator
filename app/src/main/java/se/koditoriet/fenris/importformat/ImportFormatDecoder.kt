@@ -26,10 +26,9 @@ sealed interface ImportFormatDecoder {
 
     companion object {
         val decoders: List<ImportFormatDecoder> by lazy {
-            ImportFormatDecoder::class
-                .sealedSubclasses
-                .flatMap { it.objectInstance?.let { listOf(it) } ?: emptyList() }
-                .sortedBy { it.formatName }
+            listOf(
+                GoogleAuthenticatorDecoder,
+            )
         }
     }
 }
