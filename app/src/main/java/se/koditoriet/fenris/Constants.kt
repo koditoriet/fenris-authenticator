@@ -77,3 +77,8 @@ val DB_KEK_IDENTIFIER = KeyIdentifier.Internal("db_kek")
  * Identifier for backup data encryption key.
  */
 val BACKUP_DEK_IDENTIFIER = KeyIdentifier.Internal("backup_secret_dek")
+
+/**
+ * Valid backup MIME types.
+ */
+const val BACKUP_MIME_TYPE = "application/json"

@@ -21,6 +21,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import se.koditoriet.fenris.BACKUP_MIME_TYPE
 import se.koditoriet.fenris.BACKUP_SEED_MNEMONIC_LENGTH_WORDS
 import se.koditoriet.fenris.appStrings
 import se.koditoriet.fenris.crypto.BackupSeed
@@ -30,7 +31,6 @@ import se.koditoriet.fenris.ui.components.sheet.BottomSheet
 import se.koditoriet.fenris.ui.screens.main.settings.sheets.PasswordInputSheet
 
 private const val TAG = "RestoreBackupScreen"
-private val BACKUP_MIME_TYPES = arrayOf("application/octet-stream")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,8 +50,10 @@ fun RestoreBackupScreen(
     val importFileLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
         onResult = { uri ->
-            backupUri = uri
-            showPasswordInput = true
+            if (uri != null) {
+                backupUri = uri
+                showPasswordInput = true
+            }
         }
     )
 
@@ -80,7 +82,7 @@ fun RestoreBackupScreen(
             },
             onContinue = {
                 backupSeed = it
-                importFileLauncher.launch(BACKUP_MIME_TYPES)
+                importFileLauncher.launch(arrayOf(BACKUP_MIME_TYPE))
             }
         )
 
@@ -111,7 +113,7 @@ fun RestoreBackupScreen(
             onContinue = {
                 backupSeed = it
                 scanSecretQRCode = false
-                importFileLauncher.launch(BACKUP_MIME_TYPES)
+                importFileLauncher.launch(arrayOf(BACKUP_MIME_TYPE))
             }
         )
     }
