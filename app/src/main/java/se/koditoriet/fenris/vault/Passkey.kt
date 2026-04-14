@@ -83,6 +83,7 @@ value class UserId(val id: Base64Url) {
     }
 }
 
+@Serializable
 data class NewPasskey(
     val credentialId: ByteArray,
     val rpId: String,

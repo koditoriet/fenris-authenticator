@@ -6,14 +6,13 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSerializable
 import androidx.compose.runtime.setValue
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import se.koditoriet.fenris.appStrings
 import se.koditoriet.fenris.crypto.BackupSeed
@@ -29,7 +28,7 @@ private const val TAG = "SetupScreen"
 @Composable
 fun FragmentActivity.SetupScreen() {
     val viewModel = viewModel<SetupViewModel>()
-    var viewState by remember { mutableStateOf<ViewState>(ViewState.InitialSetup) }
+    var viewState by rememberSerializable { mutableStateOf(ViewState.InitialSetup) }
 
     BackHandler {
         viewState.previousViewState?.apply {
@@ -40,19 +39,27 @@ fun FragmentActivity.SetupScreen() {
     when (viewState) {
         ViewState.InitialSetup -> {
             InitialSetupScreen(
-                onEnableBackups = { viewState = ViewState.ShowBackupSeed },
+                onEnableBackups = {
+                    viewModel.backupSeed = BackupSeed.generate()
+                    viewState = ViewState.ShowBackupSeed
+                },
                 onSkipBackups = onIOThread { viewModel.createVault(null) },
-                onRestoreBackup = { viewState = ViewState.RestoreBackup }
+                onRestoreBackup = {
+                    viewModel.seedPhraseWords.forEachIndexed { index, _ -> viewModel.seedPhraseWords[index] = "" }
+                    viewState = ViewState.RestoreBackup
+                }
             )
         }
 
         ViewState.ShowBackupSeed -> {
-            val seed = remember { BackupSeed.generate() }
+            val backupSeed = viewModel.backupSeed
+            check(backupSeed != null) { "impossible - backup seed was null!" }
+
             BackupSeedScreen(
-                backupSeed = seed,
+                backupSeed = backupSeed,
                 onContinue = onIOThread {
-                    viewModel.createVault(seed)
-                    seed.wipe()
+                    viewModel.createVault(backupSeed)
+                    backupSeed.wipe()
                 }
             )
         }
@@ -96,4 +103,11 @@ fun FragmentActivity.SetupScreen() {
     }
 
     LoadingOverlayImpl.Render()
+}
+
+private enum class ViewState(val previousViewState: ViewState?) {
+    InitialSetup(null),
+    ShowBackupSeed(InitialSetup),
+    RestoreBackup(InitialSetup),
+    RestoreBackupFailed(InitialSetup),
 }

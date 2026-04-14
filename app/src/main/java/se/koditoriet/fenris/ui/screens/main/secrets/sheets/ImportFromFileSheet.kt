@@ -11,7 +11,7 @@ import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import se.koditoriet.fenris.appStrings
@@ -28,8 +28,8 @@ fun ImportFromFileSheet(
 ) {
     val sheetStrings = appStrings.imports
     val ctx = LocalContext.current
-    var selectedDecoder by remember { mutableStateOf<ImportFormatDecoder?>(null) }
-    var importFailed by remember { mutableStateOf(false) }
+    var selectedDecoderIndex by rememberSaveable { mutableStateOf<Int?>(null) }
+    var importFailed by rememberSaveable { mutableStateOf(false) }
 
     BottomSheetGlobalHeader(
         heading = sheetStrings.importFrom,
@@ -40,13 +40,15 @@ fun ImportFromFileSheet(
         contract = ActivityResultContracts.OpenDocument(),
         onResult = {
             it?.run {
+                Log.d(TAG, "Importing from $it")
                 try {
                     // throw an NPE instead of null checking to make sure all error handling goes through the catch
-                    val decodedImport = importFromFile(ctx, selectedDecoder!!)
+                    val selectedDecoder = ImportFormatDecoder.decoders[selectedDecoderIndex!!]
+                    Log.d(TAG, "Using decoder ${selectedDecoder.formatName}")
+                    val decodedImport = importFromFile(ctx, selectedDecoder)
                     onFileImported(decodedImport)
                 } catch (e: Exception) {
-                    val decoderName = selectedDecoder?.javaClass?.simpleName ?: "<none>"
-                    Log.e(TAG, "Failed to import from file using decoder $decoderName", e)
+                    Log.e(TAG, "Failed to import from $it using decoder $selectedDecoderIndex", e)
                     importFailed = true
                 }
             }
@@ -54,15 +56,15 @@ fun ImportFromFileSheet(
     )
 
     LazyColumn {
-        ImportFormatDecoder.decoders.forEach {
+        ImportFormatDecoder.decoders.forEachIndexed { index, decoder ->
             item {
                 BottomSheetAction(
                     icon = Icons.Default.FileDownload,
-                    text = it.formatName,
+                    text = decoder.formatName,
                     onClick = {
-                        Log.d(TAG, "Opening launcher to select file for import using ${it.javaClass.simpleName}")
-                        selectedDecoder = it
-                        importFile.launch(it.formatMimeTypes.toTypedArray())
+                        Log.d(TAG, "Opening launcher to select file for import using ${decoder.javaClass.simpleName}")
+                        selectedDecoderIndex = index
+                        importFile.launch(decoder.formatMimeTypes.toTypedArray())
                     },
                 )
             }
@@ -70,9 +72,10 @@ fun ImportFromFileSheet(
     }
 
     if (importFailed) {
+        val selectedDecoderName = selectedDecoderIndex?.let { ImportFormatDecoder.decoders[it].formatName } ?: "???"
         WarningInformationDialog(
             title = sheetStrings.importFailed,
-            text = sheetStrings.importFailedInvalidFormat(selectedDecoder?.formatName ?: "???"),
+            text = sheetStrings.importFailedInvalidFormat(selectedDecoderName),
             onDismiss = { importFailed = false },
         )
     }

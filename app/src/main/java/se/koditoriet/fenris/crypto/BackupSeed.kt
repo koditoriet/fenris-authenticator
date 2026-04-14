@@ -2,6 +2,7 @@ package se.koditoriet.fenris.crypto
 
 import android.net.Uri
 import androidx.core.net.toUri
+import kotlinx.serialization.Serializable
 import se.koditoriet.fenris.BACKUP_SEED_MNEMONIC_LENGTH_WORDS
 import se.koditoriet.fenris.BACKUP_SEED_URI_HOST
 import se.koditoriet.fenris.FENRIS_URI_SCHEME
@@ -14,6 +15,7 @@ import java.security.SecureRandom
 
 private const val DOMAIN_BACKUP_SECRET_DEK: String = "backup_secret_dek"
 
+@Serializable
 class BackupSeed(private val secret: ByteArray) {
     fun deriveBackupKey(): ByteArray =
         deriveKey(DOMAIN_BACKUP_SECRET_DEK)

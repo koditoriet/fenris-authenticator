@@ -52,15 +52,18 @@ data class TotpSecret(
     }
 }
 
+@Serializable
 data class NewTotpSecret(
     val metadata: Metadata,
     val secretData: SecretData,
 ) {
+    @Serializable
     data class Metadata(
         val issuer: String,
         val account: String?,
     )
 
+    @Serializable
     data class SecretData(
         val secret: CharArray,
         val digits: Int,

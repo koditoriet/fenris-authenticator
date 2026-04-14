@@ -3,13 +3,21 @@ package se.koditoriet.fenris.viewmodel
 import android.app.Application
 import android.net.Uri
 import android.util.Log
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import kotlinx.coroutines.flow.first
+import se.koditoriet.fenris.BACKUP_SEED_MNEMONIC_LENGTH_WORDS
 import se.koditoriet.fenris.crypto.BackupSeed
 import se.koditoriet.fenris.vault.VaultExportEnvelope
 
 private const val TAG = "SetupViewModel"
 
 class SetupViewModel(private val app: Application) : ViewModelBase(app) {
+    var backupSeed: BackupSeed? = null
+    val seedPhraseWords: SnapshotStateList<String> = mutableStateListOf(
+        *Array(BACKUP_SEED_MNEMONIC_LENGTH_WORDS) { "" }
+    )
+
     suspend fun createVault(backupSeed: BackupSeed?) = vault.withLock {
         Log.i(TAG, "Creating vault; enable backups: ${backupSeed != null}")
         val (dbKey, backupKey) = create(

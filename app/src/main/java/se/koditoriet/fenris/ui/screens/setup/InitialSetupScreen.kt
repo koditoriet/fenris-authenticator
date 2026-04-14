@@ -26,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSerializable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,7 +47,7 @@ fun InitialSetupScreen(
     onRestoreBackup: () -> Unit,
 ) {
     val screenStrings = appStrings.setupScreen
-    var backupChoice by remember { mutableStateOf(BackupChoice.EnableBackups) }
+    var backupChoice by rememberSerializable { mutableStateOf(BackupChoice.EnableBackups) }
 
     Scaffold(
         topBar = {

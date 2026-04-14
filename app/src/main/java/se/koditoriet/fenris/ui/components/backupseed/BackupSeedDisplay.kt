@@ -17,7 +17,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
@@ -46,7 +46,7 @@ fun BackupSeedDisplay(
 ) {
     val screenStrings = appStrings.seedDisplayScreen
     val ctx = LocalContext.current
-    val openPrintDialog = remember { mutableStateOf(false) }
+    val openPrintDialog = rememberSaveable { mutableStateOf(false) }
 
     PrintQrWarningDialog(
         openPrintDialog = openPrintDialog,

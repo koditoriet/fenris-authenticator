@@ -23,12 +23,14 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSerializable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import se.koditoriet.fenris.AppStrings
 import se.koditoriet.fenris.appStrings
 import se.koditoriet.fenris.codec.QRCodeData
@@ -80,15 +82,15 @@ fun ListSecretsScreen(
     val config by viewModel.config.collectAsState()
     val secrets by viewModel.secrets.collectAsState()
     val screenStrings = remember { viewModel.appStrings.secretsScreen }
-
-    var failedImports by remember { mutableStateOf<Int?>(null) }
-    var confirmDeleteSecret by remember { mutableStateOf<TotpSecret?>(null) }
-    var sheetViewState by remember { mutableStateOf<SheetViewState>(Inactive) }
-    var qrScannerState by remember { mutableStateOf<QRScannerState>(QRScannerState.Inactive) }
-    var filter by remember { mutableStateOf<String?>(null) }
-    var sheetSwipeDismissable by remember { mutableStateOf(true) }
-
     val listItemEnvironment = ListItemEnvironment.remember()
+
+    var failedImports by rememberSaveable { mutableStateOf<Int?>(null) }
+    var confirmDeleteSecret by rememberSaveable { mutableStateOf<TotpSecret.Id?>(null) }
+    var sheetViewState by rememberSerializable { mutableStateOf<SheetViewState>(Inactive) }
+    var qrScannerState by rememberSerializable { mutableStateOf(QRScannerState.Inactive) }
+    var filter by rememberSaveable { mutableStateOf<String?>(null) }
+    var sheetSwipeDismissable by rememberSaveable { mutableStateOf(true) }
+
     val sheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true,
         confirmValueChange = { it != SheetValue.Hidden || sheetSwipeDismissable },
@@ -102,7 +104,7 @@ fun ListSecretsScreen(
             environment = listItemEnvironment,
             getTotpCodes = { viewModel.getTotpCodes(authFactory, it) },
             onUpdateSecret = viewModel::onUpdateSecret,
-            onLongClickSecret = { sheetViewState = SecretActions(it) },
+            onLongClickSecret = { sheetViewState = SecretActions(it.totpSecret.id) },
         )
     }
 
@@ -141,7 +143,7 @@ fun ListSecretsScreen(
             padding = padding,
             filter = filter,
             items = secretListItems,
-            selectedItem = (sheetViewState as? SecretActions)?.selectedItem,
+            selectedItemKey = (sheetViewState as? SecretActions)?.selectedItemId?.toString(),
             sortMode = config.totpSecretSortMode,
             alphabeticItemComparator = comparator,
             filterPlaceholderText = screenStrings.filterPlaceholder,
@@ -149,7 +151,7 @@ fun ListSecretsScreen(
             onReindexItems = viewModel::onReindexSecrets,
         )
 
-        confirmDeleteSecret?.let { secret ->
+        confirmDeleteSecret?.let { secretId ->
             IrrevocableActionConfirmationDialog(
                 text = screenStrings.actionsSheetDeleteWarning,
                 buttonText = screenStrings.actionsSheetDelete,
@@ -157,7 +159,7 @@ fun ListSecretsScreen(
                 onConfirm = {
                     confirmDeleteSecret = null
                     sheetViewState = Inactive
-                    viewModel.onDeleteSecret(secret.id)
+                    viewModel.onDeleteSecret(secretId)
                 }
             )
         }
@@ -173,6 +175,7 @@ fun ListSecretsScreen(
         if (sheetViewState != Inactive) {
             val scope = LocalLifecycleOwner.current.lifecycleScope
             ListSecretsBottomSheet(
+                secretListItems = secretListItems,
                 viewState = sheetViewState,
                 sheetState = sheetState,
                 hideSecretsFromAccessibility = config.hideSecretsFromAccessibility,
@@ -237,13 +240,14 @@ fun ListSecretsScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ListSecretsBottomSheet(
+    secretListItems: List<TotpSecretListItem>,
     viewState: SheetViewState,
     sheetState: SheetState,
     hideSecretsFromAccessibility: Boolean,
     onAddSecret: (NewTotpSecret) -> Unit,
     onAddSecretFailed: () -> Unit,
     onUpdateSecret: (TotpSecret) -> Unit,
-    onDeleteSecret: (TotpSecret) -> Unit,
+    onDeleteSecret: (TotpSecret.Id) -> Unit,
     onInitiateQRCodeScan: () -> Unit,
     onImportCredentials: (Set<NewTotpSecret>, Set<NewPasskey>) -> Unit,
     onChangeSheetViewState: (SheetViewState) -> Unit,
@@ -270,30 +274,32 @@ private fun ListSecretsBottomSheet(
             }
 
             is SecretActions -> {
+                val selectedItem = secretListItems.first { it.totpSecret.id == state.selectedItemId }
                 SecretActionsSheet(
-                    totpSecret = state.selectedItem.totpSecret,
+                    totpSecret = selectedItem.totpSecret,
                     onEditMetadata = {
                         onChangeSheetViewState(
-                            EditSecretMetadata(state.selectedItem.update(it))
+                            EditSecretMetadata(it)
                         )
                     },
                     onDeleteSecret = {
-                        onDeleteSecret(state.selectedItem.totpSecret)
+                        onDeleteSecret(it)
                     },
                 )
             }
 
             is EditSecretMetadata -> {
                 BackHandler {
-                    onChangeSheetViewState(SecretActions(state.selectedItem))
+                    onChangeSheetViewState(SecretActions(state.selectedItemId))
                 }
+                val selectedItem = secretListItems.first { it.totpSecret.id == state.selectedItemId }.totpSecret
                 EditSecretMetadataSheet(
                     metadata = Metadata(
-                        issuer = state.selectedItem.totpSecret.issuer,
-                        account = state.selectedItem.totpSecret.account
+                        issuer = selectedItem.issuer,
+                        account = selectedItem.account
                     ),
                     onSave = { newMetadata ->
-                        val updatedSecret = state.selectedItem.totpSecret.copy(
+                        val updatedSecret = selectedItem.copy(
                             issuer = newMetadata.issuer,
                             account = newMetadata.account
                         )
@@ -349,7 +355,7 @@ private fun TOTPCodeQRScanner(
     closeScanner: () -> Unit,
     onSuccess: (NewTotpSecret) -> Unit,
 ) {
-    var invalidTotpQRCode by remember { mutableStateOf(false) }
+    var invalidTotpQRCode by rememberSaveable { mutableStateOf(false) }
     if (invalidTotpQRCode) {
         BadInputInformationDialog(
             title = screenStrings.invalidTotpQRCode,
@@ -380,7 +386,7 @@ private fun AnySupportedQRScanner(
     closeScanner: () -> Unit,
     onSuccess: (QRCodeData) -> Unit,
 ) {
-    var unsupportedQRCode by remember { mutableStateOf(false) }
+    var unsupportedQRCode by rememberSaveable { mutableStateOf(false) }
     if (unsupportedQRCode) {
         BadInputInformationDialog(
             title = screenStrings.unsupportedQRCode,
@@ -405,18 +411,19 @@ private fun AnySupportedQRScanner(
     )
 }
 
+@Serializable
 private sealed interface SheetViewState {
-    object Inactive : SheetViewState
-    object AddSecretActions : SheetViewState
-    object ImportFromFile : SheetViewState
-    data class SecretActions(val selectedItem: TotpSecretListItem) : SheetViewState
-    data class EditSecretMetadata(val selectedItem: TotpSecretListItem) : SheetViewState
-    data class AddingNewSecret(val prefilledSecret: NewTotpSecret?) : SheetViewState
-    data class ConfirmImport(val decodedImport: ImportFormatDecoder.DecodedImport) : SheetViewState
+    @Serializable object Inactive : SheetViewState
+    @Serializable object AddSecretActions : SheetViewState
+    @Serializable object ImportFromFile : SheetViewState
+    @Serializable data class SecretActions(val selectedItemId: TotpSecret.Id) : SheetViewState
+    @Serializable data class EditSecretMetadata(val selectedItemId: TotpSecret.Id) : SheetViewState
+    @Serializable data class AddingNewSecret(val prefilledSecret: NewTotpSecret?) : SheetViewState
+    @Serializable data class ConfirmImport(val decodedImport: ImportFormatDecoder.DecodedImport) : SheetViewState
 }
 
-private sealed interface QRScannerState {
-    object Inactive : QRScannerState
-    object ScanTOTPSecret : QRScannerState
-    object ScanAnySupported : QRScannerState
+private enum class QRScannerState {
+    Inactive,
+    ScanTOTPSecret,
+    ScanAnySupported,
 }

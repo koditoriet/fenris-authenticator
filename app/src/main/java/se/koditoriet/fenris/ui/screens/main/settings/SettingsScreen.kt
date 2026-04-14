@@ -43,6 +43,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSerializable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -78,7 +80,6 @@ import se.koditoriet.fenris.ui.theme.ROUNDED_CORNER_SIZE
 import se.koditoriet.fenris.ui.theme.SPACING_L
 import se.koditoriet.fenris.ui.theme.SPACING_M
 import se.koditoriet.fenris.ui.theme.SPACING_XS
-import se.koditoriet.fenris.viewmodel.SecurityReport
 import se.koditoriet.fenris.viewmodel.SettingsViewModel
 import kotlin.time.Clock
 
@@ -99,9 +100,9 @@ fun SettingsScreen(
     val viewModel = viewModel<SettingsViewModel>()
     val config by viewModel.config.collectAsState()
     val screenStrings = appStrings.settingsScreen
-    var sheetViewState by remember { mutableStateOf<SettingsScreenSheetViewState?>(null) }
-    var showWipeDialog by remember { mutableStateOf(false) }
-    var showDisableBackupsDialog by remember { mutableStateOf(false) }
+    var sheetViewState by rememberSerializable { mutableStateOf(SettingsScreenSheetViewState.None) }
+    var showWipeDialog by rememberSaveable { mutableStateOf(false) }
+    var showDisableBackupsDialog by rememberSaveable { mutableStateOf(false) }
     val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
     val lifecycleOwner = rememberLifecycleOwner()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -232,9 +233,7 @@ fun SettingsScreen(
                     description = screenStrings.keyStorageOverviewDescription,
                     onClick = {
                         lifecycleOwner.lifecycleScope.launch {
-                            sheetViewState = SettingsScreenSheetViewState.SecurityReportSheet(
-                                viewModel.getSecurityReport()
-                            )
+                            sheetViewState = SettingsScreenSheetViewState.SecurityReportSheet
                         }
                     }
                 )
@@ -278,24 +277,28 @@ fun SettingsScreen(
         }
 
         // Overview sheet - security
-        sheetViewState?.let { viewState ->
+        sheetViewState.takeIf { it != SettingsScreenSheetViewState.None }?.let { viewState ->
             BottomSheet(
-                hideSheet = { sheetViewState = null },
+                hideSheet = { sheetViewState = SettingsScreenSheetViewState.None },
                 sheetState = sheetState,
                 sheetViewState = viewState,
             ) {
                 when (viewState) {
-                    is SettingsScreenSheetViewState.SecurityReportSheet -> {
-                        SecurityReportSheet(viewState.report)
+                    SettingsScreenSheetViewState.None -> {
+                        /* unreachable */
                     }
 
-                    is SettingsScreenSheetViewState.CreateBackupPasswordSheet -> {
+                    SettingsScreenSheetViewState.SecurityReportSheet -> {
+                        SecurityReportSheet(viewModel::getSecurityReport)
+                    }
+
+                    SettingsScreenSheetViewState.CreateBackupPasswordSheet -> {
                         var password by remember { mutableStateOf("") }
                         val exportFileLauncher = rememberLauncherForActivityResult(
                             contract = ActivityResultContracts.CreateDocument(BACKUP_MIME_TYPE),
                             onResult = {
                                 it?.also { uri ->
-                                    sheetViewState = null
+                                    sheetViewState = SettingsScreenSheetViewState.None
                                     loadingOverlay.show(scope, screenStrings.creatingBackup)
                                     viewModel.onExportVault(
                                         uri = uri,
@@ -531,7 +534,8 @@ private fun fileNameFromDate(prefix: String, clock: Clock, timeZone: TimeZone): 
     return "$prefix$dateString"
 }
 
-private sealed interface SettingsScreenSheetViewState {
-    object CreateBackupPasswordSheet : SettingsScreenSheetViewState
-    class SecurityReportSheet(val report: SecurityReport) : SettingsScreenSheetViewState
+private enum class SettingsScreenSheetViewState {
+    None,
+    CreateBackupPasswordSheet,
+    SecurityReportSheet,
 }

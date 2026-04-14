@@ -11,11 +11,18 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import se.koditoriet.fenris.appStrings
 import se.koditoriet.fenris.crypto.KeySecurityLevel
+import se.koditoriet.fenris.ui.components.LoadingSpinner
+import se.koditoriet.fenris.ui.components.LoadingSpinnerState
 import se.koditoriet.fenris.ui.components.sheet.BottomSheetGlobalHeader
 import se.koditoriet.fenris.ui.components.sheet.BottomSheetItem
 import se.koditoriet.fenris.ui.theme.SPACING_L
@@ -23,34 +30,46 @@ import se.koditoriet.fenris.viewmodel.SecurityReport
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SecurityReportSheet(securityReport: SecurityReport) {
+fun SecurityReportSheet(getSecurityReport: suspend () -> SecurityReport) {
+    var securityReport by remember { mutableStateOf<SecurityReport?>(null) }
+
+    LaunchedEffect(Unit) {
+        securityReport = getSecurityReport()
+    }
+
     BottomSheetGlobalHeader(
         heading = appStrings.settingsScreen.keyStorageOverviewDescriptionSheetHeading,
         details = appStrings.settingsScreen.keyStorageOverviewDescriptionSheetDescription,
     )
 
-    BackupKeyGrade(securityReport.backupKeyStatus)
-
-    for ((securityLevel, secrets) in securityReport.secretsStatus.toList().sortedBy { it.first }.reversed()) {
-        ReportItem(
-            securityLevel.grade,
-            appStrings.settingsScreen.keyStorageOverviewDescriptionSheetSecretGroupGrade(
-                groupSize = secrets,
-                totalSecrets = securityReport.totalSecrets,
-                storageClass = securityLevel.description,
-            ),
-        )
+    if (securityReport == null) {
+        LoadingSpinner(LoadingSpinnerState.LOADING)
     }
 
-    for ((securityLevel, secrets) in securityReport.passkeysStatus.toList().sortedBy { it.first }.reversed()) {
-        ReportItem(
-            securityLevel.grade,
-            appStrings.settingsScreen.keyStorageOverviewDescriptionSheetPasskeyGroupGrade(
-                groupSize = secrets,
-                totalPasskeys = securityReport.totalPasskeys,
-                storageClass = securityLevel.description,
-            ),
-        )
+    securityReport?.let { securityReport ->
+        BackupKeyGrade(securityReport.backupKeyStatus)
+
+        for ((securityLevel, secrets) in securityReport.secretsStatus.toList().sortedBy { it.first }.reversed()) {
+            ReportItem(
+                securityLevel.grade,
+                appStrings.settingsScreen.keyStorageOverviewDescriptionSheetSecretGroupGrade(
+                    groupSize = secrets,
+                    totalSecrets = securityReport.totalSecrets,
+                    storageClass = securityLevel.description,
+                ),
+            )
+        }
+
+        for ((securityLevel, secrets) in securityReport.passkeysStatus.toList().sortedBy { it.first }.reversed()) {
+            ReportItem(
+                securityLevel.grade,
+                appStrings.settingsScreen.keyStorageOverviewDescriptionSheetPasskeyGroupGrade(
+                    groupSize = secrets,
+                    totalPasskeys = securityReport.totalPasskeys,
+                    storageClass = securityLevel.description,
+                ),
+            )
+        }
     }
 }
 
