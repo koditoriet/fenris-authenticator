@@ -14,8 +14,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSerializable
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.serialization.Serializable
 import se.koditoriet.fenris.appStrings
 import se.koditoriet.fenris.ui.components.IrrevocableActionConfirmationDialog
 import se.koditoriet.fenris.ui.components.listview.ListViewTopBar
@@ -23,7 +26,7 @@ import se.koditoriet.fenris.ui.components.listview.ReorderableList
 import se.koditoriet.fenris.ui.components.sheet.BottomSheet
 import se.koditoriet.fenris.ui.screens.main.passkeys.sheets.EditPasskeyNameSheet
 import se.koditoriet.fenris.ui.screens.main.passkeys.sheets.PasskeyActionsSheet
-import se.koditoriet.fenris.vault.Passkey
+import se.koditoriet.fenris.vault.CredentialId
 import se.koditoriet.fenris.viewmodel.ManagePasskeysViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -34,9 +37,10 @@ fun ManagePasskeysScreen() {
     val config by viewModel.config.collectAsState()
     val screenStrings = remember { viewModel.appStrings.managePasskeysScreen }
     val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
-    var sheetViewState by remember { mutableStateOf<SheetViewState?>(null) }
-    var confirmDeletePasskey by remember { mutableStateOf<Passkey?>(null) }
-    var filter by remember { mutableStateOf<String?>(null) }
+
+    var sheetViewState by rememberSerializable { mutableStateOf<SheetViewState>(SheetViewState.None) }
+    var confirmDeletePasskey by rememberSaveable { mutableStateOf<CredentialId?>(null) }
+    var filter by rememberSaveable { mutableStateOf<String?>(null) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     val passkeyListItems = passkeys.map { passkey ->
@@ -44,7 +48,7 @@ fun ManagePasskeysScreen() {
             passkey = passkey,
             onUpdatePasskey = viewModel::onUpdatePasskey,
             appStrings = viewModel.appStrings,
-            onLongClickPasskey = { sheetViewState = SheetViewState.Actions(it) },
+            onLongClickPasskey = { sheetViewState = SheetViewState.Actions(it.passkey.credentialId) },
         )
     }
 
@@ -75,7 +79,7 @@ fun ManagePasskeysScreen() {
             padding = padding,
             filter = filter,
             items = passkeyListItems,
-            selectedItem = (sheetViewState as? SheetViewState.Actions)?.selectedItem,
+            selectedItemKey = (sheetViewState as? SheetViewState.Actions)?.selectedItemId?.string,
             sortMode = config.passkeySortMode,
             alphabeticItemComparator = comparator,
             filterPlaceholderText = screenStrings.filterPlaceholder,
@@ -83,46 +87,53 @@ fun ManagePasskeysScreen() {
             onReindexItems = viewModel::onReindexPasskeys,
         )
 
-        confirmDeletePasskey?.let { passkey ->
+        confirmDeletePasskey?.let { credentialId ->
             IrrevocableActionConfirmationDialog(
                 text = screenStrings.actionsSheetDeleteWarning,
                 buttonText = screenStrings.actionsSheetDelete,
                 onCancel = { confirmDeletePasskey = null },
                 onConfirm = {
                     confirmDeletePasskey = null
-                    sheetViewState = null
-                    viewModel.onDeletePasskey(passkey.credentialId)
+                    sheetViewState = SheetViewState.None
+                    viewModel.onDeletePasskey(credentialId)
                 }
             )
         }
 
-        sheetViewState?.let { viewState ->
+        sheetViewState.takeIf { it != SheetViewState.None }?.let { viewState ->
             BottomSheet(
-                hideSheet = { sheetViewState = null },
+                hideSheet = { sheetViewState = SheetViewState.None },
                 sheetState = sheetState,
                 sheetViewState = viewState,
             ) { viewState ->
                 when (viewState) {
+                    SheetViewState.None -> {
+                        /* unreachable */
+                    }
+
                     is SheetViewState.Actions -> {
+                        val selectedItem = passkeys.first { it.credentialId == viewState.selectedItemId }
                         PasskeyActionsSheet(
-                            passkey = viewState.selectedItem.passkey,
+                            passkey = selectedItem,
                             onEditDisplayName = {
-                                sheetViewState = SheetViewState.EditMetadata(viewState.selectedItem)
+                                sheetViewState = SheetViewState.EditMetadata(viewState.selectedItemId)
                             },
                             onDeletePasskey = {
-                                confirmDeletePasskey = viewState.selectedItem.passkey
+                                confirmDeletePasskey = viewState.selectedItemId
                             },
                         )
                     }
+
                     is SheetViewState.EditMetadata -> {
                         BackHandler {
-                            sheetViewState = SheetViewState.Actions(viewState.selectedItem)
+                            sheetViewState = SheetViewState.Actions(viewState.selectedItemId)
                         }
+                        val selectedItem = passkeys.first { it.credentialId == viewState.selectedItemId }
                         EditPasskeyNameSheet(
-                            existingPasskey = viewState.selectedItem.passkey,
+                            existingPasskey = selectedItem,
                             onSave = {
-                                viewModel.onUpdatePasskey(viewState.selectedItem.passkey.copy(displayName = it))
-                                sheetViewState = null
+                                viewModel.onUpdatePasskey(selectedItem.copy(displayName = it))
+                                sheetViewState = SheetViewState.None
                             }
                         )
                     }
@@ -132,7 +143,9 @@ fun ManagePasskeysScreen() {
     }
 }
 
+@Serializable
 private sealed interface SheetViewState {
-    class Actions(val selectedItem: PasskeyListItem) : SheetViewState
-    class EditMetadata(val selectedItem: PasskeyListItem) : SheetViewState
+    @Serializable object None : SheetViewState
+    @Serializable data class Actions(val selectedItemId: CredentialId) : SheetViewState
+    @Serializable data class EditMetadata(val selectedItemId: CredentialId) : SheetViewState
 }

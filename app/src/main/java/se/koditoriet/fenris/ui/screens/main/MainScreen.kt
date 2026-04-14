@@ -6,6 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSerializable
 import androidx.compose.runtime.setValue
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
@@ -25,7 +26,7 @@ fun FragmentActivity.MainScreen(
     viewModel: MainScreenViewModel,
 ) {
     val authFactory = remember { BiometricPromptAuthenticator.Factory(this) }
-    var viewState by remember { mutableStateOf<ViewState>(ViewState.ListSecrets) }
+    var viewState: ViewState by rememberSerializable { mutableStateOf(ViewState.ListSecrets) }
 
     BackHandler {
         Log.d(TAG, "Back pressed on main screen")
@@ -58,9 +59,16 @@ fun FragmentActivity.MainScreen(
             ManagePasskeysScreen()
         }
         ViewState.RegenerateBackupSeed -> {
-            RegenerateBackupSeedScreen()
+            RegenerateBackupSeedScreen(onClose = { viewState = ViewState.Settings })
         }
     }
 
     LoadingOverlayImpl.Render()
+}
+
+enum class ViewState(val previousViewState: ViewState?) {
+    ListSecrets(null),
+    Settings(ListSecrets),
+    ManagePasskeys(Settings),
+    RegenerateBackupSeed(Settings);
 }

@@ -71,6 +71,8 @@ fun QrScanner(
     onQrScanned: (String) -> Unit,
     onAbort: () -> Unit,
 ) {
+    var qrSuccessfullyScanned by remember { mutableStateOf(false) }
+
     BackHandler {
         onAbort()
     }
@@ -108,8 +110,15 @@ fun QrScanner(
                     Box(Modifier.fillMaxSize()) {
                         QrScannerView(
                             modifier = Modifier.fillMaxSize(),
-                            onQrScanned = onQrScanned,
-                            onCameraClosed = onAbort,
+                            onQrScanned = {
+                                qrSuccessfullyScanned = true
+                                onQrScanned(it)
+                            },
+                            onCameraClosed = {
+                                if (!qrSuccessfullyScanned) {
+                                    onAbort()
+                                }
+                            },
                         )
                         QrViewfinderOverlay(
                             modifier = Modifier.fillMaxSize(),

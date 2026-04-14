@@ -15,8 +15,8 @@ import se.koditoriet.fenris.vault.TotpSecret
 @Composable
 fun SecretActionsSheet(
     totpSecret: TotpSecret,
-    onEditMetadata: (TotpSecret) -> Unit,
-    onDeleteSecret: (TotpSecret) -> Unit,
+    onEditMetadata: (TotpSecret.Id) -> Unit,
+    onDeleteSecret: (TotpSecret.Id) -> Unit,
 ) {
     val screenStrings = appStrings.secretsScreen
     BottomSheetContextualHeader(
@@ -27,11 +27,11 @@ fun SecretActionsSheet(
     BottomSheetAction(
         icon = Icons.Default.Edit,
         text = screenStrings.actionsSheetEdit,
-        onClick = { onEditMetadata(totpSecret) },
+        onClick = { onEditMetadata(totpSecret.id) },
     )
     BottomSheetAction(
         icon = Icons.Default.DeleteForever,
         text = screenStrings.actionsSheetDelete,
-        onClick = { onDeleteSecret(totpSecret) },
+        onClick = { onDeleteSecret(totpSecret.id) },
     )
 }

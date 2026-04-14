@@ -27,7 +27,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSerializable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,6 +43,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import kotlinx.serialization.Serializable
 import se.koditoriet.fenris.appStrings
 import se.koditoriet.fenris.codec.isValidBase32
 import se.koditoriet.fenris.ui.components.SecretVisibility.Hidden
@@ -63,9 +65,9 @@ inline fun <reified T : TotpSecretFormResult> TotpSecretForm(
 ) {
     val formStrings = appStrings.totpSecretForm
     val metadataOnly = T::class != TotpSecretFormResult.TotpSecret::class
-    var issuer by remember { mutableStateOf(metadata?.issuer ?: "") }
-    var account by remember { mutableStateOf(metadata?.account ?: "") }
-    var secretDataFormState by remember { mutableStateOf(SecretDataFormState()) }
+    var issuer by rememberSaveable { mutableStateOf(metadata?.issuer ?: "") }
+    var account by rememberSaveable { mutableStateOf(metadata?.account ?: "") }
+    var secretDataFormState by rememberSerializable { mutableStateOf(SecretDataFormState()) }
 
     val secretDataIsValid = if (metadataOnly) true else secretDataFormState.isValid
     val saveData = { metadata: NewTotpSecret.Metadata ->
@@ -147,10 +149,9 @@ fun SecretDataPartialForm(
     onChange: (SecretDataFormState) -> Unit,
 ) {
     val screenStrings = appStrings.totpSecretForm
-    var secretVisibility by remember { mutableStateOf(Hidden) }
+    var secretVisibility by rememberSerializable { mutableStateOf(Hidden) }
 
-    val accessibilityManager = LocalContext
-        .current
+    val accessibilityManager = LocalContext.current
         .getSystemService(Context.ACCESSIBILITY_SERVICE) as AccessibilityManager
     val isA11yEnabled = accessibilityManager.isEnabled
 
@@ -258,6 +259,7 @@ private fun SecretVisibility.TrailingIcon(onClick: () -> Unit) {
     }
 }
 
+@Serializable
 data class SecretDataFormState(
     val secret: String = "",
     val digits: String = "6",
@@ -287,7 +289,7 @@ data class SecretDataFormState(
 
 @Composable
 private fun Advanced(content: @Composable () -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
+    var expanded by rememberSaveable { mutableStateOf(false) }
 
     Column {
         Row(

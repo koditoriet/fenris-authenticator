@@ -60,7 +60,7 @@ fun <T : ReorderableListItem> ReorderableList(
     padding: PaddingValues,
     filter: String?,
     items: List<T>,
-    selectedItem: T?,
+    selectedItemKey: String?,
     sortMode: SortMode,
     alphabeticItemComparator: Comparator<T>,
     filterPlaceholderText: String,
@@ -110,7 +110,7 @@ fun <T : ReorderableListItem> ReorderableList(
                     Surface(shadowElevation = elevation) {
                         ListRow(
                             item = item,
-                            selected = item.key == selectedItem?.key,
+                            selected = item.key == selectedItemKey,
                             dragHandle = {
                                 DragHandle(
                                     scope = reorderableScope,

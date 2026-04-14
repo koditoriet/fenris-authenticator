@@ -18,31 +18,31 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
 import se.koditoriet.fenris.BACKUP_MIME_TYPE
-import se.koditoriet.fenris.BACKUP_SEED_MNEMONIC_LENGTH_WORDS
 import se.koditoriet.fenris.appStrings
 import se.koditoriet.fenris.crypto.BackupSeed
 import se.koditoriet.fenris.ui.components.backupseed.SeedPhraseInput
 import se.koditoriet.fenris.ui.components.backupseed.SeedQRCodeInput
 import se.koditoriet.fenris.ui.components.sheet.BottomSheet
 import se.koditoriet.fenris.ui.screens.main.settings.sheets.PasswordInputSheet
+import se.koditoriet.fenris.viewmodel.SetupViewModel
 
 private const val TAG = "RestoreBackupScreen"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RestoreBackupScreen(
-    wordCount: Int = BACKUP_SEED_MNEMONIC_LENGTH_WORDS,
     seedWords: Set<String>,
     onRestore: (BackupSeed, String, Uri) -> Unit
 ) {
-    var scanSecretQRCode by remember { mutableStateOf(false) }
-    var backupSeed by remember { mutableStateOf<BackupSeed?>(null) }
-    var showPasswordInput by remember { mutableStateOf(false) }
-    var backupUri by remember { mutableStateOf<Uri?>(null) }
+    val viewModel = viewModel<SetupViewModel>()
+    var scanSecretQRCode by rememberSaveable { mutableStateOf(false) }
+    var showPasswordInput by rememberSaveable { mutableStateOf(false) }
+    var backupUri by rememberSaveable { mutableStateOf<Uri?>(null) }
     val sheetState = rememberModalBottomSheetState()
     val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
     val screenStrings = appStrings.seedInputScreen
@@ -74,14 +74,14 @@ fun RestoreBackupScreen(
     ) { padding ->
         SeedPhraseInput(
             confirmButtonText = screenStrings.restoreVault,
-            wordCount = wordCount,
+            seedPhraseInputState = viewModel.seedPhraseWords,
             seedWords = seedWords,
             modifier = Modifier.padding(padding),
             onScanQRClick = {
                 scanSecretQRCode = true
             },
             onContinue = {
-                backupSeed = it
+                viewModel.backupSeed = it
                 importFileLauncher.launch(arrayOf(BACKUP_MIME_TYPE))
             }
         )
@@ -97,10 +97,10 @@ fun RestoreBackupScreen(
                     confirmButtonText = screenStrings.restoreVault,
                     onSubmit = { password ->
                         backupUri?.run {
-                            backupSeed?.let { backupSeed ->
+                            viewModel.backupSeed?.let { backupSeed ->
                                 onRestore(backupSeed, password, this)
                             } ?: Log.e(TAG, "Backup seed was null when import file launcher completed!")
-                        } ?: backupSeed?.wipe()
+                        } ?: viewModel.backupSeed?.wipe()
                     }
                 )
             }
@@ -111,7 +111,7 @@ fun RestoreBackupScreen(
         SeedQRCodeInput(
             onCancel = { scanSecretQRCode = false },
             onContinue = {
-                backupSeed = it
+                viewModel.backupSeed = it
                 scanSecretQRCode = false
                 importFileLauncher.launch(arrayOf(BACKUP_MIME_TYPE))
             }

@@ -12,8 +12,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -39,13 +41,11 @@ fun EditPasskeyNameSheet(
     onSave: (displayName: String) -> Unit,
 ) {
     val sheetStrings = appStrings.credentialProvider
-    var displayName by remember {
-        val text = prefilledDisplayName ?: existingPasskey?.displayName ?: ""
-        val textFieldValue = TextFieldValue(
-            text = text,
-            selection = TextRange(text.length),
-        )
-        mutableStateOf(textFieldValue)
+    var displayName by rememberSaveable {
+        mutableStateOf(prefilledDisplayName ?: existingPasskey?.displayName ?: "")
+    }
+    var displayNameCaretPosition by rememberSaveable {
+        mutableIntStateOf(displayName.length)
     }
 
     val focusRequester = remember { FocusRequester() }
@@ -81,18 +81,21 @@ fun EditPasskeyNameSheet(
 
             OutlinedTextField(
                 modifier = fieldModifier.focusRequester(focusRequester),
-                value = displayName,
-                onValueChange = { displayName = it },
+                value = TextFieldValue(displayName, TextRange(displayNameCaretPosition)),
+                onValueChange = {
+                    displayNameCaretPosition = it.selection.start
+                    displayName = it.text
+                },
                 label = { Text(sheetStrings.passkeyDisplayName) },
-                isError = displayName.text.isBlank(),
+                isError = displayName.isBlank(),
                 singleLine = true,
             )
         }
 
         MainButton(
             text = appStrings.generic.save,
-            enabled = !displayName.text.isBlank(),
-            onClick = { onSave(displayName.text) },
+            enabled = !displayName.isBlank(),
+            onClick = { onSave(displayName) },
         )
     }
 }

@@ -1,5 +1,6 @@
 package se.koditoriet.fenris.importformat
 
+import kotlinx.serialization.Serializable
 import se.koditoriet.fenris.vault.NewPasskey
 import se.koditoriet.fenris.vault.NewTotpSecret
 
@@ -9,11 +10,13 @@ sealed interface ImportFormatDecoder {
 
     fun decode(bytes: ByteArray): DecodedImport
 
+    @Serializable
     data class DecodedImport(
         val totpSecrets: List<NewTotpSecret> = emptyList(),
         val passkeys: List<NewPasskey> = emptyList(),
         val incompatible: List<IncompatibleItem> = emptyList(),
     ) {
+        @Serializable
         data class IncompatibleItem(val type: Type, val displayName: String) {
             enum class Type {
                 TOTP,
