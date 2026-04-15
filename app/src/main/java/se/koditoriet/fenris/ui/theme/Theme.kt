@@ -53,15 +53,15 @@ fun FenrisTheme(
 
     val accentColors = if (darkTheme) {
         AccentColors(
-            on = Color(0xFFFDCA40),
-            onForeground = Color(0xFFFDCA40),
-            onBackground = Color(0x2FFDCA40),
+            accent = Color(0xFFFDCA40),
+            accentForeground = Color(0xFFFDCA40),
+            accentBackground = Color(0x2FFDCA40),
         )
     } else {
         AccentColors(
-            on = Color(0xFFFFC107),
-            onForeground = colorScheme.surface,
-            onBackground = Color(0xC0FFC107),
+            accent = Color(0xFFFFC107),
+            accentForeground = colorScheme.surface,
+            accentBackground = Color(0xC0FFC107),
         )
     }
 
@@ -76,9 +76,9 @@ fun FenrisTheme(
 
 val LocalAccentColors = staticCompositionLocalOf {
     AccentColors(
-        on = Color.Unspecified,
-        onBackground = Color.Unspecified,
-        onForeground = Color.Unspecified,
+        accent = Color.Unspecified,
+        accentBackground = Color.Unspecified,
+        accentForeground = Color.Unspecified,
     )
 }
 
@@ -86,15 +86,15 @@ class AccentColors(
     /**
      * Color for on/enabled items on a surface background.
      */
-    val on: Color,
+    val accent: Color,
 
     /**
      * Background color for on/enabled items that change both bg and fg color when enabled/disabled.
      */
-    val onBackground: Color,
+    val accentBackground: Color,
 
     /**
      * Foreground color for on/enabled items that change both bg and fg color when enabled/disabled.
      */
-    val onForeground: Color,
+    val accentForeground: Color,
 )

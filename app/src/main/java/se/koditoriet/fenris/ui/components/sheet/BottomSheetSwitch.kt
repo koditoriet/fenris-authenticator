@@ -25,8 +25,8 @@ fun BottomSheetSwitch(
             checked = checked,
             onCheckedChange = onCheckedChange,
             colors = SwitchDefaults.colors().copy(
-                checkedThumbColor = LocalAccentColors.current.onForeground,
-                checkedTrackColor = LocalAccentColors.current.onBackground,
+                checkedThumbColor = LocalAccentColors.current.accentForeground,
+                checkedTrackColor = LocalAccentColors.current.accentBackground,
             ),
         )
         Spacer(modifier = Modifier.width(SPACING_L))

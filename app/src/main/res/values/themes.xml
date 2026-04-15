@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.Fenris" parent="Theme.Material3.DynamicColors.Light.NoActionBar">
-        <item name="android:windowSplashScreenBackground">?attr/colorSurface</item>
+    <style name="Theme.Fenris" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="android:windowSplashScreenBackground">@color/splash_screen_background</item>
     </style>
 </resources>
