@@ -17,6 +17,8 @@
     <string name="generic_key_storage_unknown">unknown storage</string>
     <string name="generic_drag_to_change_order">Drag to change order</string>
     <string name="generic_open_system_settings">Open system settings</string>
+    <string name="generic_unable_to_open_system_settings">Couldn\'t open system settings</string>
+    <string name="generic_open_system_settings_manually">Something went wrong trying to open system settings. Please navigate to the setting manually instead.</string>
     <string name="generic_maybe_later">Maybe later</string>
     <string name="generic_advanced_options">Advanced options</string>
     <string name="generic_password">Password</string>
@@ -91,6 +93,14 @@
     <string name="enable_passkeys_heading">Passkey support</string>
     <string name="enable_passkeys_use_for_passkeys">Use Fenris for passkeys?</string>
     <string name="enable_passkeys_description">Passkeys are a secure and modern alternative to passwords and one-time codes. They do not require you to remember anything or copy six digit codes into text fields, and can not be intercepted by malicious apps and websites.\n\nTo save and use passkeys, Android needs Fenris to be set as a credential provider. You can change this at any time in the system settings.\n\nTo set Fenris as your credential provider, click the \'Change\' button on the settings screen and set Fenris as your preferred service.</string>
+
+
+    <!-- Enable screen lock screen -->
+    <string name="enable_screen_lock_heading">Screen lock required</string>
+    <string name="enable_screen_lock_enable">Enable screen lock</string>
+    <string name="enable_screen_lock_description">Your device does not have a screen lock set up. Fenris requires screen lock to be enabled in order to protect your credentials.\n\nKeep in mind that once screen lock is set up, you must not disable it or all credentials stored in Fenris will be deleted as a security precaution.\n\nTo set up screen lock, click the \'Set screen lock\' button on the settings screen.</string>
+    <string name="enable_screen_lock_keys_disappeared">Vault corrupted</string>
+    <string name="enable_screen_lock_keys_disappeared_description">Your device\'s key store is empty, even though your Fenris vault is not. This means that you have likely deleted all your credentials.\n\nThere is no automatic way for Fenris to recover from this. You should restore your vault from backup.</string>
 
 
     <!-- Vault locked screen -->

@@ -15,6 +15,7 @@ import se.koditoriet.fenris.crypto.BiometricPromptAuthenticator
 import se.koditoriet.fenris.ui.components.LoadingOverlayImpl
 import se.koditoriet.fenris.ui.screens.main.passkeys.ManagePasskeysScreen
 import se.koditoriet.fenris.ui.screens.main.secrets.ListSecretsScreen
+import se.koditoriet.fenris.ui.screens.main.settings.RegenerateBackupSeedScreen
 import se.koditoriet.fenris.ui.screens.main.settings.SettingsScreen
 import se.koditoriet.fenris.viewmodel.MainScreenViewModel
 

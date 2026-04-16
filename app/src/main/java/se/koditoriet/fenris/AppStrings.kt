@@ -19,6 +19,7 @@ class AppStrings(private val ctx: Context) {
     val restoringBackupScreen by lazy { RestoringBackupScreen(ctx) }
     val restoreBackupFailedScreen by lazy { RestoreBackupFailedScreen(ctx) }
     val enablePasskeysScreen by lazy { EnablePasskeysScreen(ctx) }
+    val enableScreenLockScreen by lazy { EnableScreenLockScreen(ctx) }
     val imports by lazy { Imports(ctx) }
 
     val totpSecretForm by lazy { TotpSecretForm(ctx) }
@@ -47,6 +48,8 @@ class AppStrings(private val ctx: Context) {
         val dragToChangeOrder by ctx.s(R.string.generic_drag_to_change_order)
         val maybeLater by ctx.s(R.string.generic_maybe_later)
         val openSystemSettings by ctx.s(R.string.generic_open_system_settings)
+        val unableToOpenSystemSettings by ctx.s(R.string.generic_unable_to_open_system_settings)
+        val openSystemSettingsManually by ctx.s(R.string.generic_open_system_settings_manually)
         val advanced by ctx.s(R.string.generic_advanced_options)
         val password by ctx.s(R.string.generic_password)
         val passkeys by ctx.s(R.string.generic_passkeys)
@@ -122,6 +125,14 @@ class AppStrings(private val ctx: Context) {
         val heading by ctx.s(R.string.enable_passkeys_heading)
         val useForPasskeys by ctx.s(R.string.enable_passkeys_use_for_passkeys)
         val description by ctx.s(R.string.enable_passkeys_description)
+    }
+
+    class EnableScreenLockScreen(ctx: Context) {
+        val heading by ctx.s(R.string.enable_screen_lock_heading)
+        val enableScreenLock by ctx.s(R.string.enable_screen_lock_enable)
+        val description by ctx.s(R.string.enable_screen_lock_description)
+        val keysDisappeared by ctx.s(R.string.enable_screen_lock_keys_disappeared)
+        val keysDisappearedDescription by ctx.s(R.string.enable_screen_lock_keys_disappeared_description)
     }
 
     class SecretsScreen(ctx: Context) {

@@ -1,4 +1,4 @@
-package se.koditoriet.fenris.ui.screens.main
+package se.koditoriet.fenris.ui.screens.main.settings
 
 import android.util.Log
 import androidx.activity.compose.BackHandler
