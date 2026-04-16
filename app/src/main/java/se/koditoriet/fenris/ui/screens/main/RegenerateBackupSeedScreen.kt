@@ -14,7 +14,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSerializable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -27,12 +26,13 @@ import kotlinx.coroutines.withContext
 import se.koditoriet.fenris.appStrings
 import se.koditoriet.fenris.crypto.BackupSeed
 import se.koditoriet.fenris.crypto.wordMap
-import se.koditoriet.fenris.ui.components.BadInputInformationDialog
-import se.koditoriet.fenris.ui.components.SuccessInformationDialog
-import se.koditoriet.fenris.ui.components.WarningInformationDialog
 import se.koditoriet.fenris.ui.components.backupseed.BackupSeedDisplay
 import se.koditoriet.fenris.ui.components.backupseed.SeedPhraseInput
 import se.koditoriet.fenris.ui.components.backupseed.SeedQRCodeInput
+import se.koditoriet.fenris.ui.components.dialogs.LocalDialogHost
+import se.koditoriet.fenris.ui.components.dialogs.showBadInput
+import se.koditoriet.fenris.ui.components.dialogs.showSuccess
+import se.koditoriet.fenris.ui.components.dialogs.showWarning
 import se.koditoriet.fenris.viewmodel.RegenerateBackupSeedViewModel
 
 private const val TAG = "RegenerateBackupSeedScreen"
@@ -45,13 +45,11 @@ fun RegenerateBackupSeedScreen(
     val viewModel = viewModel<RegenerateBackupSeedViewModel>()
     val screenStrings = appStrings.regenerateBackupSeedScreen
     val lifecycleScope = LocalLifecycleOwner.current.lifecycleScope
+    val dialogHost = LocalDialogHost.current
 
     var viewState by rememberSerializable {
         mutableStateOf(RegenerateBackupSeedViewState.InputSeedPhrase)
     }
-    var showBadSeedDialog by rememberSaveable { mutableStateOf(false) }
-    var showBackupReseedCompleteDialog by rememberSaveable { mutableStateOf(false) }
-    var showBackupReseedFailedDialog by rememberSaveable { mutableStateOf(false) }
 
     fun close() {
         viewModel.seedPhraseWords.forEachIndexed { index, _ -> viewModel.seedPhraseWords[index] = "" }
@@ -69,7 +67,11 @@ fun RegenerateBackupSeedScreen(
             } else {
                 Log.w(TAG, "Backup seed is invalid!")
                 seed.wipe()
-                showBadSeedDialog = true
+                dialogHost.showBadInput(
+                    title = screenStrings.invalidSeedDialogTitle,
+                    text = screenStrings.invalidSeedDialogText,
+                )
+
             }
         }
     }
@@ -132,11 +134,26 @@ fun RegenerateBackupSeedScreen(
                         onContinue = {
                             val oldSeed = viewModel.oldSeed
                             check(oldSeed != null) { "old seed was null - impossible!" }
+
                             lifecycleScope.launch(Dispatchers.Main) {
-                                showBackupReseedCompleteDialog = withContext(Dispatchers.IO) {
+                                val success = withContext(Dispatchers.IO) {
                                     Log.d(TAG, "Rekeying backups")
                                     viewModel.rekeyBackups(oldSeed, viewModel.newSeed)
                                 }
+
+                                if (success) {
+                                    dialogHost.showSuccess(
+                                        title = screenStrings.successDialogTitle,
+                                        text = screenStrings.successDialogText,
+                                        onDismiss = { close() },
+                                    )
+                                } else {
+                                    dialogHost.showWarning(
+                                        title = screenStrings.failureDialogTitle,
+                                        text = screenStrings.failureDialogText,
+                                    )
+                                }
+
                                 Log.d(TAG, "Wiping temporary seeds")
                                 oldSeed.wipe()
                                 viewModel.newSeed.wipe()
@@ -145,28 +162,6 @@ fun RegenerateBackupSeedScreen(
                     )
                 }
             }
-        }
-
-        if (showBackupReseedCompleteDialog) {
-            SuccessInformationDialog(
-                title = appStrings.regenerateBackupSeedScreen.successDialogTitle,
-                text = appStrings.regenerateBackupSeedScreen.successDialogText,
-                onDismiss = { close() },
-            )
-        }
-        if (showBackupReseedFailedDialog) {
-            WarningInformationDialog(
-                title = appStrings.regenerateBackupSeedScreen.failureDialogTitle,
-                text = appStrings.regenerateBackupSeedScreen.failureDialogText,
-                onDismiss = { showBackupReseedFailedDialog = false },
-            )
-        }
-        if (showBadSeedDialog) {
-            BadInputInformationDialog(
-                title = appStrings.regenerateBackupSeedScreen.invalidSeedDialogTitle,
-                text = appStrings.regenerateBackupSeedScreen.invalidSeedDialogText,
-                onDismiss = { showBadSeedDialog = false },
-            )
         }
     }
 }

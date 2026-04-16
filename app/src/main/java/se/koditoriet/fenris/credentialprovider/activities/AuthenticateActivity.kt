@@ -8,8 +8,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.credentials.GetCredentialResponse
 import androidx.credentials.GetPublicKeyCredentialOption
@@ -18,7 +16,6 @@ import androidx.credentials.provider.CallingAppInfo
 import androidx.credentials.provider.PendingIntentHandler
 import androidx.fragment.app.FragmentActivity
 import se.koditoriet.fenris.PASSKEY_AUTH_FLAGS
-import se.koditoriet.fenris.crypto.BiometricPromptAuthenticator
 import se.koditoriet.fenris.appStrings
 import se.koditoriet.fenris.codec.Base64Url
 import se.koditoriet.fenris.credentialprovider.CREDENTIAL_DATA
@@ -29,10 +26,12 @@ import se.koditoriet.fenris.credentialprovider.webauthn.PublicKeyCredentialReque
 import se.koditoriet.fenris.credentialprovider.webauthn.SignedAuthResponse
 import se.koditoriet.fenris.credentialprovider.webauthn.WebAuthnValidator
 import se.koditoriet.fenris.crypto.AuthenticationFailedException
+import se.koditoriet.fenris.crypto.BiometricPromptAuthenticator
 import se.koditoriet.fenris.ui.components.PasskeyIcon
 import se.koditoriet.fenris.ui.components.PasskeyIconFlavor
 import se.koditoriet.fenris.ui.components.ThemedEmptySpace
-import se.koditoriet.fenris.ui.components.WarningInformationDialog
+import se.koditoriet.fenris.ui.components.dialogs.DialogHostImpl
+import se.koditoriet.fenris.ui.components.dialogs.showWarning
 import se.koditoriet.fenris.ui.theme.BACKGROUND_ICON_SIZE
 import se.koditoriet.fenris.ui.theme.FenrisTheme
 import se.koditoriet.fenris.vault.CredentialId
@@ -65,8 +64,6 @@ class AuthenticateActivity : FragmentActivity() {
 
         enableEdgeToEdge()
         setContent {
-            val showUnableToEstablishTrustDialog = remember { mutableStateOf(false) }
-
             LaunchedEffect(Unit) {
                 try {
                     viewModel.unlockVault(authFactory)
@@ -79,7 +76,11 @@ class AuthenticateActivity : FragmentActivity() {
                 val passkey = viewModel.getPasskey(requestInfo.credentialId)
 
                 if (!requestInfo.isValid(passkey)) {
-                    showUnableToEstablishTrustDialog.value = true
+                    DialogHostImpl.showWarning(
+                        title = screenStrings.unableToEstablishTrust,
+                        text = screenStrings.unableToEstablishTrustExplanation,
+                        onDismiss = { finishWithResult(null) },
+                    )
                     return@LaunchedEffect
                 }
 
@@ -112,14 +113,7 @@ class AuthenticateActivity : FragmentActivity() {
                         modifier = Modifier.size(BACKGROUND_ICON_SIZE),
                         flavor = PasskeyIconFlavor.Fenris,
                     )
-                }
-
-                if (showUnableToEstablishTrustDialog.value) {
-                    WarningInformationDialog(
-                        title = screenStrings.unableToEstablishTrust,
-                        text = screenStrings.unableToEstablishTrustExplanation,
-                        onDismiss = { finishWithResult(null) },
-                    )
+                    DialogHostImpl.Render()
                 }
             }
         }

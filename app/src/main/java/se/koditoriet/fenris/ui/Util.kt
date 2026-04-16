@@ -1,18 +1,14 @@
 package se.koditoriet.fenris.ui
 
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.material3.ColorScheme
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.fragment.app.FragmentActivity
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import se.koditoriet.fenris.FenrisApp
 import se.koditoriet.fenris.crypto.AuthenticationFailedException
 
 val ColorScheme.primaryDisabled: Color

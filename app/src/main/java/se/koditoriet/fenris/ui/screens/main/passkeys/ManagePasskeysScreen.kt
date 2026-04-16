@@ -20,7 +20,8 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.serialization.Serializable
 import se.koditoriet.fenris.appStrings
-import se.koditoriet.fenris.ui.components.IrrevocableActionConfirmationDialog
+import se.koditoriet.fenris.ui.components.dialogs.LocalDialogHost
+import se.koditoriet.fenris.ui.components.dialogs.showIrrevocableActionConfirmation
 import se.koditoriet.fenris.ui.components.listview.ListViewTopBar
 import se.koditoriet.fenris.ui.components.listview.ReorderableList
 import se.koditoriet.fenris.ui.components.sheet.BottomSheet
@@ -37,9 +38,9 @@ fun ManagePasskeysScreen() {
     val config by viewModel.config.collectAsState()
     val screenStrings = remember { viewModel.appStrings.managePasskeysScreen }
     val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
+    val dialogHost = LocalDialogHost.current
 
     var sheetViewState by rememberSerializable { mutableStateOf<SheetViewState>(SheetViewState.None) }
-    var confirmDeletePasskey by rememberSaveable { mutableStateOf<CredentialId?>(null) }
     var filter by rememberSaveable { mutableStateOf<String?>(null) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -87,19 +88,6 @@ fun ManagePasskeysScreen() {
             onReindexItems = viewModel::onReindexPasskeys,
         )
 
-        confirmDeletePasskey?.let { credentialId ->
-            IrrevocableActionConfirmationDialog(
-                text = screenStrings.actionsSheetDeleteWarning,
-                buttonText = screenStrings.actionsSheetDelete,
-                onCancel = { confirmDeletePasskey = null },
-                onConfirm = {
-                    confirmDeletePasskey = null
-                    sheetViewState = SheetViewState.None
-                    viewModel.onDeletePasskey(credentialId)
-                }
-            )
-        }
-
         sheetViewState.takeIf { it != SheetViewState.None }?.let { viewState ->
             BottomSheet(
                 hideSheet = { sheetViewState = SheetViewState.None },
@@ -119,7 +107,14 @@ fun ManagePasskeysScreen() {
                                 sheetViewState = SheetViewState.EditMetadata(viewState.selectedItemId)
                             },
                             onDeletePasskey = {
-                                confirmDeletePasskey = viewState.selectedItemId
+                                dialogHost.showIrrevocableActionConfirmation(
+                                    text = screenStrings.actionsSheetDeleteWarning,
+                                    buttonText = screenStrings.actionsSheetDelete,
+                                    onConfirm = {
+                                        sheetViewState = SheetViewState.None
+                                        viewModel.onDeletePasskey(viewState.selectedItemId)
+                                    }
+                                )
                             },
                         )
                     }
