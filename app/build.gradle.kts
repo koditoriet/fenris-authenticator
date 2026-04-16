@@ -96,9 +96,6 @@ dependencies {
     implementation(libs.androidx.fragment.fragment.ktx)
     implementation(libs.androidx.lifecycle.process)
 
-    // CBOR
-    implementation(libs.com.upokecenter.cbor)
-
     // Serialization
     implementation(libs.org.jetbrains.kotlinx.serialization.json)
     implementation(libs.org.jetbrains.kotlinx.serialization.protobuf)

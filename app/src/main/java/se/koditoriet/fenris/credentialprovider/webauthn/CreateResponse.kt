@@ -1,12 +1,11 @@
 package se.koditoriet.fenris.credentialprovider.webauthn
 
-import com.upokecenter.cbor.CBOREncodeOptions
-import com.upokecenter.cbor.CBORObject
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import se.koditoriet.fenris.AAGUID
 import se.koditoriet.fenris.codec.Base64Url
 import se.koditoriet.fenris.codec.Base64Url.Companion.toBase64Url
+import se.koditoriet.fenris.codec.ctapCborMap
 import java.math.BigInteger
 import java.security.MessageDigest
 import java.security.interfaces.ECPublicKey
@@ -30,13 +29,13 @@ class CreateResponse(
         val xBytes = toUnsignedFixedLength(publicKey.w.affineX, 32)
         val yBytes = toUnsignedFixedLength(publicKey.w.affineY, 32)
 
-        CBORObject.NewMap().apply {
-            set(1, CBORObject.FromObject(2))
-            set(3, CBORObject.FromObject(-7))
-            set(-1, CBORObject.FromObject(1))
-            set(-2, CBORObject.FromObject(xBytes))
-            set(-3, CBORObject.FromObject(yBytes))
-        }.EncodeToBytes(CBOREncodeOptions.DefaultCtap2Canonical)
+        ctapCborMap(
+            1 to 2,
+            3 to -7,
+            -1 to 1,
+            -2 to xBytes,
+            -3 to yBytes,
+        )
     }
 
     val authenticatorData: ByteArray by lazy {
@@ -48,11 +47,11 @@ class CreateResponse(
     }
 
     val attestationObject: ByteArray by lazy {
-        CBORObject.NewMap().apply {
-            set("fmt", CBORObject.FromObject("none"))
-            set("attStmt", CBORObject.NewMap())
-            set("authData", CBORObject.FromObject(authenticatorData))
-        }.EncodeToBytes(CBOREncodeOptions.DefaultCtap2Canonical)
+        ctapCborMap(
+            "fmt" to "none",
+            "attStmt" to emptyMap<Any, Any>(),
+            "authData" to authenticatorData,
+        )
     }
 
     val response by lazy {

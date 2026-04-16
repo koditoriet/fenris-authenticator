@@ -18,7 +18,6 @@ viewmodelCompose = "2.10.0"
 datastore = "1.2.1"
 biometricKtx = "1.4.0-alpha02"
 credentials = "1.6.0"
-cbor = "4.5.6"
 lifecycleProcess = "2.10.0"
 reorderable = "3.0.0"
 argon2 = "1.6.0"
@@ -55,7 +54,6 @@ net-zetetic-sqlcipher-android = { group = "net.zetetic", name = "sqlcipher-andro
 reorderable = { module = "sh.calvin.reorderable:reorderable", version.ref = "reorderable" }
 org-jetbrains-kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
 org-jetbrains-kotlinx-serialization-protobuf = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-protobuf", version.ref = "kotlinxSerialization" }
-com-upokecenter-cbor = { group = "com.upokecenter", name = "cbor", version.ref = "cbor" }
 com-lambdapioneer-argon2kt = { group = "com.lambdapioneer.argon2kt", name = "argon2kt", version.ref = "argon2" }
 
 [plugins]
