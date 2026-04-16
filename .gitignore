@@ -1,6 +1,7 @@
 .*
 *.iml
 *.apk
+*.aab
 *.idsig
 /local.properties
 /.idea/caches

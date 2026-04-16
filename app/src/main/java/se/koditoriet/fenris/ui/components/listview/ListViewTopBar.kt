@@ -43,14 +43,14 @@ fun ListViewTopBar(
                 Icon(
                     imageVector = Icons.Filled.SortByAlpha,
                     contentDescription = screenStrings.sortAlphabetically(alphabeticSort),
-                    tint = if (alphabeticSort) LocalAccentColors.current.on else LocalContentColor.current,
+                    tint = if (alphabeticSort) LocalAccentColors.current.accent else LocalContentColor.current,
                 )
             }
             IconButton(onClick = onFilterToggle) {
                 Icon(
                     imageVector = Icons.Filled.Search,
                     contentDescription = screenStrings.filter(filterEnabled),
-                    tint = if (filterEnabled) LocalAccentColors.current.on else LocalContentColor.current,
+                    tint = if (filterEnabled) LocalAccentColors.current.accent else LocalContentColor.current,
                 )
             }
             content()

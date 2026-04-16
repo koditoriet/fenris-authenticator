@@ -58,9 +58,6 @@ import androidx.lifecycle.compose.rememberLifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import se.koditoriet.fenris.AppStrings
 import se.koditoriet.fenris.BACKUP_MIME_TYPE
 import se.koditoriet.fenris.appStrings
@@ -81,7 +78,9 @@ import se.koditoriet.fenris.ui.theme.SPACING_L
 import se.koditoriet.fenris.ui.theme.SPACING_M
 import se.koditoriet.fenris.ui.theme.SPACING_XS
 import se.koditoriet.fenris.viewmodel.SettingsViewModel
+import java.util.TimeZone
 import kotlin.time.Clock
+import kotlin.time.toJavaInstant
 
 private const val TAG = "SettingsScreen"
 
@@ -93,7 +92,7 @@ fun SettingsScreen(
     onManagePasskeys: () -> Unit,
     authFactory: AuthenticatorFactory,
     clock: Clock = Clock.System,
-    timeZone: TimeZone = TimeZone.currentSystemDefault(),
+    timeZone: TimeZone = TimeZone.getDefault(),
 ) {
     val loadingOverlay = LocalLoadingOverlay.current
     val ctx = LocalContext.current
@@ -444,8 +443,8 @@ fun SettingSwitchRow(
                     enabled = enabled,
                     onCheckedChange = onCheckedChange,
                     colors = SwitchDefaults.colors().copy(
-                        checkedThumbColor = LocalAccentColors.current.onForeground,
-                        checkedTrackColor = LocalAccentColors.current.onBackground,
+                        checkedThumbColor = LocalAccentColors.current.accentForeground,
+                        checkedTrackColor = LocalAccentColors.current.accentBackground,
                     ),
                 )
             }
@@ -529,8 +528,10 @@ private fun RowScope.SettingsInfo(
 }
 
 private fun fileNameFromDate(prefix: String, clock: Clock, timeZone: TimeZone): String {
-    val localNow = clock.now().toLocalDateTime(timeZone)
-    val dateString = LocalDate.Formats.ISO.format(localNow.date)
+    val dateString = clock.now().toJavaInstant()
+        .atZone(timeZone.toZoneId())
+        .toLocalDate()
+        .toString()
     return "$prefix$dateString"
 }
 

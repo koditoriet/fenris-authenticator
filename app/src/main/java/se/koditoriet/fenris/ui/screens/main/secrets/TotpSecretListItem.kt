@@ -154,7 +154,7 @@ class TotpSecretListItem(
                     .size(36.dp),
                 progress = { progress },
                 strokeWidth = 5.dp,
-                color = LocalAccentColors.current.on,
+                color = LocalAccentColors.current.accent,
             )
         }
     }

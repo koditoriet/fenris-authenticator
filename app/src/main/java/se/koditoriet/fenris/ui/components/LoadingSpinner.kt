@@ -28,7 +28,7 @@ fun LoadingSpinner(state: LoadingSpinnerState) {
             LoadingSpinnerState.LOADING -> {
                 CircularProgressIndicator(
                     modifier = Modifier.size(48.dp).testTag("LoadingSpinner"),
-                    color = LocalAccentColors.current.on,
+                    color = LocalAccentColors.current.accent,
                 )
             }
 
@@ -37,7 +37,7 @@ fun LoadingSpinner(state: LoadingSpinnerState) {
                     modifier = Modifier.size(48.dp).testTag("LoadingCheckbox"),
                     imageVector = Icons.Default.Check,
                     contentDescription = null,
-                    tint = LocalAccentColors.current.on,
+                    tint = LocalAccentColors.current.accent,
                 )
             }
 

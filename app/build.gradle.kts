@@ -87,8 +87,6 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
-    implementation(libs.androidx.material3)
-    implementation(libs.material)
     implementation(libs.androidx.biometric.ktx)
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.datastore)
@@ -97,12 +95,6 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.androidx.fragment.fragment.ktx)
     implementation(libs.androidx.lifecycle.process)
-
-    // CBOR
-    implementation(libs.com.upokecenter.cbor)
-
-    // kotlinx-datetime
-    implementation(libs.org.jetbrains.kotlinx.datetime)
 
     // Serialization
     implementation(libs.org.jetbrains.kotlinx.serialization.json)
