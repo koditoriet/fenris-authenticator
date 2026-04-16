@@ -27,6 +27,8 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import se.koditoriet.fenris.crypto.Cryptographer
 import se.koditoriet.fenris.repository.VaultRepository
+import se.koditoriet.fenris.ui.components.dialogs.DialogHostImpl
+import se.koditoriet.fenris.ui.components.dialogs.showWarning
 import se.koditoriet.fenris.vault.SynchronizedVault
 import se.koditoriet.fenris.vault.Vault
 import kotlin.time.Duration
@@ -48,6 +50,7 @@ class FenrisApp : Application() {
         )
     }
 
+    private val cryptographer = Cryptographer()
     private var idleTimeout: TimeoutJob? = null
 
     fun startIdleTimeout() {
@@ -81,7 +84,7 @@ class FenrisApp : Application() {
         vault = SynchronizedVault {
             Vault(
                 repositoryFactory = repositoryFactory,
-                cryptographer = Cryptographer(),
+                cryptographer = cryptographer,
                 dbFile = lazy { getDatabasePath("vault") },
                 scope = applicationScope,
             )
@@ -116,6 +119,20 @@ class FenrisApp : Application() {
         override fun onStart(owner: LifecycleOwner) {
             Log.i(TAG, "Got back focus")
             cancelIdleTimeout()
+
+            // If all keys are gone but vault thinks it's initialized, the user has managed to invalidate
+            // their keys somehow - probably by removing all their credentials - and we have no choice but to
+            // return to a pristine state.
+            if (!cryptographer.isInitialized() && vault.state.value != Vault.State.Uninitialized) {
+                Log.e(TAG, "All keys disappeared!")
+                applicationScope.launch {
+                    vault.withLock { wipe() }
+                    DialogHostImpl.showWarning(
+                        title = appStrings.enableScreenLockScreen.keysDisappeared,
+                        text = appStrings.enableScreenLockScreen.keysDisappearedDescription,
+                    )
+                }
+            }
         }
     }
 

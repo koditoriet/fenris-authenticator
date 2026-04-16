@@ -1,5 +1,6 @@
 package se.koditoriet.fenris.ui.activities
 
+import android.app.KeyguardManager
 import android.content.ComponentName
 import android.credentials.CredentialManager
 import android.os.Build
@@ -22,16 +23,16 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import se.koditoriet.fenris.crypto.BiometricPromptAuthenticator
 import se.koditoriet.fenris.Config
 import se.koditoriet.fenris.credentialprovider.FenrisCredentialProviderService
-import se.koditoriet.fenris.ui.components.LoadingOverlay
+import se.koditoriet.fenris.crypto.BiometricPromptAuthenticator
 import se.koditoriet.fenris.ui.components.LoadingOverlayImpl
 import se.koditoriet.fenris.ui.components.LocalLoadingOverlay
 import se.koditoriet.fenris.ui.components.dialogs.DialogHostImpl
 import se.koditoriet.fenris.ui.ignoreAuthFailure
 import se.koditoriet.fenris.ui.onIOThread
 import se.koditoriet.fenris.ui.screens.EnablePasskeysScreen
+import se.koditoriet.fenris.ui.screens.EnableScreenLockScreen
 import se.koditoriet.fenris.ui.screens.LockedScreen
 import se.koditoriet.fenris.ui.screens.main.MainScreen
 import se.koditoriet.fenris.ui.screens.setup.SetupScreen
@@ -47,6 +48,9 @@ class MainActivity : FragmentActivity() {
     private var _isEnabledCredentialProvider = MutableStateFlow(false)
     val isEnabledCredentialProvider: StateFlow<Boolean> = _isEnabledCredentialProvider.asStateFlow()
 
+    private var _isScreenLockEnabled = MutableStateFlow(false)
+    val isScreenLockEnabled: StateFlow<Boolean> = _isScreenLockEnabled.asStateFlow()
+
     private var _isBackgrounded = MutableStateFlow(true)
     var isBackgrounded: StateFlow<Boolean> = _isBackgrounded.asStateFlow()
 
@@ -60,6 +64,12 @@ class MainActivity : FragmentActivity() {
             if (credentialProviderEnabled != _isEnabledCredentialProvider.value) {
                 _isEnabledCredentialProvider.value = credentialProviderEnabled
             }
+
+            val screenLockEnabled = screenLockEnabled()
+            if (screenLockEnabled != _isScreenLockEnabled.value) {
+                _isScreenLockEnabled.value = screenLockEnabled
+            }
+
             _isBackgrounded.value = false
         }
     }
@@ -84,7 +94,8 @@ class MainActivity : FragmentActivity() {
 fun MainActivity.MainActivityContent() {
     val vaultState by viewModel.vaultState.collectAsState()
     val config by viewModel.config.collectAsState()
-    val credentialProviderEnabled by isEnabledCredentialProvider.collectAsState()
+    val isCredentialProviderEnabled by isEnabledCredentialProvider.collectAsState()
+    val isScreenLockEnabled by isScreenLockEnabled.collectAsState()
     val isBackgrounded by isBackgrounded.collectAsState()
 
     LaunchedEffect(isBackgrounded, config.ready) {
@@ -93,12 +104,18 @@ fun MainActivity.MainActivityContent() {
             return@LaunchedEffect
         }
 
-        if (!isBackgrounded) {
-            ignoreAuthFailure {
-                if (vaultState != Vault.State.Uninitialized) {
-                    val authFactory = BiometricPromptAuthenticator.Factory(this@MainActivityContent)
-                    viewModel.unlockVault(authFactory)
+        if (!isBackgrounded && isScreenLockEnabled) {
+            try {
+                ignoreAuthFailure {
+                    if (vaultState != Vault.State.Uninitialized) {
+                        val authFactory = BiometricPromptAuthenticator.Factory(this@MainActivityContent)
+                        viewModel.unlockVault(authFactory)
+                    }
                 }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error trying to unlock vault", e)
+                // NOP - this will only happen when keystore has been wiped, and that case is handled explicitly
+                // by the FenrisApp class.
             }
         }
     }
@@ -115,8 +132,15 @@ fun MainActivity.MainActivityContent() {
     }
 
     FenrisTheme {
+        DialogHostImpl.Render()
+
+        if (!isScreenLockEnabled) {
+            EnableScreenLockScreen()
+            return@FenrisTheme
+        }
+
         when (vaultState) {
-            Vault.State.Unlocked -> { UnlockedScreens(config, credentialProviderEnabled) }
+            Vault.State.Unlocked -> { UnlockedScreens(config, isCredentialProviderEnabled) }
             Vault.State.Uninitialized -> { SetupScreen() }
             Vault.State.Locked -> {
                 LockedScreen(
@@ -127,7 +151,6 @@ fun MainActivity.MainActivityContent() {
                 )
             }
         }
-        DialogHostImpl.Render()
     }
 }
 
@@ -166,4 +189,9 @@ private fun MainActivity.credentialProviderEnabled(): Boolean {
         FenrisCredentialProviderService::class.java
     )
     return credentialManager.isEnabledCredentialProviderService(componentName)
+}
+
+private fun MainActivity.screenLockEnabled(): Boolean {
+    val keyguardManager = getSystemService(KeyguardManager::class.java)
+    return keyguardManager.isDeviceSecure
 }
