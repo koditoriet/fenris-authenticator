@@ -43,7 +43,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSerializable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -62,8 +61,9 @@ import se.koditoriet.fenris.AppStrings
 import se.koditoriet.fenris.BACKUP_MIME_TYPE
 import se.koditoriet.fenris.appStrings
 import se.koditoriet.fenris.crypto.AuthenticatorFactory
-import se.koditoriet.fenris.ui.components.IrrevocableActionConfirmationDialog
 import se.koditoriet.fenris.ui.components.LocalLoadingOverlay
+import se.koditoriet.fenris.ui.components.dialogs.LocalDialogHost
+import se.koditoriet.fenris.ui.components.dialogs.showIrrevocableActionConfirmation
 import se.koditoriet.fenris.ui.components.sheet.BottomSheet
 import se.koditoriet.fenris.ui.primaryHint
 import se.koditoriet.fenris.ui.screens.main.settings.sheets.PasswordInputSheet
@@ -95,17 +95,17 @@ fun SettingsScreen(
     timeZone: TimeZone = TimeZone.getDefault(),
 ) {
     val loadingOverlay = LocalLoadingOverlay.current
+    val dialogHost = LocalDialogHost.current
     val ctx = LocalContext.current
     val viewModel = viewModel<SettingsViewModel>()
     val config by viewModel.config.collectAsState()
     val screenStrings = appStrings.settingsScreen
-    var sheetViewState by rememberSerializable { mutableStateOf(SettingsScreenSheetViewState.None) }
-    var showWipeDialog by rememberSaveable { mutableStateOf(false) }
-    var showDisableBackupsDialog by rememberSaveable { mutableStateOf(false) }
     val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
+    val scope = LocalLifecycleOwner.current.lifecycleScope
+
+    var sheetViewState by rememberSerializable { mutableStateOf(SettingsScreenSheetViewState.None) }
     val lifecycleOwner = rememberLifecycleOwner()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val scope = LocalLifecycleOwner.current.lifecycleScope
 
     Scaffold(
         topBar = {
@@ -143,7 +143,13 @@ fun SettingsScreen(
                     enableBackups = config.backupsEnabled,
                     onExport = { sheetViewState = SettingsScreenSheetViewState.CreateBackupPasswordSheet },
                     onRegenerateBackupSeed = onRegenerateBackupSeed,
-                    onDisableBackups = { showDisableBackupsDialog = true }
+                    onDisableBackups = {
+                        dialogHost.showIrrevocableActionConfirmation(
+                            text = screenStrings.enableBackupsDisableDialogText,
+                            buttonText = screenStrings.enableBackupsDisableDialogConfirm,
+                            onConfirm = { viewModel.onDisableBackups() }
+                        )
+                    }
                 )
             }
 
@@ -244,38 +250,17 @@ fun SettingsScreen(
                     title = screenStrings.eraseData,
                     description = screenStrings.eraseDataDescription,
                     titleColor = MaterialTheme.colorScheme.error,
-                    onClick = { showWipeDialog = true }
+                    onClick = {
+                        dialogHost.showIrrevocableActionConfirmation(
+                            text = screenStrings.eraseDataDialogText,
+                            buttonText = screenStrings.eraseDataDialogConfirm,
+                            onConfirm = { viewModel.onWipeVault() }
+                        )
+                    }
                 )
             }
         }
 
-        // Confirmation dialog - erase data
-        if (showWipeDialog) {
-            IrrevocableActionConfirmationDialog(
-                text = screenStrings.eraseDataDialogText,
-                buttonText = screenStrings.eraseDataDialogConfirm,
-                onCancel = { showWipeDialog = false },
-                onConfirm = {
-                    showWipeDialog = false
-                    viewModel.onWipeVault()
-                }
-            )
-        }
-
-        // Confirmation dialog - disable backups
-        if (showDisableBackupsDialog) {
-            IrrevocableActionConfirmationDialog(
-                text = screenStrings.enableBackupsDisableDialogText,
-                buttonText = screenStrings.enableBackupsDisableDialogConfirm,
-                onCancel = { showDisableBackupsDialog = false },
-                onConfirm = {
-                    showDisableBackupsDialog = false
-                    viewModel.onDisableBackups()
-                }
-            )
-        }
-
-        // Overview sheet - security
         sheetViewState.takeIf { it != SettingsScreenSheetViewState.None }?.let { viewState ->
             BottomSheet(
                 hideSheet = { sheetViewState = SettingsScreenSheetViewState.None },

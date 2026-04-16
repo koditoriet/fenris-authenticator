@@ -16,7 +16,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import se.koditoriet.fenris.appStrings
 import se.koditoriet.fenris.importformat.ImportFormatDecoder
-import se.koditoriet.fenris.ui.components.WarningInformationDialog
+import se.koditoriet.fenris.ui.components.dialogs.LocalDialogHost
+import se.koditoriet.fenris.ui.components.dialogs.showWarning
 import se.koditoriet.fenris.ui.components.sheet.BottomSheetAction
 import se.koditoriet.fenris.ui.components.sheet.BottomSheetGlobalHeader
 
@@ -27,9 +28,9 @@ fun ImportFromFileSheet(
     onFileImported: (ImportFormatDecoder.DecodedImport) -> Unit,
 ) {
     val sheetStrings = appStrings.imports
+    val dialogHost = LocalDialogHost.current
     val ctx = LocalContext.current
     var selectedDecoderIndex by rememberSaveable { mutableStateOf<Int?>(null) }
-    var importFailed by rememberSaveable { mutableStateOf(false) }
 
     BottomSheetGlobalHeader(
         heading = sheetStrings.importFrom,
@@ -49,7 +50,13 @@ fun ImportFromFileSheet(
                     onFileImported(decodedImport)
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to import from $it using decoder $selectedDecoderIndex", e)
-                    importFailed = true
+                    val selectedDecoderName = selectedDecoderIndex
+                        ?.let { ImportFormatDecoder.decoders[it].formatName }
+                        ?: "???"
+                    dialogHost.showWarning(
+                        title = sheetStrings.importFailed,
+                        text = sheetStrings.importFailedInvalidFormat(selectedDecoderName),
+                    )
                 }
             }
         }
@@ -69,15 +76,6 @@ fun ImportFromFileSheet(
                 )
             }
         }
-    }
-
-    if (importFailed) {
-        val selectedDecoderName = selectedDecoderIndex?.let { ImportFormatDecoder.decoders[it].formatName } ?: "???"
-        WarningInformationDialog(
-            title = sheetStrings.importFailed,
-            text = sheetStrings.importFailedInvalidFormat(selectedDecoderName),
-            onDismiss = { importFailed = false },
-        )
     }
 }
 

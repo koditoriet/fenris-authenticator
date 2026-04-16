@@ -37,11 +37,12 @@ import se.koditoriet.fenris.codec.QRCodeData
 import se.koditoriet.fenris.crypto.AuthenticatorFactory
 import se.koditoriet.fenris.importformat.GoogleAuthenticatorDecoder
 import se.koditoriet.fenris.importformat.ImportFormatDecoder
-import se.koditoriet.fenris.ui.components.BadInputInformationDialog
-import se.koditoriet.fenris.ui.components.IrrevocableActionConfirmationDialog
 import se.koditoriet.fenris.ui.components.LocalLoadingOverlay
 import se.koditoriet.fenris.ui.components.QrScanner
-import se.koditoriet.fenris.ui.components.WarningInformationDialog
+import se.koditoriet.fenris.ui.components.dialogs.LocalDialogHost
+import se.koditoriet.fenris.ui.components.dialogs.showBadInput
+import se.koditoriet.fenris.ui.components.dialogs.showIrrevocableActionConfirmation
+import se.koditoriet.fenris.ui.components.dialogs.showWarning
 import se.koditoriet.fenris.ui.components.listview.ListViewTopBar
 import se.koditoriet.fenris.ui.components.listview.ReorderableList
 import se.koditoriet.fenris.ui.components.sheet.BottomSheet
@@ -83,9 +84,8 @@ fun ListSecretsScreen(
     val secrets by viewModel.secrets.collectAsState()
     val screenStrings = remember { viewModel.appStrings.secretsScreen }
     val listItemEnvironment = ListItemEnvironment.remember()
+    val dialogHost = LocalDialogHost.current
 
-    var failedImports by rememberSaveable { mutableStateOf<Int?>(null) }
-    var confirmDeleteSecret by rememberSaveable { mutableStateOf<TotpSecret.Id?>(null) }
     var sheetViewState by rememberSerializable { mutableStateOf<SheetViewState>(Inactive) }
     var qrScannerState by rememberSerializable { mutableStateOf(QRScannerState.Inactive) }
     var filter by rememberSaveable { mutableStateOf<String?>(null) }
@@ -151,27 +151,6 @@ fun ListSecretsScreen(
             onReindexItems = viewModel::onReindexSecrets,
         )
 
-        confirmDeleteSecret?.let { secretId ->
-            IrrevocableActionConfirmationDialog(
-                text = screenStrings.actionsSheetDeleteWarning,
-                buttonText = screenStrings.actionsSheetDelete,
-                onCancel = { confirmDeleteSecret = null },
-                onConfirm = {
-                    confirmDeleteSecret = null
-                    sheetViewState = Inactive
-                    viewModel.onDeleteSecret(secretId)
-                }
-            )
-        }
-
-        failedImports?.let {
-            WarningInformationDialog(
-                title = appStrings.imports.importFailed,
-                text = appStrings.imports.numFailedImports(it),
-                onDismiss = { failedImports = null },
-            )
-        }
-
         if (sheetViewState != Inactive) {
             val scope = LocalLifecycleOwner.current.lifecycleScope
             ListSecretsBottomSheet(
@@ -180,9 +159,23 @@ fun ListSecretsScreen(
                 sheetState = sheetState,
                 hideSecretsFromAccessibility = config.hideSecretsFromAccessibility,
                 onAddSecret = viewModel::onAddSecret,
-                onAddSecretFailed = { failedImports = 1 },
+                onAddSecretFailed = {
+                    dialogHost.showWarning(
+                        title = ctx.appStrings.imports.importFailed,
+                        text = ctx.appStrings.imports.numFailedImports(1),
+                    )
+                },
                 onUpdateSecret = viewModel::onUpdateSecret,
-                onDeleteSecret = { confirmDeleteSecret = it },
+                onDeleteSecret = {
+                    dialogHost.showIrrevocableActionConfirmation(
+                        text = screenStrings.actionsSheetDeleteWarning,
+                        buttonText = screenStrings.actionsSheetDelete,
+                        onConfirm = {
+                            sheetViewState = Inactive
+                            viewModel.onDeleteSecret(it)
+                        }
+                    )
+                },
                 onChangeSheetViewState = {
                     sheetSwipeDismissable = true
                     sheetViewState = it
@@ -200,7 +193,12 @@ fun ListSecretsScreen(
                                 ctx.appStrings.imports.importFinished,
                             )
                         },
-                        onFailure = { failedImports = it.size },
+                        onFailure = {
+                            dialogHost.showWarning(
+                                title = ctx.appStrings.imports.importFailed,
+                                text = ctx.appStrings.imports.numFailedImports(it.size),
+                            )
+                        },
                     )
                 },
             )
@@ -355,14 +353,7 @@ private fun TOTPCodeQRScanner(
     closeScanner: () -> Unit,
     onSuccess: (NewTotpSecret) -> Unit,
 ) {
-    var invalidTotpQRCode by rememberSaveable { mutableStateOf(false) }
-    if (invalidTotpQRCode) {
-        BadInputInformationDialog(
-            title = screenStrings.invalidTotpQRCode,
-            text = screenStrings.invalidTotpQRCodeDescription,
-            onDismiss = { invalidTotpQRCode = false }
-        )
-    }
+    val dialogHost = LocalDialogHost.current
 
     BackHandler { closeScanner() }
     QrScanner(
@@ -372,7 +363,10 @@ private fun TOTPCodeQRScanner(
                 closeScanner()
                 onSuccess(secret)
             } catch (e: Exception) {
-                invalidTotpQRCode = true
+                dialogHost.showBadInput(
+                    title = screenStrings.invalidTotpQRCode,
+                    text = screenStrings.invalidTotpQRCodeDescription,
+                )
                 Log.w(TAG, "Scanned non-TOTP secret QR code", e)
             }
         },
@@ -386,14 +380,7 @@ private fun AnySupportedQRScanner(
     closeScanner: () -> Unit,
     onSuccess: (QRCodeData) -> Unit,
 ) {
-    var unsupportedQRCode by rememberSaveable { mutableStateOf(false) }
-    if (unsupportedQRCode) {
-        BadInputInformationDialog(
-            title = screenStrings.unsupportedQRCode,
-            text = screenStrings.unsupportedQRCodeDescription,
-            onDismiss = { unsupportedQRCode = false }
-        )
-    }
+    val dialogHost = LocalDialogHost.current
 
     BackHandler { closeScanner() }
     QrScanner(
@@ -403,7 +390,10 @@ private fun AnySupportedQRScanner(
                 onSuccess(data)
                 closeScanner()
             } catch (e: Exception) {
-                unsupportedQRCode = true
+                dialogHost.showBadInput(
+                    title = screenStrings.unsupportedQRCode,
+                    text = screenStrings.unsupportedQRCodeDescription,
+                )
                 Log.w(TAG, "Scanned unsupported QR code", e)
             }
         },

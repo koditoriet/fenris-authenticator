@@ -28,6 +28,7 @@ import se.koditoriet.fenris.credentialprovider.FenrisCredentialProviderService
 import se.koditoriet.fenris.ui.components.LoadingOverlay
 import se.koditoriet.fenris.ui.components.LoadingOverlayImpl
 import se.koditoriet.fenris.ui.components.LocalLoadingOverlay
+import se.koditoriet.fenris.ui.components.dialogs.DialogHostImpl
 import se.koditoriet.fenris.ui.ignoreAuthFailure
 import se.koditoriet.fenris.ui.onIOThread
 import se.koditoriet.fenris.ui.screens.EnablePasskeysScreen
@@ -126,6 +127,7 @@ fun MainActivity.MainActivityContent() {
                 )
             }
         }
+        DialogHostImpl.Render()
     }
 }
 

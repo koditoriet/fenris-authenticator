@@ -1,4 +1,4 @@
-package se.koditoriet.fenris.ui.components
+package se.koditoriet.fenris.ui.components.dialogs
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
@@ -11,6 +11,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import se.koditoriet.fenris.appStrings
+import se.koditoriet.fenris.ui.theme.LocalAccentColors
 
 @Composable
 fun IrrevocableActionConfirmationDialog(
@@ -95,7 +96,7 @@ fun SuccessInformationDialog(
             Icon(
                 imageVector = Icons.Default.CheckCircle,
                 contentDescription = null,
-                tint = Color.Green,
+                tint = LocalAccentColors.current.accent,
             )
         },
         onDismiss = onDismiss,

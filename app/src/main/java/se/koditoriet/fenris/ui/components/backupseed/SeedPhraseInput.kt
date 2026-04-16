@@ -16,10 +16,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Modifier
@@ -34,10 +32,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import se.koditoriet.fenris.BACKUP_SEED_MNEMONIC_LENGTH_WORDS
 import se.koditoriet.fenris.appStrings
 import se.koditoriet.fenris.crypto.BackupSeed
-import se.koditoriet.fenris.ui.components.BadInputInformationDialog
 import se.koditoriet.fenris.ui.components.MAIN_BUTTON_HEIGHT_WITH_SECONDARY
 import se.koditoriet.fenris.ui.components.MainButton
 import se.koditoriet.fenris.ui.components.SecondaryButton
+import se.koditoriet.fenris.ui.components.dialogs.LocalDialogHost
+import se.koditoriet.fenris.ui.components.dialogs.showBadInput
 import se.koditoriet.fenris.ui.primaryHint
 import se.koditoriet.fenris.ui.theme.PADDING_S
 import se.koditoriet.fenris.ui.theme.PADDING_XL
@@ -57,7 +56,7 @@ fun SeedPhraseInput(
 ) {
     require(seedPhraseInputState.size == BACKUP_SEED_MNEMONIC_LENGTH_WORDS)
     val screenStrings = appStrings.seedInputScreen
-    var invalidBackupSeedPhrase by rememberSaveable { mutableStateOf(false) }
+    val dialogHost = LocalDialogHost.current
     val focusRequesters = remember { List(BACKUP_SEED_MNEMONIC_LENGTH_WORDS) { FocusRequester() } }
 
     Box(modifier = modifier) {
@@ -91,14 +90,6 @@ fun SeedPhraseInput(
             }
         }
 
-        if (invalidBackupSeedPhrase) {
-            BadInputInformationDialog(
-                title = screenStrings.invalidSeedPhrase,
-                text = screenStrings.invalidSeedPhraseDescription,
-                onDismiss = { invalidBackupSeedPhrase = false }
-            )
-        }
-
         val seedPhraseIsValid = seedPhraseInputState.all { it in seedWords }
         var confirmButtonEnabled by remember { mutableStateOf(true) }
         MainButton(
@@ -110,8 +101,11 @@ fun SeedPhraseInput(
                     try {
                         onContinue(BackupSeed.fromMnemonic(seedPhraseInputState))
                     } catch (e: Exception) {
-                        invalidBackupSeedPhrase = true
                         Log.w(TAG, "Invalid seed phrase", e)
+                        dialogHost.showBadInput(
+                            title = screenStrings.invalidSeedPhrase,
+                            text = screenStrings.invalidSeedPhraseDescription,
+                        )
                     }
                     seedPhraseInputState.forEachIndexed { index, _ -> seedPhraseInputState[index] = "" }
                 }

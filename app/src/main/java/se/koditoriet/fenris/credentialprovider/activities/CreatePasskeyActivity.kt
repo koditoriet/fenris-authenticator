@@ -21,7 +21,6 @@ import androidx.fragment.app.FragmentActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import se.koditoriet.fenris.PASSKEY_CREATE_FLAGS
-import se.koditoriet.fenris.crypto.BiometricPromptAuthenticator
 import se.koditoriet.fenris.appStrings
 import se.koditoriet.fenris.codec.Base64Url
 import se.koditoriet.fenris.codec.Base64Url.Companion.toBase64Url
@@ -30,13 +29,15 @@ import se.koditoriet.fenris.credentialprovider.webauthn.CreateResponse
 import se.koditoriet.fenris.credentialprovider.webauthn.PublicKeyCredentialCreationOptions
 import se.koditoriet.fenris.credentialprovider.webauthn.WebAuthnValidator
 import se.koditoriet.fenris.crypto.AuthenticationFailedException
-import se.koditoriet.fenris.ui.components.BadInputInformationDialog
+import se.koditoriet.fenris.crypto.BiometricPromptAuthenticator
 import se.koditoriet.fenris.ui.components.PasskeyIcon
 import se.koditoriet.fenris.ui.components.PasskeyIconFlavor
+import se.koditoriet.fenris.ui.components.ThemedEmptySpace
+import se.koditoriet.fenris.ui.components.dialogs.DialogHostImpl
+import se.koditoriet.fenris.ui.components.dialogs.showBadInput
+import se.koditoriet.fenris.ui.components.dialogs.showWarning
 import se.koditoriet.fenris.ui.components.sheet.BottomSheet
 import se.koditoriet.fenris.ui.onIOThread
-import se.koditoriet.fenris.ui.components.ThemedEmptySpace
-import se.koditoriet.fenris.ui.components.WarningInformationDialog
 import se.koditoriet.fenris.ui.screens.main.passkeys.sheets.EditPasskeyNameSheet
 import se.koditoriet.fenris.ui.theme.BACKGROUND_ICON_SIZE
 import se.koditoriet.fenris.ui.theme.FenrisTheme
@@ -97,8 +98,10 @@ class CreatePasskeyActivity : FragmentActivity() {
                         flavor = PasskeyIconFlavor.Fenris,
                     )
 
+                    DialogHostImpl.Render()
+
                     if (credentialAlreadyExists(passkeys, requestInfo)) {
-                        BadInputInformationDialog(
+                        DialogHostImpl.showBadInput(
                             title = screenStrings.passkeyAlreadyExists,
                             text = screenStrings.passkeyAlreadyExistsExplanation,
                             onDismiss = { finishWithResponse(null) }
@@ -107,7 +110,7 @@ class CreatePasskeyActivity : FragmentActivity() {
                     }
 
                     if (!requestInfoIsValid) {
-                        WarningInformationDialog(
+                        DialogHostImpl.showWarning(
                             title = screenStrings.unableToEstablishTrust,
                             text = screenStrings.unableToEstablishTrustExplanation,
                             onDismiss = { finishWithResponse(null) }
