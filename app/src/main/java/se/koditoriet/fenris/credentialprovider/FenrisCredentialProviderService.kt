@@ -10,6 +10,7 @@ import androidx.credentials.exceptions.ClearCredentialException
 import androidx.credentials.exceptions.CreateCredentialException
 import androidx.credentials.exceptions.CreateCredentialUnknownException
 import androidx.credentials.exceptions.GetCredentialException
+import androidx.credentials.exceptions.GetCredentialUnknownException
 import androidx.credentials.provider.AuthenticationAction
 import androidx.credentials.provider.BeginCreateCredentialRequest
 import androidx.credentials.provider.BeginCreateCredentialResponse
@@ -65,6 +66,12 @@ class FenrisCredentialProviderService : CredentialProviderService() {
         Log.i(TAG, "Credential list requested")
         scope.launch {
             (application as FenrisApp).vault.withLock {
+                if (state == Vault.State.Uninitialized) {
+                    Log.w(TAG, "Attempted to get credential list before initializing vault")
+                    callback.onError(GetCredentialUnknownException())
+                    return@withLock
+                }
+
                 val config = (application as FenrisApp).configDatastore.data.first()
                 when {
                     state == Vault.State.Locked && config.protectAccountList -> {
@@ -101,11 +108,18 @@ class FenrisCredentialProviderService : CredentialProviderService() {
         cancellationSignal: CancellationSignal,
         callback: OutcomeReceiver<BeginCreateCredentialResponse, CreateCredentialException>,
     ) {
+        if ((application as FenrisApp).vault.state.value == Vault.State.Uninitialized) {
+            Log.w(TAG, "Attempted to create credential before initializing vault")
+            callback.onError(CreateCredentialUnknownException())
+            return
+        }
+
         if (request !is BeginCreatePublicKeyCredentialRequest) {
             Log.i(TAG, "Got (and ignored) non-public key credential creation request: ${request::class.simpleName}")
             callback.onError(CreateCredentialUnknownException())
             return
         }
+
         val pendingIntent = createPendingIntent(applicationContext, CreatePasskeyActivity::class.java)
         val entries = listOf(
             CreateEntry(
