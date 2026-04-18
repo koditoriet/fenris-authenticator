@@ -41,14 +41,18 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
 
+            packaging {
+                dex {
+                    useLegacyPackaging = true
+                }
+                jniLibs {
+                    useLegacyPackaging = true
+                }
+            }
+
             ndk {
                 abiFilters.add("arm64-v8a")
                 debugSymbolLevel = "none"
-                packaging {
-                    jniLibs {
-                        useLegacyPackaging = false
-                    }
-                }
             }
 
             proguardFiles(
