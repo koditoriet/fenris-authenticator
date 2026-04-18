@@ -4,6 +4,9 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.material3.ColorScheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ProvidedValue
 import androidx.compose.ui.graphics.Color
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
@@ -52,4 +55,14 @@ suspend fun ignoreAuthFailure(action: suspend () -> Unit) {
     } catch (_: AuthenticationFailedException) {
         // nop!
     }
+}
+
+/**
+ * Uses CompositionLocalProvider to provide multiple values at the same time.
+ */
+@Composable
+fun CompositionLocalProviders(vararg values: ProvidedValue<*>, content: @Composable () -> Unit) {
+    values.fold(content) { content, value ->
+        { CompositionLocalProvider(value) { content() } }
+    }.invoke()
 }

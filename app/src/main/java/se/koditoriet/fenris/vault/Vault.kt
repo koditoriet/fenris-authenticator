@@ -24,6 +24,7 @@ import se.koditoriet.fenris.crypto.BackupSeed
 import se.koditoriet.fenris.crypto.Cryptographer
 import se.koditoriet.fenris.crypto.DecryptionContext
 import se.koditoriet.fenris.crypto.DummyAuthenticator
+import se.koditoriet.fenris.crypto.EphemeralSymmetricKey
 import se.koditoriet.fenris.crypto.generateTotpCode
 import se.koditoriet.fenris.crypto.types.EncryptedData
 import se.koditoriet.fenris.crypto.types.EncryptionAlgorithm
@@ -63,6 +64,11 @@ class Vault(
     val state: State
         get() = _state.value.public
 
+    val ephemeralKey: EphemeralSymmetricKey = EphemeralSymmetricKey(
+        algorithm = EncryptionAlgorithm.AES_GCM,
+        secureRandom = secureRandom,
+    )
+
     private val unlockState: UnlockState?
         get() = _state.value.unlockState
 
@@ -88,8 +94,9 @@ class Vault(
             }
             is InternalState.Unlocked -> {
                 Log.i(TAG, "Locking vault")
-                unlockState?.repository?.close()
                 _state.value = InternalState.Locked
+                unlockState?.repository?.close()
+                ephemeralKey.wipe()
             }
         }
     }
@@ -609,8 +616,7 @@ class Vault(
 
     private suspend fun createDbKey(requiresAuthenticaton: Boolean): Pair<DbKey, ByteArray> {
         Log.d(TAG, "Generating new $SYMMETRIC_KEY_ALGORITHM DB key")
-        val kekSizeBytes = SYMMETRIC_KEY_ALGORITHM.keySize / 8
-        val dbKekKeyMaterial = ByteArray(kekSizeBytes).apply(secureRandom::nextBytes)
+        val dbKekKeyMaterial = ByteArray(SYMMETRIC_KEY_ALGORITHM.keySizeBytes).apply(secureRandom::nextBytes)
         val dbDekPlaintext = ByteArray(SYMMETRIC_KEY_SIZE).apply(secureRandom::nextBytes)
         val dbKekHandle = cryptographer.storeSymmetricKey(
             keyIdentifier = DB_KEK_IDENTIFIER,

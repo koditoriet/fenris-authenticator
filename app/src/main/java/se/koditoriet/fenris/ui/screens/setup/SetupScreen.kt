@@ -5,8 +5,6 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSerializable
 import androidx.compose.runtime.setValue
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -17,9 +15,10 @@ import kotlinx.coroutines.withContext
 import se.koditoriet.fenris.appStrings
 import se.koditoriet.fenris.crypto.BackupSeed
 import se.koditoriet.fenris.crypto.wordMap
-import se.koditoriet.fenris.ui.components.LoadingOverlayImpl
 import se.koditoriet.fenris.ui.components.LocalLoadingOverlay
 import se.koditoriet.fenris.ui.onIOThread
+import se.koditoriet.fenris.ui.rememberSensitiveSerializable
+import se.koditoriet.fenris.ui.rememberSensitiveSerializableState
 import se.koditoriet.fenris.viewmodel.SetupViewModel
 
 private const val TAG = "SetupScreen"
@@ -28,7 +27,7 @@ private const val TAG = "SetupScreen"
 @Composable
 fun FragmentActivity.SetupScreen() {
     val viewModel = viewModel<SetupViewModel>()
-    var viewState by rememberSerializable { mutableStateOf(ViewState.InitialSetup) }
+    var viewState by rememberSensitiveSerializableState { ViewState.InitialSetup }
 
     BackHandler {
         viewState.previousViewState?.apply {
@@ -39,27 +38,20 @@ fun FragmentActivity.SetupScreen() {
     when (viewState) {
         ViewState.InitialSetup -> {
             InitialSetupScreen(
-                onEnableBackups = {
-                    viewModel.backupSeed = BackupSeed.generate()
-                    viewState = ViewState.ShowBackupSeed
-                },
+                onEnableBackups = { viewState = ViewState.ShowBackupSeed },
                 onSkipBackups = onIOThread { viewModel.createVault(null) },
-                onRestoreBackup = {
-                    viewModel.seedPhraseWords.forEachIndexed { index, _ -> viewModel.seedPhraseWords[index] = "" }
-                    viewState = ViewState.RestoreBackup
-                }
+                onRestoreBackup = { viewState = ViewState.RestoreBackup }
             )
         }
 
         ViewState.ShowBackupSeed -> {
-            val backupSeed = viewModel.backupSeed
-            check(backupSeed != null) { "impossible - backup seed was null!" }
+            val seed = rememberSensitiveSerializable<BackupSeed> { BackupSeed.generate() }
 
             BackupSeedScreen(
-                backupSeed = backupSeed,
+                backupSeed = seed,
                 onContinue = onIOThread {
-                    viewModel.createVault(backupSeed)
-                    backupSeed.wipe()
+                    viewModel.createVault(seed)
+                    seed.wipe()
                 }
             )
         }
@@ -101,8 +93,6 @@ fun FragmentActivity.SetupScreen() {
             )
         }
     }
-
-    LoadingOverlayImpl.Render()
 }
 
 private enum class ViewState(val previousViewState: ViewState?) {

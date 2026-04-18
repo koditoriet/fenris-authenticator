@@ -13,11 +13,6 @@ import se.koditoriet.fenris.vault.VaultExportEnvelope
 private const val TAG = "SetupViewModel"
 
 class SetupViewModel(private val app: Application) : ViewModelBase(app) {
-    var backupSeed: BackupSeed? = null
-    val seedPhraseWords: SnapshotStateList<String> = mutableStateListOf(
-        *Array(BACKUP_SEED_MNEMONIC_LENGTH_WORDS) { "" }
-    )
-
     suspend fun createVault(backupSeed: BackupSeed?) = vault.withLock {
         Log.i(TAG, "Creating vault; enable backups: ${backupSeed != null}")
         val (dbKey, backupKey) = create(

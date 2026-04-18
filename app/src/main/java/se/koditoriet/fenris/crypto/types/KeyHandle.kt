@@ -98,7 +98,7 @@ enum class HmacAlgorithm(
 
 enum class EncryptionAlgorithm(
     override val algorithmName: String,
-    val keySize: Int,
+    val keySizeBits: Int,
     val blockMode: String,
     val paddingScheme: String,
     override val secretKeySpecName: String,
@@ -109,7 +109,10 @@ enum class EncryptionAlgorithm(
         KeyProperties.BLOCK_MODE_GCM,
         KeyProperties.ENCRYPTION_PADDING_NONE,
         KeyProperties.KEY_ALGORITHM_AES,
-    )
+    );
+
+    val keySizeBytes: Int
+        get() = keySizeBits / 8
 }
 
 enum class ECAlgorithm(

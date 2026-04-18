@@ -10,12 +10,6 @@ import se.koditoriet.fenris.crypto.BackupSeed
 private const val TAG = "RegenerateBackupSeedViewModel"
 
 class RegenerateBackupSeedViewModel(app: Application) : ViewModelBase(app) {
-    val newSeed: BackupSeed by lazy { BackupSeed.generate() }
-    var oldSeed: BackupSeed? = null
-    val seedPhraseWords: SnapshotStateList<String> = mutableStateListOf(
-        *Array(BACKUP_SEED_MNEMONIC_LENGTH_WORDS) { "" }
-    )
-
     suspend fun validateSeed(seed: BackupSeed) = vault.withLock { validateSeed(seed) }
 
     suspend fun rekeyBackups(oldSeed: BackupSeed, newSeed: BackupSeed): Boolean = vault.withLock {

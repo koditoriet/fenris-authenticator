@@ -1,12 +1,10 @@
 package se.koditoriet.fenris.ui
 
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
-import se.koditoriet.fenris.ui.components.LoadingOverlay
 import se.koditoriet.fenris.ui.components.LoadingOverlayImpl
 
 class LoadingScreenUnitTest {

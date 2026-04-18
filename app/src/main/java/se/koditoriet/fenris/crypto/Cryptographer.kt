@@ -167,7 +167,7 @@ class Cryptographer(
         keyMaterial: ByteArray,
         algorithm: EncryptionAlgorithm = EncryptionAlgorithm.AES_GCM,
     ): KeyHandle<EncryptionAlgorithm> {
-        require(keyMaterial.size == algorithm.keySize / 8)
+        require(keyMaterial.size == algorithm.keySizeBytes)
 
         val keyHandle = KeyHandle(
             usage = if (allowDecrypt) {

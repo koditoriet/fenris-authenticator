@@ -16,10 +16,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -38,6 +38,7 @@ import se.koditoriet.fenris.ui.components.SecondaryButton
 import se.koditoriet.fenris.ui.components.dialogs.LocalDialogHost
 import se.koditoriet.fenris.ui.components.dialogs.showBadInput
 import se.koditoriet.fenris.ui.primaryHint
+import se.koditoriet.fenris.ui.rememberSensitiveSerializableList
 import se.koditoriet.fenris.ui.theme.PADDING_S
 import se.koditoriet.fenris.ui.theme.PADDING_XL
 import se.koditoriet.fenris.ui.theme.SPACING_M
@@ -50,14 +51,15 @@ fun SeedPhraseInput(
     confirmButtonText: String,
     seedWords: Set<String>,
     modifier: Modifier = Modifier,
-    seedPhraseInputState: SnapshotStateList<String>,
     onScanQRClick: () -> Unit,
     onContinue: (BackupSeed) -> Unit,
 ) {
-    require(seedPhraseInputState.size == BACKUP_SEED_MNEMONIC_LENGTH_WORDS)
     val screenStrings = appStrings.seedInputScreen
     val dialogHost = LocalDialogHost.current
     val focusRequesters = remember { List(BACKUP_SEED_MNEMONIC_LENGTH_WORDS) { FocusRequester() } }
+    val words = rememberSensitiveSerializableList {
+        mutableStateListOf(*Array(BACKUP_SEED_MNEMONIC_LENGTH_WORDS) { "" })
+    }
 
     Box(modifier = modifier) {
         Column(
@@ -79,10 +81,10 @@ fun SeedPhraseInput(
                 items(BACKUP_SEED_MNEMONIC_LENGTH_WORDS) { index ->
                     SeedWordInput(
                         index = index,
-                        words = seedPhraseInputState[index],
+                        words = words[index],
                         isLastWord = index == BACKUP_SEED_MNEMONIC_LENGTH_WORDS - 1,
                         seedWords = seedWords,
-                        onValueChange = { seedPhraseInputState[index] = it },
+                        onValueChange = { words[index] = it },
                         onNextWord = { focusRequesters[index + 1].requestFocus() },
                         focusRequester = focusRequesters[index],
                     )
@@ -90,7 +92,7 @@ fun SeedPhraseInput(
             }
         }
 
-        val seedPhraseIsValid = seedPhraseInputState.all { it in seedWords }
+        val seedPhraseIsValid = words.all { it in seedWords }
         var confirmButtonEnabled by remember { mutableStateOf(true) }
         MainButton(
             text = confirmButtonText,
@@ -99,7 +101,7 @@ fun SeedPhraseInput(
                 confirmButtonEnabled = false
                 if (seedPhraseIsValid) {
                     try {
-                        onContinue(BackupSeed.fromMnemonic(seedPhraseInputState))
+                        onContinue(BackupSeed.fromMnemonic(words))
                     } catch (e: Exception) {
                         Log.w(TAG, "Invalid seed phrase", e)
                         dialogHost.showBadInput(
@@ -107,7 +109,7 @@ fun SeedPhraseInput(
                             text = screenStrings.invalidSeedPhraseDescription,
                         )
                     }
-                    seedPhraseInputState.forEachIndexed { index, _ -> seedPhraseInputState[index] = "" }
+                    words.forEachIndexed { index, _ -> words[index] = "" }
                 }
                 confirmButtonEnabled = true
             },

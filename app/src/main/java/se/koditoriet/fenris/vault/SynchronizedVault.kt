@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.sync.Mutex
 import se.koditoriet.fenris.DbKey
 import se.koditoriet.fenris.crypto.Authenticator
+import se.koditoriet.fenris.crypto.EphemeralSymmetricKey
 import se.koditoriet.fenris.crypto.types.EncryptionAlgorithm
 import se.koditoriet.fenris.crypto.types.KeyHandle
 import java.security.Signature
@@ -40,6 +41,8 @@ class SynchronizedVault(vaultFactory: () -> Vault) {
     val state: StateFlow<Vault.State> by lazy { vault.observeState() }
     val totpSecrets: StateFlow<List<TotpSecret>> by lazy { vault.observeTotpSecrets() }
     val passkeys: StateFlow<List<Passkey>> by lazy { vault.observePasskeys() }
+    val ephemeralKey: EphemeralSymmetricKey
+        get() = vault.ephemeralKey
 }
 
 private class UnlockingAuthenticator(

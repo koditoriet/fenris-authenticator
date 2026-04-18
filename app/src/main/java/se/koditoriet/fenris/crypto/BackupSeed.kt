@@ -38,6 +38,10 @@ class BackupSeed(private val secret: ByteArray) {
     private fun deriveKey(domain: String): ByteArray =
         hkdf(secret, domain)
 
+    protected fun finalize() {
+        wipe()
+    }
+
     companion object {
         fun generate(secureRandom: SecureRandom = SecureRandom()): BackupSeed =
             BackupSeed(ByteArray(SYMMETRIC_KEY_SIZE).apply(secureRandom::nextBytes))

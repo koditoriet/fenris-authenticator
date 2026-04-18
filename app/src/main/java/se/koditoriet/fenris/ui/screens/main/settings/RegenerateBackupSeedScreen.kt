@@ -13,8 +13,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSerializable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -23,6 +21,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
 import se.koditoriet.fenris.appStrings
 import se.koditoriet.fenris.crypto.BackupSeed
 import se.koditoriet.fenris.crypto.wordMap
@@ -33,6 +32,8 @@ import se.koditoriet.fenris.ui.components.dialogs.LocalDialogHost
 import se.koditoriet.fenris.ui.components.dialogs.showBadInput
 import se.koditoriet.fenris.ui.components.dialogs.showSuccess
 import se.koditoriet.fenris.ui.components.dialogs.showWarning
+import se.koditoriet.fenris.ui.rememberSensitiveSerializable
+import se.koditoriet.fenris.ui.rememberSensitiveSerializableState
 import se.koditoriet.fenris.viewmodel.RegenerateBackupSeedViewModel
 
 private const val TAG = "RegenerateBackupSeedScreen"
@@ -47,13 +48,9 @@ fun RegenerateBackupSeedScreen(
     val lifecycleScope = LocalLifecycleOwner.current.lifecycleScope
     val dialogHost = LocalDialogHost.current
 
-    var viewState by rememberSerializable {
-        mutableStateOf(RegenerateBackupSeedViewState.InputSeedPhrase)
-    }
-
-    fun close() {
-        viewModel.seedPhraseWords.forEachIndexed { index, _ -> viewModel.seedPhraseWords[index] = "" }
-        onClose()
+    // Sensitive because ShowNewSeed contains a backup seed.
+    var viewState by rememberSensitiveSerializableState<RegenerateBackupSeedViewState> {
+        RegenerateBackupSeedViewState.InputSeedPhrase
     }
 
     fun continueIfSeedIsValid(seed: BackupSeed) {
@@ -62,8 +59,7 @@ fun RegenerateBackupSeedScreen(
             val success = withContext(Dispatchers.IO) { viewModel.validateSeed(seed) }
             if (success) {
                 Log.d(TAG, "Current backup seed is valid, proceeding to generate a new one")
-                viewModel.oldSeed = seed
-                viewState = RegenerateBackupSeedViewState.ShowNewSeed
+                viewState = RegenerateBackupSeedViewState.ShowNewSeed(seed)
             } else {
                 Log.w(TAG, "Backup seed is invalid!")
                 seed.wipe()
@@ -77,14 +73,14 @@ fun RegenerateBackupSeedScreen(
     }
 
     BackHandler {
-        close()
+        onClose()
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 navigationIcon = {
-                    IconButton(onClick = { close() }) {
+                    IconButton(onClick = { onClose() }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = appStrings.generic.back,
@@ -100,7 +96,6 @@ fun RegenerateBackupSeedScreen(
                 RegenerateBackupSeedViewState.InputSeedPhrase -> {
                     SeedPhraseInput(
                         confirmButtonText = appStrings.generic.next,
-                        seedPhraseInputState = viewModel.seedPhraseWords,
                         seedWords = wordMap.keys,
                         modifier = Modifier.padding(padding),
                         onScanQRClick = {
@@ -121,31 +116,29 @@ fun RegenerateBackupSeedScreen(
                     )
                 }
 
-                RegenerateBackupSeedViewState.ShowNewSeed -> {
+                is RegenerateBackupSeedViewState.ShowNewSeed -> {
+                    val newSeed = rememberSensitiveSerializable { BackupSeed.generate() }
                     BackHandler {
                         Log.d(TAG, "Back pressed, backing out of new seed display screen")
                         viewState = RegenerateBackupSeedViewState.InputSeedPhrase
                     }
                     BackupSeedDisplay(
-                        backupSeed = viewModel.newSeed,
+                        backupSeed = newSeed,
                         text = screenStrings.newSeedExplanation,
                         confirmButtonText = screenStrings.confirmNewSeed,
                         modifier = Modifier.padding(padding),
                         onContinue = {
-                            val oldSeed = viewModel.oldSeed
-                            check(oldSeed != null) { "old seed was null - impossible!" }
-
                             lifecycleScope.launch(Dispatchers.Main) {
                                 val success = withContext(Dispatchers.IO) {
                                     Log.d(TAG, "Rekeying backups")
-                                    viewModel.rekeyBackups(oldSeed, viewModel.newSeed)
+                                    viewModel.rekeyBackups(frozenViewState.oldSeed, newSeed)
                                 }
 
                                 if (success) {
                                     dialogHost.showSuccess(
                                         title = screenStrings.successDialogTitle,
                                         text = screenStrings.successDialogText,
-                                        onDismiss = { close() },
+                                        onDismiss = { onClose() },
                                     )
                                 } else {
                                     dialogHost.showWarning(
@@ -155,8 +148,8 @@ fun RegenerateBackupSeedScreen(
                                 }
 
                                 Log.d(TAG, "Wiping temporary seeds")
-                                oldSeed.wipe()
-                                viewModel.newSeed.wipe()
+                                frozenViewState.oldSeed.wipe()
+                                newSeed.wipe()
                             }
                         },
                     )
@@ -166,8 +159,9 @@ fun RegenerateBackupSeedScreen(
     }
 }
 
-private enum class RegenerateBackupSeedViewState {
-    InputSeedPhrase,
-    InputSeedQR,
-    ShowNewSeed,
+@Serializable
+private sealed interface RegenerateBackupSeedViewState {
+    @Serializable object InputSeedPhrase : RegenerateBackupSeedViewState
+    @Serializable object InputSeedQR : RegenerateBackupSeedViewState
+    @Serializable class ShowNewSeed(val oldSeed: BackupSeed) : RegenerateBackupSeedViewState
 }

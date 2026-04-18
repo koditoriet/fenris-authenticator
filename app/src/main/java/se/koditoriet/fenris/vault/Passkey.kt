@@ -129,6 +129,10 @@ data class NewPasskey(
         result = 31 * result + (publicKeyDER?.contentHashCode() ?: 0)
         return result
     }
+
+    protected fun finalize() {
+        privateKeyDER.fill(0)
+    }
 }
 
 enum class PasskeyAlgorithm { ES256 }
