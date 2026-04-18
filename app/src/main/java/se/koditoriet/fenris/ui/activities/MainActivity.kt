@@ -26,9 +26,12 @@ import kotlinx.coroutines.launch
 import se.koditoriet.fenris.Config
 import se.koditoriet.fenris.credentialprovider.FenrisCredentialProviderService
 import se.koditoriet.fenris.crypto.BiometricPromptAuthenticator
+import se.koditoriet.fenris.ui.CompositionLocalProviders
+import se.koditoriet.fenris.ui.LocalEphemeralKey
 import se.koditoriet.fenris.ui.components.LoadingOverlayImpl
 import se.koditoriet.fenris.ui.components.LocalLoadingOverlay
 import se.koditoriet.fenris.ui.components.dialogs.DialogHostImpl
+import se.koditoriet.fenris.ui.components.dialogs.LocalDialogHost
 import se.koditoriet.fenris.ui.ignoreAuthFailure
 import se.koditoriet.fenris.ui.onIOThread
 import se.koditoriet.fenris.ui.screens.EnablePasskeysScreen
@@ -83,9 +86,7 @@ class MainActivity : FragmentActivity() {
 
         enableEdgeToEdge()
         setContent {
-            CompositionLocalProvider(LocalLoadingOverlay provides LoadingOverlayImpl) {
-                MainActivityContent()
-            }
+            MainActivityContent()
         }
     }
 }
@@ -133,22 +134,35 @@ fun MainActivity.MainActivityContent() {
 
     FenrisTheme {
         DialogHostImpl.Render()
+        LoadingOverlayImpl.Render()
 
         if (!isScreenLockEnabled) {
             EnableScreenLockScreen()
             return@FenrisTheme
         }
 
-        when (vaultState) {
-            Vault.State.Unlocked -> { UnlockedScreens(config, isCredentialProviderEnabled) }
-            Vault.State.Uninitialized -> { SetupScreen() }
-            Vault.State.Locked -> {
-                LockedScreen(
-                    onUnlock = onIOThread {
-                        val authFactory = BiometricPromptAuthenticator.Factory(this)
-                        ignoreAuthFailure { viewModel.unlockVault(authFactory) }
-                    },
-                )
+        CompositionLocalProviders(
+            LocalLoadingOverlay provides LoadingOverlayImpl,
+            LocalDialogHost provides DialogHostImpl,
+            LocalEphemeralKey provides viewModel.ephemeralKey
+        ) {
+            when (vaultState) {
+                Vault.State.Unlocked -> {
+                    UnlockedScreens(config, isCredentialProviderEnabled)
+                }
+
+                Vault.State.Uninitialized -> {
+                    SetupScreen()
+                }
+
+                Vault.State.Locked -> {
+                    LockedScreen(
+                        onUnlock = onIOThread {
+                            val authFactory = BiometricPromptAuthenticator.Factory(this)
+                            ignoreAuthFailure { viewModel.unlockVault(authFactory) }
+                        },
+                    )
+                }
             }
         }
     }

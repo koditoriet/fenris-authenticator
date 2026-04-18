@@ -12,7 +12,6 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import se.koditoriet.fenris.crypto.BiometricPromptAuthenticator
-import se.koditoriet.fenris.ui.components.LoadingOverlayImpl
 import se.koditoriet.fenris.ui.screens.main.passkeys.ManagePasskeysScreen
 import se.koditoriet.fenris.ui.screens.main.secrets.ListSecretsScreen
 import se.koditoriet.fenris.ui.screens.main.settings.RegenerateBackupSeedScreen
@@ -63,8 +62,6 @@ fun FragmentActivity.MainScreen(
             RegenerateBackupSeedScreen(onClose = { viewState = ViewState.Settings })
         }
     }
-
-    LoadingOverlayImpl.Render()
 }
 
 enum class ViewState(val previousViewState: ViewState?) {

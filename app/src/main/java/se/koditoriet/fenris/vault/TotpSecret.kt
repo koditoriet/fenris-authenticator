@@ -96,6 +96,10 @@ data class NewTotpSecret(
             result = 31 * result + algorithm.hashCode()
             return result
         }
+
+        protected fun finalize() {
+            secret.fill('x')
+        }
     }
 
     companion object {

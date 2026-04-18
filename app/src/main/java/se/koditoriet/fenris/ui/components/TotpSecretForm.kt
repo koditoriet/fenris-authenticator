@@ -1,5 +1,6 @@
 package se.koditoriet.fenris.ui.components
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.view.accessibility.AccessibilityManager
 import androidx.compose.animation.AnimatedVisibility
@@ -49,6 +50,7 @@ import se.koditoriet.fenris.codec.isValidBase32
 import se.koditoriet.fenris.ui.components.SecretVisibility.Hidden
 import se.koditoriet.fenris.ui.components.SecretVisibility.Visible
 import se.koditoriet.fenris.ui.primaryHint
+import se.koditoriet.fenris.ui.rememberSensitiveSerializableState
 import se.koditoriet.fenris.ui.theme.INPUT_FIELD_PADDING
 import se.koditoriet.fenris.ui.theme.PADDING_M
 import se.koditoriet.fenris.ui.theme.PADDING_XXL
@@ -67,7 +69,7 @@ inline fun <reified T : TotpSecretFormResult> TotpSecretForm(
     val metadataOnly = T::class != TotpSecretFormResult.TotpSecret::class
     var issuer by rememberSaveable { mutableStateOf(metadata?.issuer ?: "") }
     var account by rememberSaveable { mutableStateOf(metadata?.account ?: "") }
-    var secretDataFormState by rememberSerializable { mutableStateOf(SecretDataFormState()) }
+    var secretDataFormState by rememberSensitiveSerializableState { SecretDataFormState() }
 
     val secretDataIsValid = if (metadataOnly) true else secretDataFormState.isValid
     val saveData = { metadata: NewTotpSecret.Metadata ->
@@ -143,7 +145,7 @@ inline fun <reified T : TotpSecretFormResult> TotpSecretForm(
 
 @Composable
 fun SecretDataPartialForm(
-    fieldModifier: Modifier,
+    @SuppressLint("ModifierParameter") fieldModifier: Modifier,
     hideSecretsFromAccessibility: Boolean,
     secretDataFormState: SecretDataFormState,
     onChange: (SecretDataFormState) -> Unit,

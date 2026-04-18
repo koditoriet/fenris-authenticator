@@ -3,12 +3,10 @@ package se.koditoriet.fenris.viewmodel
 import android.app.Application
 import android.util.Log
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.serialization.Serializable
 import se.koditoriet.fenris.SortMode
 import se.koditoriet.fenris.crypto.AuthenticatorFactory
 import se.koditoriet.fenris.vault.NewPasskey
 import se.koditoriet.fenris.vault.NewTotpSecret
-import se.koditoriet.fenris.vault.TotpAlgorithm
 import se.koditoriet.fenris.vault.TotpSecret
 import kotlin.time.Clock
 
@@ -70,25 +68,3 @@ class ListSecretsViewModel(app: Application) : ViewModelBase(app) {
     }
 }
 
-@Serializable
-private class JsonImportItem(
-    val secret: String,
-    val account: String? = null,
-    val digits: Int = 6,
-    val period: Int = 30,
-    val algorithm: TotpAlgorithm = TotpAlgorithm.SHA1,
-) {
-    fun toNewTotpSecret(issuer: String): NewTotpSecret =
-        NewTotpSecret(
-            metadata = NewTotpSecret.Metadata(
-                issuer = issuer,
-                account = account,
-            ),
-            secretData = NewTotpSecret.SecretData(
-                secret = secret.toCharArray(),
-                digits = digits,
-                period = period,
-                algorithm = algorithm,
-            )
-        )
-}
