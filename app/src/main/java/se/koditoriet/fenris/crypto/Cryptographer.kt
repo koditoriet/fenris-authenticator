@@ -21,7 +21,6 @@ import java.security.KeyFactory
 import java.security.KeyPair
 import java.security.KeyPairGenerator
 import java.security.KeyStore
-import java.security.KeyStoreException
 import java.security.PrivateKey
 import java.security.ProviderException
 import java.security.SecureRandom
@@ -393,7 +392,9 @@ private fun <T : KeyAlgorithm> KeyStore.importKey(
             "Key ${keyHandle.alias} successfully stored in StrongBox",
         )
         return updatedKeyHandle
-    } catch (_: KeyStoreException) {
+    } catch (_: Exception) {
+        // We catch every exception here to account for OEMs throwing weird exceptions instead of the proper
+        // KeyStoreException. If the problem was anything but Strongbox, it'll be thrown again in a few lines anyway.
         val updatedKeyHandle = keyHandle.copy(isStrongBoxBacked = false)
         Log.i(
             TAG,

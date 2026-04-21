@@ -1,6 +1,5 @@
 package se.koditoriet.fenris.ui.components
 
-import android.Manifest.permission.CAMERA
 import android.content.Context
 import android.graphics.ImageFormat
 import android.graphics.SurfaceTexture
@@ -34,6 +33,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -103,10 +103,7 @@ fun QrScanner(
                     .aspectRatio(9f / 16f),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                RequiresPermission(
-                    permission = CAMERA,
-                    permissionsRequiredMessage = appStrings.qrScanner.permissionsRequired,
-                ) {
+                RequiresCamera {
                     Box(Modifier.fillMaxSize()) {
                         QrScannerView(
                             modifier = Modifier.fillMaxSize(),
@@ -137,19 +134,31 @@ private fun QrScannerView(
     onCameraClosed: () -> Unit,
 ) {
     Log.i(TAG, "Initializing camera for QR scanning")
-    var captureSession: CameraCaptureSession? by remember { mutableStateOf(null) }
-    val handlerThread = remember { HandlerThread("camera-bg").apply { start() } }
-    val handler = Handler(handlerThread.looper)
-    val cameraManager = LocalContext.current.getSystemService(Context.CAMERA_SERVICE) as CameraManager
-    val cameraId = cameraManager.getBackCameraId()
+    val ctx = LocalContext.current
     val scope = LocalLifecycleOwner.current.lifecycleScope
+    var captureSession: CameraCaptureSession? by remember { mutableStateOf(null) }
 
-    val availableOutputSizes = cameraManager
-        .getCameraCharacteristics(cameraId)
-        .get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
-        ?.getOutputSizes(ImageFormat.YUV_420_888)
-        ?.filter { it.w.toFloat() / it.h in 1.75f..1.80f }
-        ?: emptyList()
+    val (cameraManager, cameraId) = try {
+        val cameraManager = ctx.getSystemService(Context.CAMERA_SERVICE) as CameraManager
+        cameraManager to cameraManager.getBackCameraId()
+    } catch (e: Throwable) {
+        Log.e(TAG, "Unable to obtain back camera", e)
+        onCameraClosed()
+        return
+    }
+
+    val availableOutputSizes = try {
+        cameraManager
+            .getCameraCharacteristics(cameraId)
+            .get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
+            ?.getOutputSizes(ImageFormat.YUV_420_888)
+            ?.filter { it.w.toFloat() / it.h in 1.75f..1.80f }
+            ?: emptyList()
+    } catch (e: Throwable) {
+        Log.e(TAG, "Unable to read camera characteristics", e)
+        onCameraClosed()
+        return
+    }
 
     Log.i(TAG, "Available 16:9 output sizes: ${availableOutputSizes.joinToString(", ")}")
 
@@ -166,38 +175,56 @@ private fun QrScannerView(
 
     Log.i(TAG, "Picked output size $outputSize")
 
+    Log.i(TAG, "Starting handler thread")
+    val handlerThread = remember { HandlerThread("camera-bg").apply { start() } }
+    val handler = Handler(handlerThread.looper)
+
+    DisposableEffect(handlerThread) {
+        onDispose {
+            handler.removeCallbacksAndMessages(null)
+            handlerThread.quitSafely()
+        }
+    }
+
     AndroidView(
         modifier = modifier,
         factory = { ctx ->
             TextureView(ctx).apply {
                 surfaceTextureListener = object : TextureView.SurfaceTextureListener {
                     override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int) {
-                        Log.d(TAG, "Setting preview buffer size to $outputSize")
-                        surface.setDefaultBufferSize(outputSize.width, outputSize.height)
-                        val previewSurface = Surface(surfaceTexture)
-                        val callback = QrScannerCameraDeviceStateCallback(
-                            outputSize = outputSize,
-                            handler = handler,
-                            previewSurface = previewSurface,
-                            onQrScanned = {
-                                scope.launch(Dispatchers.Main) {
-                                    onQrScanned(it)
-                                }
-                            },
-                            onConfigured = { captureSession = it },
-                            onClosed = {
-                                captureSession = null
-                                scope.launch(Dispatchers.Main) {
-                                    onCameraClosed()
-                                }
-                            },
-                        )
+                        try {
+                            Log.d(TAG, "Setting preview buffer size to $outputSize")
+                            surface.setDefaultBufferSize(outputSize.width, outputSize.height)
+                            val previewSurface = Surface(surfaceTexture)
+                            val callback = QrScannerCameraDeviceStateCallback(
+                                outputSize = outputSize,
+                                handler = handler,
+                                previewSurface = previewSurface,
+                                onQrScanned = {
+                                    scope.launch(Dispatchers.Main) {
+                                        onQrScanned(it)
+                                    }
+                                },
+                                onConfigured = { captureSession = it },
+                                onClosed = {
+                                    captureSession = null
+                                    scope.launch(Dispatchers.Main) {
+                                        onCameraClosed()
+                                    }
+                                },
+                            )
 
-                        // This entire component is wrapped in a RequiresPermission component which ensures that we
-                        // never get here unless we have camera access.
-                        Log.d(TAG, "Opening camera with id $cameraId")
-                        @Suppress("MissingPermission")
-                        cameraManager.openCamera(cameraId, callback, handler)
+                            Log.d(TAG, "Opening camera with id $cameraId")
+
+                            // This entire component is wrapped in a RequiresPermission component which ensures that we
+                            // never get here unless we have camera permissions.
+                            @Suppress("MissingPermission")
+                            cameraManager.openCamera(cameraId, callback, handler)
+                        } catch (e: Throwable)  {
+                            Log.e(TAG, "Unable to open camera", e)
+                            onCameraClosed()
+                            return
+                        }
                     }
 
                     override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean {
@@ -259,6 +286,7 @@ private fun QrViewfinderOverlay(modifier: Modifier) {
     }
 }
 
+@OptIn(ExperimentalAtomicApi::class)
 private class QrScannerCameraDeviceStateCallback(
     outputSize: android.util.Size,
     private val handler: Handler,
@@ -271,10 +299,19 @@ private class QrScannerCameraDeviceStateCallback(
         outputSize.width,
         outputSize.height,
         ImageFormat.YUV_420_888,
-        2
+        2,
     )
 
-    @OptIn(ExperimentalAtomicApi::class)
+    private val alreadyClosed = AtomicBoolean(false)
+
+    private fun closeAndNotify() {
+        if (!alreadyClosed.exchange(true)) {
+            Log.i(TAG, "Camera device closed")
+            cameraImageReader.close()
+            onClosed()
+        }
+    }
+
     override fun onOpened(device: CameraDevice) {
         Log.d(TAG, "Camera device opened")
         val qrAlreadyScanned = AtomicBoolean(false)
@@ -290,29 +327,41 @@ private class QrScannerCameraDeviceStateCallback(
                     }
                 }
             },
-            handler
+            handler,
         )
 
         Log.d(TAG, "Creating capture session")
-        device.createCaptureSession(
-            createCameraSessionConfig(
-                device = device,
-                handler = handler,
-                previewSurface = this@QrScannerCameraDeviceStateCallback.previewSurface,
-                outputSurface = cameraImageReader.surface,
-                onConfigured = onConfigured,
+        try {
+            device.createCaptureSession(
+                createCameraSessionConfig(
+                    device = device,
+                    handler = handler,
+                    previewSurface = this@QrScannerCameraDeviceStateCallback.previewSurface,
+                    outputSurface = cameraImageReader.surface,
+                    onConfigured = onConfigured,
+                    onFailed = this::closeAndNotify,
+                )
             )
-        )
+        } catch (e: Throwable) {
+            Log.e(TAG, "Failed to create capture session", e)
+            device.close()
+            closeAndNotify()
+        }
     }
 
-    override fun onClosed(camera: CameraDevice) = onClosed()
+    override fun onClosed(camera: CameraDevice) {
+        closeAndNotify()
+    }
+
     override fun onDisconnected(device: CameraDevice) {
         Log.w(TAG, "Camera disconnected")
         device.close()
+        closeAndNotify()
     }
     override fun onError(device: CameraDevice, error: Int) {
         Log.w(TAG, "Camera errored ($error)")
         device.close()
+        closeAndNotify()
     }
 }
 
@@ -322,20 +371,30 @@ private fun createCameraSessionConfig(
     previewSurface: Surface,
     outputSurface: Surface,
     onConfigured: (CameraCaptureSession) -> Unit,
+    onFailed: () -> Unit,
 ): SessionConfiguration {
     val callback = object : CameraCaptureSession.StateCallback() {
         override fun onConfigured(session: CameraCaptureSession) {
             Log.d(TAG, "Creating capture request with two targets")
-            val request = device.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW).apply {
-                addTarget(previewSurface)
-                addTarget(outputSurface)
-                set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO)
-            }.build()
-            session.setRepeatingRequest(request, null, handler)
-            onConfigured(session)
+            try {
+                val request = device.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW).apply {
+                    addTarget(previewSurface)
+                    addTarget(outputSurface)
+                    set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO)
+                }.build()
+                session.setRepeatingRequest(request, null, handler)
+                onConfigured(session)
+            } catch (e: Throwable) {
+                Log.e(TAG, "Unable to create capture request", e)
+                device.close()
+                onFailed()
+            }
         }
 
-        override fun onConfigureFailed(session: CameraCaptureSession) {}
+        override fun onConfigureFailed(session: CameraCaptureSession) {
+            device.close()
+            onFailed()
+        }
     }
 
     val outputConfigs = listOf(

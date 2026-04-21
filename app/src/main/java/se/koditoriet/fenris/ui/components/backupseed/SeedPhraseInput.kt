@@ -102,7 +102,7 @@ fun SeedPhraseInput(
                 if (seedPhraseIsValid) {
                     try {
                         onContinue(BackupSeed.fromMnemonic(words))
-                    } catch (e: Exception) {
+                    } catch (e: Throwable) {
                         Log.w(TAG, "Invalid seed phrase", e)
                         dialogHost.showBadInput(
                             title = screenStrings.invalidSeedPhrase,

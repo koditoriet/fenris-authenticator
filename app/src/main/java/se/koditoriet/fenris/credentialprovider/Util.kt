@@ -110,7 +110,7 @@ fun createPendingIntent(context: Context, cls: Class<*>, extra: Bundle? = null):
 private var _webAuthnValidator: WebAuthnValidator? = null
 
 val Context.webAuthnValidator: WebAuthnValidator
-    get() {
+    get() = synchronized(this) {
         if (_webAuthnValidator == null) {
             val privilegedBrowserList = assets.open(PRIVILEGED_BROWSERS_ASSET_NAME).use { stream ->
                 stream.bufferedReader().use { it.readText() }

@@ -19,7 +19,7 @@ class WebAuthnValidator(
     fun originIsValid(callingAppInfo: CallingAppInfo): Boolean {
         val origin = try {
             appInfoToOrigin(callingAppInfo)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Log.e(TAG, "Unable to get origin from calling app info", e)
             return false
         }
@@ -63,7 +63,7 @@ class WebAuthnValidator(
         if (callingAppInfo.isOriginPopulated()) {
             try {
                 return callingAppInfo.getOrigin(privilegedBrowserList)!!
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Log.w(TAG, "Unable to get populated origin; falling back to Android origin", e)
             }
         }

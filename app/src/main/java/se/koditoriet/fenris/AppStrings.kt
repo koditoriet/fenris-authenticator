@@ -59,6 +59,7 @@ class AppStrings(private val ctx: Context) {
     class QRScanner(ctx: Context) {
         val title by ctx.s(R.string.qrscanner_title)
         val permissionsRequired by ctx.s(R.string.qrscanner_permissions_required)
+        val capabilityRequired by ctx.s(R.string.qrscanner_capability_required)
     }
 
     inner class SetupScreen(ctx: Context) {

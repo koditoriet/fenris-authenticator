@@ -1,6 +1,7 @@
 package se.koditoriet.fenris.ui
 
 import android.annotation.SuppressLint
+import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateListOf
@@ -17,6 +18,8 @@ import kotlinx.serialization.serializer
 import se.koditoriet.fenris.crypto.EphemeralSymmetricKey
 import se.koditoriet.fenris.crypto.types.EncryptedData
 
+private const val TAG = "EncryptedSaver"
+
 @OptIn(ExperimentalSerializationApi::class)
 class EncryptedSaver<T>(
     private val key: EphemeralSymmetricKey,
@@ -27,13 +30,16 @@ class EncryptedSaver<T>(
         return key.encrypt(encodedData).encode()
     }
 
-    override fun restore(value: String): T? {
+    override fun restore(value: String): T? = try {
         val decryptedData = key.decrypt(EncryptedData.decode(value))
-        return if (decryptedData.isEmpty()) {
+        if (decryptedData.isEmpty()) {
             null
         } else {
             ProtoBuf.decodeFromByteArray(serializer, decryptedData)
         }
+    } catch (e: Throwable) {
+        Log.e(TAG, "Failed to restore encrypted state", e)
+        null
     }
 
     companion object {
@@ -52,9 +58,12 @@ class EncryptedSnapshotStateListSaver<T>(
         save(value.toList())
     }
 
-    override fun restore(value: String): SnapshotStateList<T>? =
+    override fun restore(value: String): SnapshotStateList<T>? = try {
         saver.restore(value)?.let { mutableStateListOf<T>().apply { addAll(it) } }
-
+    } catch (e: Throwable) {
+        Log.e(TAG, "Failed to restore encrypted SnapshotStateList", e)
+        null
+    }
 }
 
 val LocalEphemeralKey = staticCompositionLocalOf {

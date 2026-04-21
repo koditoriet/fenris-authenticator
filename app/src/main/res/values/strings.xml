@@ -29,6 +29,7 @@
     <!-- QR scanner -->
     <string name="qrscanner_title">Scan QR code</string>
     <string name="qrscanner_permissions_required">Camera permissions are required to scan QR codes</string>
+    <string name="qrscanner_capability_required">A back-facing camera is required to scan QR codes</string>
 
 
     <!-- Initial setup screen -->

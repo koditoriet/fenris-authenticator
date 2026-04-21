@@ -31,7 +31,7 @@ fun SeedQRCodeInput(
                 // Don't interpret QR codes while the "invalid backup seed" dialog is active
                 try {
                     onContinue(BackupSeed.fromUri(it.toUri()))
-                } catch (e: Exception) {
+                } catch (e: Throwable) {
                     dialogHost.showBadInput(
                         title = screenStrings.invalidSeedQRCode,
                         text = screenStrings.invalidSeedQRCodeDescription,

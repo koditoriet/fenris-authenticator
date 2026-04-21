@@ -1,6 +1,5 @@
 package se.koditoriet.fenris.ui.activities
 
-import android.app.KeyguardManager
 import android.content.ComponentName
 import android.credentials.CredentialManager
 import android.os.Build
@@ -11,7 +10,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -34,6 +32,7 @@ import se.koditoriet.fenris.ui.components.dialogs.DialogHostImpl
 import se.koditoriet.fenris.ui.components.dialogs.LocalDialogHost
 import se.koditoriet.fenris.ui.ignoreAuthFailure
 import se.koditoriet.fenris.ui.onIOThread
+import se.koditoriet.fenris.ui.screenLockEnabled
 import se.koditoriet.fenris.ui.screens.EnablePasskeysScreen
 import se.koditoriet.fenris.ui.screens.EnableScreenLockScreen
 import se.koditoriet.fenris.ui.screens.LockedScreen
@@ -113,7 +112,7 @@ fun MainActivity.MainActivityContent() {
                         viewModel.unlockVault(authFactory)
                     }
                 }
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Log.e(TAG, "Error trying to unlock vault", e)
                 // NOP - this will only happen when keystore has been wiped, and that case is handled explicitly
                 // by the FenrisApp class.
@@ -197,15 +196,19 @@ private fun MainActivity.credentialProviderEnabled(): Boolean {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
         return false
     }
+
     val credentialManager = getSystemService(CredentialManager::class.java)
     val componentName = ComponentName(
         this.applicationContext,
         FenrisCredentialProviderService::class.java
     )
-    return credentialManager.isEnabledCredentialProviderService(componentName)
-}
 
-private fun MainActivity.screenLockEnabled(): Boolean {
-    val keyguardManager = getSystemService(KeyguardManager::class.java)
-    return keyguardManager.isDeviceSecure
+    // We need to wrap this in a try/catch, since isEnabledCredentialProviderService may throw on some devices
+    // running API level 35.
+    return try {
+        credentialManager.isEnabledCredentialProviderService(componentName)
+    } catch (e: Throwable) {
+        Log.w(TAG, "Unable to check if we're a credential provider!", e)
+        false
+    }
 }

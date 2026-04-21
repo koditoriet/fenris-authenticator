@@ -19,6 +19,8 @@ import se.koditoriet.fenris.crypto.AuthenticationFailedException
 import se.koditoriet.fenris.ui.components.PasskeyIcon
 import se.koditoriet.fenris.ui.components.PasskeyIconFlavor
 import se.koditoriet.fenris.ui.components.ThemedEmptySpace
+import se.koditoriet.fenris.ui.screenLockEnabled
+import se.koditoriet.fenris.ui.screens.EnableScreenLockScreen
 import se.koditoriet.fenris.ui.theme.BACKGROUND_ICON_SIZE
 import se.koditoriet.fenris.ui.theme.FenrisTheme
 import se.koditoriet.fenris.viewmodel.CredentialProviderViewModel
@@ -38,33 +40,48 @@ class ListPasskeysActivity : FragmentActivity() {
             return
         }
 
-        val request = PendingIntentHandler.retrieveBeginGetCredentialRequest(intent)
-        if (request == null) {
-            Log.e(TAG, "Intent does not contain a BeginGetCredentialRequest")
+        val request = try {
+            PendingIntentHandler.retrieveBeginGetCredentialRequest(intent)!!
+        } catch (e: Throwable) {
+            Log.e(TAG, "Unable to get BeginGetCredentialRequest from intent", e)
             finishWithResult(null)
             return
         }
 
         enableEdgeToEdge()
         setContent {
+            if (!screenLockEnabled()) {
+                EnableScreenLockScreen()
+                return@setContent
+            }
+
             LaunchedEffect(Unit) {
                 try {
                     viewModel.unlockVault(BiometricPromptAuthenticator.Factory(this@ListPasskeysActivity))
                 } catch (_: AuthenticationFailedException) {
                     finishWithResult(null)
                     return@LaunchedEffect
+                } catch (e: Throwable) {
+                    Log.e(TAG, "Vault unlock failed", e)
+                    finishWithResult(null)
+                    return@LaunchedEffect
                 }
 
                 Log.i(TAG, "Vault successfully unlocked, creating credential response")
                 (application as FenrisApp).vault.withLock {
-                    val response = createBeginGetCredentialResponse(
-                        vault = this,
-                        context = this@ListPasskeysActivity,
-                        request = request,
-                    )
+                    try {
+                        val response = createBeginGetCredentialResponse(
+                            vault = this,
+                            context = this@ListPasskeysActivity,
+                            request = request,
+                        )
 
-                    Log.i(TAG, "Sending BeginGetCredentialResponse to credential manager")
-                    finishWithResult(response)
+                        Log.i(TAG, "Sending BeginGetCredentialResponse to credential manager")
+                        finishWithResult(response)
+                    } catch (e: Throwable) {
+                        Log.e(TAG, "Failed to parse BeginGetCredentialRequest", e)
+                        finishWithResult(null)
+                    }
                 }
             }
             FenrisTheme {

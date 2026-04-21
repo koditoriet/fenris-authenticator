@@ -32,6 +32,8 @@ import se.koditoriet.fenris.ui.components.PasskeyIconFlavor
 import se.koditoriet.fenris.ui.components.ThemedEmptySpace
 import se.koditoriet.fenris.ui.components.dialogs.DialogHostImpl
 import se.koditoriet.fenris.ui.components.dialogs.showWarning
+import se.koditoriet.fenris.ui.screenLockEnabled
+import se.koditoriet.fenris.ui.screens.EnableScreenLockScreen
 import se.koditoriet.fenris.ui.theme.BACKGROUND_ICON_SIZE
 import se.koditoriet.fenris.ui.theme.FenrisTheme
 import se.koditoriet.fenris.vault.CredentialId
@@ -64,38 +66,47 @@ class AuthenticateActivity : FragmentActivity() {
 
         enableEdgeToEdge()
         setContent {
+            if (!screenLockEnabled()) {
+                EnableScreenLockScreen()
+                return@setContent
+            }
+
             LaunchedEffect(Unit) {
                 try {
                     viewModel.unlockVault(authFactory)
                 } catch (_: AuthenticationFailedException) {
                     finishWithResult(null)
                     return@LaunchedEffect
-                }
-
-                Log.d(TAG, "Fetching passkey with credential ID ${requestInfo.credentialId}")
-                val passkey = viewModel.getPasskey(requestInfo.credentialId)
-
-                if (!requestInfo.isValid(passkey)) {
-                    DialogHostImpl.showWarning(
-                        title = screenStrings.unableToEstablishTrust,
-                        text = screenStrings.unableToEstablishTrustExplanation,
-                        onDismiss = { finishWithResult(null) },
-                    )
+                } catch (e: Throwable) {
+                    Log.e(TAG, "Vault unlock failed", e)
+                    finishWithResult(null)
                     return@LaunchedEffect
                 }
 
-                val response = AuthResponse(
-                    rpId = passkey.rpId,
-                    credentialId = passkey.credentialId.id,
-                    userId = passkey.userId.id,
-                    flags = PASSKEY_AUTH_FLAGS,
-                    providedClientDataHash = requestInfo.clientDataHash,
-                    challenge = requestInfo.challenge,
-                    origin = requestInfo.origin,
-                    packageName = requestInfo.packageName,
-                )
-
+                Log.d(TAG, "Fetching passkey with credential ID ${requestInfo.credentialId}")
                 try {
+                    val passkey = viewModel.getPasskey(requestInfo.credentialId)
+
+                    if (!requestInfo.isValid(passkey)) {
+                        DialogHostImpl.showWarning(
+                            title = screenStrings.unableToEstablishTrust,
+                            text = screenStrings.unableToEstablishTrustExplanation,
+                            onDismiss = { finishWithResult(null) },
+                        )
+                        return@LaunchedEffect
+                    }
+
+                    val response = AuthResponse(
+                        rpId = passkey.rpId,
+                        credentialId = passkey.credentialId.id,
+                        userId = passkey.userId.id,
+                        flags = PASSKEY_AUTH_FLAGS,
+                        providedClientDataHash = requestInfo.clientDataHash,
+                        challenge = requestInfo.challenge,
+                        origin = requestInfo.origin,
+                        packageName = requestInfo.packageName,
+                    )
+
                     val signedResponse = response.sign {
                         Log.i(TAG, "Signing authentication request")
                         viewModel.signWithPasskey(authFactory, passkey, it)
@@ -104,7 +115,12 @@ class AuthenticateActivity : FragmentActivity() {
                     finishWithResult(signedResponse)
                 } catch (_: AuthenticationFailedException) {
                     finishWithResult(null)
+                } catch (e: Throwable) {
+                    Log.e(TAG, "Passkey authentication failed", e)
+                    finishWithResult(null)
+                    return@LaunchedEffect
                 }
+
             }
 
             FenrisTheme {
@@ -195,24 +211,39 @@ private class GetRequestInfo(
             Log.i(TAG, "User requested signing with credential $credentialId")
 
             Log.d(TAG, "Extracting credential options")
-            val request = PendingIntentHandler
-                .retrieveProviderGetCredentialRequest(intent)
+            val request = try {
+                PendingIntentHandler.retrieveProviderGetCredentialRequest(intent)
+            } catch (e: Throwable) {
+                Log.e(TAG, "Failed to extract ProviderGetCredentialRequest from intent", e)
+                null
+            }
 
             if (request == null) {
                 Log.e(TAG, "Intent does not contain a ProviderGetCredentialRequest")
                 return null
             }
 
-            val credentialOption = request.credentialOptions.first() as GetPublicKeyCredentialOption
+            val credentialOption =
+                request.credentialOptions.firstNotNullOfOrNull { it as? GetPublicKeyCredentialOption }
+
+            if (credentialOption == null) {
+                Log.e(TAG, "Request contained no credential options")
+                return null
+            }
 
             Log.d(TAG, "Parsing request JSON")
-            return GetRequestInfo(
-                credentialId = CredentialId.fromString(credentialId),
-                callingAppInfo = request.callingAppInfo,
-                clientDataHash = credentialOption.clientDataHash,
-                requestJson = PublicKeyCredentialRequestOptions.fromJSON(credentialOption.requestJson),
-                validator = validator,
-            )
+            return try {
+                GetRequestInfo(
+                    credentialId = CredentialId.fromString(credentialId),
+                    callingAppInfo = request.callingAppInfo,
+                    clientDataHash = credentialOption.clientDataHash,
+                    requestJson = PublicKeyCredentialRequestOptions.fromJSON(credentialOption.requestJson),
+                    validator = validator,
+                )
+            } catch (e: Throwable) {
+                Log.e(TAG, "Failed to parse request JSON", e)
+                null
+            }
         }
     }
 }

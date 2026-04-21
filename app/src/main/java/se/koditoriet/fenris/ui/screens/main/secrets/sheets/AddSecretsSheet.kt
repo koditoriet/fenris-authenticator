@@ -48,7 +48,7 @@ fun AddSecretsSheet(
                     QRCodeReader.tryScanBitmap(bitmap)?.let { uri ->
                         onAddSecret(NewTotpSecret.fromUri(uri))
                     }
-                } catch (e: Exception) {
+                } catch (e: Throwable) {
                     Log.e(TAG, "Failed to import TOTP secret from image", e)
                     onError()
                 }
