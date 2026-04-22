@@ -124,3 +124,6 @@ reading one-time codes, Fenris takes the following precautions:
 
 ## Contributing
 Unfortunately, we are unable to accept external contributions at this point.
+
+
+<!-- Fix #106 -->
