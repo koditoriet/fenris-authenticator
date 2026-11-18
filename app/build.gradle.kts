@@ -11,23 +11,23 @@ plugins {
 configurations.all {
     resolutionStrategy {
         // Fix Room being a broken piece of garbage
-        force("org.jetbrains.kotlinx:kotlinx-serialization-core:1.10.0")
-        force("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
+        force("org.jetbrains.kotlinx:kotlinx-serialization-core:1.13.0")
+        force("org.jetbrains.kotlinx:kotlinx-serialization-json:1.13.0")
     }
 }
 
 android {
     namespace = "se.koditoriet.fenris"
     compileSdk {
-        version = release(36)
+        version = release(37)
     }
 
     defaultConfig {
         applicationId = "se.koditoriet.fenris"
         minSdk = 31
-        targetSdk = 36
-        versionCode = 6
-        versionName = "0.1"
+        targetSdk = 37
+        versionCode = 7
+        versionName = "0.1.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -51,7 +51,6 @@ android {
             }
 
             ndk {
-                abiFilters.add("arm64-v8a")
                 debugSymbolLevel = "none"
             }
 
@@ -59,6 +58,14 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+        }
+    }
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a")
+            isUniversalApk = false
         }
     }
     compileOptions {
