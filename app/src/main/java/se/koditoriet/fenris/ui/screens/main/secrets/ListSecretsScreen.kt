@@ -362,7 +362,7 @@ private fun TOTPCodeQRScanner(
                 val secret = NewTotpSecret.fromUri(it)
                 closeScanner()
                 onSuccess(secret)
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 dialogHost.showBadInput(
                     title = screenStrings.invalidTotpQRCode,
                     text = screenStrings.invalidTotpQRCodeDescription,
@@ -389,7 +389,7 @@ private fun AnySupportedQRScanner(
                 val data = QRCodeData.parse(it)
                 onSuccess(data)
                 closeScanner()
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 dialogHost.showBadInput(
                     title = screenStrings.unsupportedQRCode,
                     text = screenStrings.unsupportedQRCodeDescription,

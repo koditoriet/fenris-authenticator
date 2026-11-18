@@ -73,7 +73,7 @@ fun FragmentActivity.SetupScreen() {
                                 loadingOverlay.update(scope, screenStrings.restoredSecrets(done, total))
                             },
                         )
-                    } catch (e: Exception) {
+                    } catch (e: Throwable) {
                         Log.e(TAG, "Failed to restore from backup", e)
                         withContext(Dispatchers.Main) {
                             loadingOverlay.hide()

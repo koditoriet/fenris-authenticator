@@ -36,7 +36,7 @@ class ListSecretsViewModel(app: Application) : ViewModelBase(app) {
         secrets.forEach {
             try {
                 addTotpSecret(it)
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Log.e(TAG, "Failed to import secret", e)
                 failures += it
             }

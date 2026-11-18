@@ -38,6 +38,8 @@ import se.koditoriet.fenris.ui.components.dialogs.showBadInput
 import se.koditoriet.fenris.ui.components.dialogs.showWarning
 import se.koditoriet.fenris.ui.components.sheet.BottomSheet
 import se.koditoriet.fenris.ui.onIOThread
+import se.koditoriet.fenris.ui.screenLockEnabled
+import se.koditoriet.fenris.ui.screens.EnableScreenLockScreen
 import se.koditoriet.fenris.ui.screens.main.passkeys.sheets.EditPasskeyNameSheet
 import se.koditoriet.fenris.ui.theme.BACKGROUND_ICON_SIZE
 import se.koditoriet.fenris.ui.theme.FenrisTheme
@@ -66,7 +68,7 @@ class CreatePasskeyActivity : FragmentActivity() {
 
         val requestInfo = try {
             CreateRequestInfo.fromIntent(intent)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Log.e(TAG, "Unable to extract request info from intent", e)
             finishWithResponse(null)
             return
@@ -76,6 +78,11 @@ class CreatePasskeyActivity : FragmentActivity() {
 
         enableEdgeToEdge()
         setContent {
+            if (!screenLockEnabled()) {
+                EnableScreenLockScreen()
+                return@setContent
+            }
+
             Log.d(TAG, "Starting activity")
             val passkeys by viewModel.passkeys.collectAsState()
             val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -86,6 +93,10 @@ class CreatePasskeyActivity : FragmentActivity() {
                         viewModel.unlockVault(authFactory)
                     }
                 } catch (_: AuthenticationFailedException) {
+                    finishWithResponse(null)
+                    return@LaunchedEffect
+                } catch (e: Throwable) {
+                    Log.e(TAG, "Failed to unlock vault", e)
                     finishWithResponse(null)
                     return@LaunchedEffect
                 }
@@ -126,13 +137,20 @@ class CreatePasskeyActivity : FragmentActivity() {
                         EditPasskeyNameSheet(
                             prefilledDisplayName = requestInfo.requestJson.rp.id,
                             onSave = onIOThread { displayName ->
-                                val response = createPasskey(webAuthnValidator, displayName, requestInfo)
-                                Log.i(
-                                    TAG,
-                                    "Created passkey with credential id ${response.credentialId.toBase64Url()}"
-                                )
-                                withContext(Dispatchers.Main) {
-                                    finishWithResponse(response)
+                                try {
+                                    val response = createPasskey(webAuthnValidator, displayName, requestInfo)
+                                    Log.i(
+                                        TAG,
+                                        "Created passkey with credential id ${response.credentialId.toBase64Url()}"
+                                    )
+                                    withContext(Dispatchers.Main) {
+                                        finishWithResponse(response)
+                                    }
+                                } catch (e: Throwable) {
+                                    Log.e(TAG, "Failed to create passkey", e)
+                                    withContext(Dispatchers.Main) {
+                                        finishWithResponse(null)
+                                    }
                                 }
                             }
                         )

@@ -11,7 +11,7 @@ import java.security.Signature
 
 class SynchronizedVault(vaultFactory: () -> Vault) {
     private val mutex = Mutex()
-    private val vault = vaultFactory()
+    private val vault by lazy { vaultFactory() }
 
     suspend fun <T> withLock(action: suspend Vault.() -> T): T {
         mutex.lock()

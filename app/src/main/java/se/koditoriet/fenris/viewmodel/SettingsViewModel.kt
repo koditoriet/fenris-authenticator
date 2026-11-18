@@ -77,7 +77,7 @@ class SettingsViewModel(private val app: Application) : ViewModelBase(app) {
                 Log.i(TAG, "Backup export completed")
                 onExportCompleted()
             }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Log.e(TAG, "Export failed", e)
             onExportFailed()
         }

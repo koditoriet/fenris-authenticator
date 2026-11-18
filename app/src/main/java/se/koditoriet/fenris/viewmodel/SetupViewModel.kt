@@ -59,7 +59,7 @@ class SetupViewModel(private val app: Application) : ViewModelBase(app) {
                 )
             }
             Log.i(TAG, "Backup successfully imported")
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             // Make sure we go back to a clean slate if something went wrong
             Log.e(TAG, "Unable to restore backup", e)
             wipe()

@@ -48,7 +48,7 @@ fun ImportFromFileSheet(
                     Log.d(TAG, "Using decoder ${selectedDecoder.formatName}")
                     val decodedImport = importFromFile(ctx, selectedDecoder)
                     onFileImported(decodedImport)
-                } catch (e: Exception) {
+                } catch (e: Throwable) {
                     Log.e(TAG, "Failed to import from $it using decoder $selectedDecoderIndex", e)
                     val selectedDecoderName = selectedDecoderIndex
                         ?.let { ImportFormatDecoder.decoders[it].formatName }

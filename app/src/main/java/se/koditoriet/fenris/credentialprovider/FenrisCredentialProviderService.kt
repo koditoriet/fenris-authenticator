@@ -65,40 +65,52 @@ class FenrisCredentialProviderService : CredentialProviderService() {
     ) {
         Log.i(TAG, "Credential list requested")
         scope.launch {
-            (application as FenrisApp).vault.withLock {
-                if (state == Vault.State.Uninitialized) {
-                    Log.w(TAG, "Attempted to get credential list before initializing vault")
-                    callback.onError(GetCredentialUnknownException())
-                    return@withLock
-                }
+            try {
+                (application as FenrisApp).vault.withLock {
+                    if (state == Vault.State.Uninitialized) {
+                        Log.w(TAG, "Attempted to get credential list before initializing vault")
+                        callback.onError(GetCredentialUnknownException())
+                        return@withLock
+                    }
 
-                val config = (application as FenrisApp).configDatastore.data.first()
-                when {
-                    state == Vault.State.Locked && config.protectAccountList -> {
-                        Log.i(TAG, "Vault is locked; presenting unlock option")
-                        val pendingIntent = createPendingIntent(applicationContext, ListPasskeysActivity::class.java)
-                        val authAction = AuthenticationAction(
-                            title = strings.authenticationActionTitle,
-                            pendingIntent = pendingIntent,
-                        )
-                        callback.onResult(BeginGetCredentialResponse(authenticationActions = listOf(authAction)))
-                    }
-                    else -> {
-                        // unlock is idempotent and we know for a fact that the DB KEK doesn't require authentication
-                        unlock(
-                            DummyAuthenticator,
-                            config.encryptedDbKey!!,
-                            config.backupKeyAlias?.let { KeyHandle.fromAlias(it) },
-                        )
-                        callback.onResult(
-                            createBeginGetCredentialResponse(
-                                vault = this,
-                                context = applicationContext,
-                                request = request,
+                    val config = (application as FenrisApp).configDatastore.data.first()
+                    when {
+                        state == Vault.State.Locked && config.protectAccountList -> {
+                            Log.i(TAG, "Vault is locked; presenting unlock option")
+                            val pendingIntent =
+                                createPendingIntent(applicationContext, ListPasskeysActivity::class.java)
+                            val authAction = AuthenticationAction(
+                                title = strings.authenticationActionTitle,
+                                pendingIntent = pendingIntent,
                             )
-                        )
+                            callback.onResult(BeginGetCredentialResponse(authenticationActions = listOf(authAction)))
+                        }
+
+                        config.ready -> {
+                            // unlock is idempotent and we know for a fact that the DB KEK doesn't require authentication
+                            unlock(
+                                DummyAuthenticator,
+                                config.encryptedDbKey!!,
+                                config.backupKeyAlias?.let { KeyHandle.fromAlias(it) },
+                            )
+                            callback.onResult(
+                                createBeginGetCredentialResponse(
+                                    vault = this,
+                                    context = applicationContext,
+                                    request = request,
+                                )
+                            )
+                        }
+
+                        else -> {
+                            Log.w(TAG, "Attempted to get credential list before config loaded")
+                            callback.onError(GetCredentialUnknownException())
+                        }
                     }
                 }
+            } catch (e: Throwable) {
+                Log.e(TAG, "Exception servicing onBeginGetCredentialRequest", e)
+                callback.onError(GetCredentialUnknownException())
             }
         }
     }
@@ -108,28 +120,33 @@ class FenrisCredentialProviderService : CredentialProviderService() {
         cancellationSignal: CancellationSignal,
         callback: OutcomeReceiver<BeginCreateCredentialResponse, CreateCredentialException>,
     ) {
-        if ((application as FenrisApp).vault.state.value == Vault.State.Uninitialized) {
-            Log.w(TAG, "Attempted to create credential before initializing vault")
-            callback.onError(CreateCredentialUnknownException())
-            return
-        }
+        try {
+            if ((application as FenrisApp).vault.state.value == Vault.State.Uninitialized) {
+                Log.w(TAG, "Attempted to create credential before initializing vault")
+                callback.onError(CreateCredentialUnknownException())
+                return
+            }
 
-        if (request !is BeginCreatePublicKeyCredentialRequest) {
-            Log.i(TAG, "Got (and ignored) non-public key credential creation request: ${request::class.simpleName}")
-            callback.onError(CreateCredentialUnknownException())
-            return
-        }
+            if (request !is BeginCreatePublicKeyCredentialRequest) {
+                Log.i(TAG, "Got (and ignored) non-public key credential creation request: ${request::class.simpleName}")
+                callback.onError(CreateCredentialUnknownException())
+                return
+            }
 
-        val pendingIntent = createPendingIntent(applicationContext, CreatePasskeyActivity::class.java)
-        val entries = listOf(
-            CreateEntry(
-                accountName = appStrings.generic.passkeys,
-                pendingIntent = pendingIntent,
-                icon = Icon.createWithResource(this, R.drawable.passkey_fenris),
-                isAutoSelectAllowed = true,
-            ),
-        )
-        callback.onResult(BeginCreateCredentialResponse(entries))
+            val pendingIntent = createPendingIntent(applicationContext, CreatePasskeyActivity::class.java)
+            val entries = listOf(
+                CreateEntry(
+                    accountName = appStrings.generic.passkeys,
+                    pendingIntent = pendingIntent,
+                    icon = Icon.createWithResource(this, R.drawable.passkey_fenris),
+                    isAutoSelectAllowed = true,
+                ),
+            )
+            callback.onResult(BeginCreateCredentialResponse(entries))
+        } catch (e: Throwable) {
+            Log.e(TAG, "Exception servicing onBeginCreateCredentialRequest", e)
+            callback.onError(CreateCredentialUnknownException())
+        }
     }
 
     override fun onDestroy() {

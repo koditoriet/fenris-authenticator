@@ -1,5 +1,6 @@
 package se.koditoriet.fenris.ui
 
+import android.app.KeyguardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -65,4 +66,9 @@ fun CompositionLocalProviders(vararg values: ProvidedValue<*>, content: @Composa
     values.fold(content) { content, value ->
         { CompositionLocalProvider(value) { content() } }
     }.invoke()
+}
+
+fun Context.screenLockEnabled(): Boolean {
+    val keyguardManager = getSystemService(KeyguardManager::class.java)
+    return keyguardManager.isDeviceSecure
 }

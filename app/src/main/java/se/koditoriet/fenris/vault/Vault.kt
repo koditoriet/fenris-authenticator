@@ -371,8 +371,24 @@ class Vault(
         check(unlockState.backupKey != null) {
             "Can only rekey if backups are enabled"
         }
+
+        val secrets = unlockState.repository.totpSecrets()
+        val oldSecrets = secrets.getAll()
+        val passkeys = unlockState.repository.passkeys()
+        val oldPasskeys = passkeys.getAll()
+
+        check(oldSecrets.all { it.encryptedBackupSecret != null }) {
+            "Some secrets are missing backup data - vault is corrupted!"
+        }
+
+        check(oldPasskeys.all { it.encryptedBackupPrivateKey != null }) {
+            "Some passkeys are missing backup data - vault is corrupted!"
+        }
+
         Log.i(TAG, "Rekeying backup secrets")
         val oldBackupSecretKey = oldBackupSeed.deriveBackupKey()
+        val oldBackupKeyAlgorithm = unlockState.backupKey.algorithm
+
         val newBackupKey = newBackupSeed.let {
             Log.d(TAG, "Creating new secret backup key")
             val secretDekMaterial = it.deriveBackupKey()
@@ -383,15 +399,11 @@ class Vault(
             }
         }
 
-        val oldBackupKeyAlgorithm = unlockState.backupKey.algorithm
-        val secrets = unlockState.repository.totpSecrets()
-        val passkeys = unlockState.repository.passkeys()
-
         try {
             cryptographer.withDecryptionKey(oldBackupSecretKey, oldBackupKeyAlgorithm) {
                 cryptographer.withEncryptionKey(DummyAuthenticator, newBackupKey) {
                     Log.d(TAG, "Re-encrypting TOTP secrets...")
-                    for (item in secrets.getAll()) {
+                    for (item in oldSecrets) {
                         val decryptedSecret = decrypt(EncryptedData.decode(item.encryptedBackupSecret!!))
                         val encryptedSecret = try {
                             encrypt(decryptedSecret)
@@ -405,7 +417,7 @@ class Vault(
                     Log.d(TAG, "All TOTP secrets re-encrypted!")
 
                     Log.d(TAG, "Re-encrypting passkeys...")
-                    for (item in passkeys.getAll()) {
+                    for (item in oldPasskeys) {
                         val decryptedPrivKey = decrypt(EncryptedData.decode(item.encryptedBackupPrivateKey!!))
                         val encryptedPrivKey = try {
                             encrypt(decryptedPrivKey)
@@ -482,7 +494,7 @@ class Vault(
                 )
                 successfulImportedSecrets += 1
                 onSecretImported(successfulImportedSecrets)
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Log.e(TAG, "Failed to import secret with id ${secret.id} and key alias ${secret.keyAlias}!", e)
                 failedImportedSecrets += 1
             }
@@ -512,7 +524,7 @@ class Vault(
                 )
                 successfulImportedPasskeys += 1
                 onPasskeyImported(successfulImportedPasskeys)
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Log.e(
                     TAG,
                     "Failed to import passkey with credential id ${passkey.credentialId}" +

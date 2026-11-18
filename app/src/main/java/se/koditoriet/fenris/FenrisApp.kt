@@ -10,6 +10,7 @@ import android.content.IntentFilter
 import android.os.SystemClock
 import android.util.Log
 import androidx.datastore.core.DataStore
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.dataStore
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
@@ -40,7 +41,16 @@ private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
 class FenrisApp : Application() {
     val vault: SynchronizedVault
-    val configDatastore: DataStore<Config> by dataStore("config", ConfigSerializer)
+
+    val configDatastore: DataStore<Config> by dataStore(
+        fileName = "config",
+        serializer = ConfigSerializer,
+        corruptionHandler = ReplaceFileCorruptionHandler {
+            Log.e(TAG, "Config datastore corrupted, restoring default config", it)
+            Config.default
+        },
+    )
+
     val config: StateFlow<Config> by lazy {
         Log.d(TAG, "Creating config StateFlow")
         configDatastore.data.stateIn(
@@ -50,7 +60,7 @@ class FenrisApp : Application() {
         )
     }
 
-    private val cryptographer = Cryptographer()
+    private val cryptographer by lazy { Cryptographer() }
     private var idleTimeout: TimeoutJob? = null
 
     fun startIdleTimeout() {
@@ -74,8 +84,14 @@ class FenrisApp : Application() {
     }
 
     init {
-        Log.i(TAG, "Loading sqlcipher native libraries")
-        System.loadLibrary("sqlcipher")
+        Log.i(TAG, "Loading sqlcipher native library")
+        try {
+            System.loadLibrary("sqlcipher")
+        } catch (e: Throwable) {
+            Log.e(TAG, "Failed to load sqlcipher native library", e)
+            throw e
+        }
+
         val repositoryFactory = { dbName: String, key: ByteArray ->
             VaultRepository.open(this, dbName, key)
         }

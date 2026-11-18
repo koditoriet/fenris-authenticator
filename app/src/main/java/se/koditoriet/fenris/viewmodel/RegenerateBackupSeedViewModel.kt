@@ -17,7 +17,7 @@ class RegenerateBackupSeedViewModel(app: Application) : ViewModelBase(app) {
             rekeyBackups(oldSeed, newSeed)
             Log.e(TAG, "Backups successfully re-encrypted")
             true
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Log.e(TAG, "Failed to re-encrypt backups secrets", e)
             false
         }

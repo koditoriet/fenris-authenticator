@@ -81,7 +81,7 @@ fun SystemSettingsNudgeScreen(
                 onClick = {
                     try {
                         onOpenSettings()
-                    } catch (e: Exception) {
+                    } catch (e: Throwable) {
                         Log.e(TAG, "Unable to open settings", e)
                         dialogHost.showWarning(
                             title = screenStrings.unableToOpenSystemSettings,

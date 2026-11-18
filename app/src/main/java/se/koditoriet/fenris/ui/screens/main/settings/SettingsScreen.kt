@@ -389,7 +389,7 @@ private fun PasskeySettingsRow(
                     val pendingIntent = credentialManager.createSettingsPendingIntent()
                     try {
                         pendingIntent.send()
-                    } catch (e: Exception) {
+                    } catch (e: Throwable) {
                         Log.e(TAG, "Unable to open settings", e)
 
                         /* NOP - if for some unlikely reason we can't launch the settings screen,
