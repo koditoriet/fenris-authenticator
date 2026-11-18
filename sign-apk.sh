@@ -10,5 +10,5 @@ apksigner \
     --ks-type PKCS11 \
     --min-sdk-version 31 \
     --max-sdk-version 36 \
-    --in app/build/outputs/apk/release/app-release-unsigned.apk \
+    --in app/build/outputs/apk/release/app-arm64-v8a-release-unsigned.apk \
     --out "$APK_NAME"
